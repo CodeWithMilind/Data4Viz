@@ -1,24 +1,30 @@
-from typing import Dict, Any
-
 class IntentEngine:
     """
     Rule-based intent recognition system.
-    Decides which analysis tool to use based on keywords.
+    Decides which service/action to trigger based on user input.
     """
     
     def determine_intent(self, query: str) -> str:
-        query = query.lower()
+        """
+        Analyzes the query string to determine the user's intent.
+        """
+        query = query.lower().strip()
         
-        if any(w in query for w in ["eda", "report", "sweetviz", "summary"]):
-            return "sweetviz"
-        
-        if any(w in query for w in ["profile", "profiling", "overview", "quality"]):
-            return "basic_stats" # Fallback to basic stats if ydata is too heavy, or "ydata"
-        
-        if any(w in query for w in ["plot", "chart", "graph", "visual", "autoviz"]):
-            return "autoviz"
+        # Notebook / Code intent
+        if any(w in query for w in ["notebook", "code", "script", "python", "jupyter"]):
+            return "notebook"
             
-        if any(w in query for w in ["stats", "describe", "count", "mean", "average"]):
-            return "basic_stats"
+        # Visualization intent
+        if any(w in query for w in ["plot", "chart", "graph", "histogram", "scatter", "visualize", "show me"]):
+            return "visualization"
             
-        return "unknown"
+        # Analysis / Stats intent
+        if any(w in query for w in ["stats", "statistics", "describe", "mean", "median", "summary", "profile", "analyze", "overview", "columns", "info"]):
+            return "analysis"
+            
+        # Data Cleaning intent
+        if any(w in query for w in ["clean", "missing", "null", "drop", "fill", "na"]):
+            return "cleaning"
+            
+        # General chat or unknown
+        return "chat"

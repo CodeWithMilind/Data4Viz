@@ -13,139 +13,138 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Plotly.js -->
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    
-    <!-- Custom Styles -->
+    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- 1️⃣ LEFT SIDEBAR (Data Controls) -->
-        <aside class="sidebar">
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
             <div class="logo-area">
-                <i class="fa-solid fa-layer-group"></i>
-                <span>Data4Viz</span>
-            </div>
-
-            <div class="sidebar-section">
-                <h3>Data Source</h3>
-                <button class="btn-primary" id="upload-btn">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload CSV
-                </button>
-                <button class="btn-secondary disabled" disabled>
-                    <i class="fa-solid fa-database"></i> API Source
-                </button>
-            </div>
-
-            <div class="sidebar-section">
-                <h3>Fields</h3>
-                <ul class="field-list">
-                    <li><i class="fa-solid fa-font"></i> Country User</li>
-                    <li><i class="fa-solid fa-hashtag"></i> Age</li>
-                    <li><i class="fa-solid fa-hashtag"></i> Clicks</li>
-                    <li><i class="fa-solid fa-calendar"></i> Date</li>
-                    <li><i class="fa-solid fa-dollar-sign"></i> Revenue</li>
-                </ul>
-            </div>
-
-            <div class="sidebar-section">
-                <h3>Metrics</h3>
-                <div class="control-group">
-                    <label>Aggregation</label>
-                    <div class="select-wrapper">
-                        <select>
-                            <option value="sum">SUM</option>
-                            <option value="avg">AVG</option>
-                            <option value="count">COUNT</option>
-                        </select>
-                    </div>
-                </div>
+                <i class="fa-solid fa-cube"></i> Data4Viz
             </div>
             
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div class="avatar">DS</div>
-                    <div class="user-info">
-                        <span class="name">Data Scientist</span>
-                        <span class="status">Pro Plan</span>
+            <div class="sidebar-content">
+                <!-- Dataset Selector -->
+                <div class="control-group">
+                    <h3>Data Source</h3>
+                    <button class="btn-primary" id="upload-btn">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Upload CSV
+                    </button>
+                    <input type="file" id="file-upload" hidden accept=".csv">
+                </div>
+
+                <!-- Fields -->
+                <div class="control-group">
+                    <h3>Dimensions & Metrics</h3>
+                    <ul class="field-list" id="field-list">
+                        <li style="color: var(--text-muted); font-size: 0.9rem; padding: 0.5rem;">
+                            No dataset loaded
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Visualization Controls -->
+                <div class="control-group">
+                    <h3>Visualization</h3>
+                    
+                    <label class="control-label">Chart Type</label>
+                    <div class="chart-type-selector">
+                        <button class="chart-btn active" data-type="bar" title="Bar Chart">
+                            <i class="fa-solid fa-chart-bar"></i>
+                        </button>
+                        <button class="chart-btn" data-type="line" title="Line Chart">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </button>
+                        <button class="chart-btn" data-type="scatter" title="Scatter Plot">
+                            <i class="fa-solid fa-braille"></i>
+                        </button>
+                        <button class="chart-btn" data-type="histogram" title="Histogram">
+                            <i class="fa-solid fa-chart-column"></i>
+                        </button>
+                        <button class="chart-btn" data-type="box" title="Box Plot">
+                            <i class="fa-regular fa-square"></i>
+                        </button>
+                    </div>
+
+                    <label class="control-label">Aggregation</label>
+                    <select id="aggregation-select" class="control-select">
+                        <option value="none">None</option>
+                        <option value="sum">Sum</option>
+                        <option value="mean">Average</option>
+                        <option value="count">Count</option>
+                        <option value="min">Min</option>
+                        <option value="max">Max</option>
+                    </select>
+
+                    <button class="btn-primary full-width" id="visualize-btn" style="margin-top: 1rem;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Chart
+                    </button>
+                </div>
+
+                <!-- Filters (Placeholder) -->
+                <div class="control-group">
+                    <h3>Filters</h3>
+                    <div id="active-filters" class="empty-filters">
+                        No active filters
                     </div>
                 </div>
             </div>
         </aside>
 
-        <!-- 2️⃣ MAIN CONTENT AREA (Visualization Workspace) -->
+        <!-- CENTER CANVAS -->
         <main class="main-content">
+            <!-- Top Bar -->
             <header class="top-bar">
-                <div class="breadcrumb">
-                    <span class="text-muted">Workspace /</span>
-                    <span class="active">Marketing Analytics Board</span>
-                    <i class="fa-solid fa-circle-check status-icon"></i>
+                <div class="project-info">
+                    <div class="project-title" id="project-name">Untitled Analysis</div>
                 </div>
-                <div class="actions">
-                    <button class="btn-icon"><i class="fa-solid fa-share-nodes"></i> Share</button>
-                    <button class="btn-icon primary"><i class="fa-solid fa-download"></i> Export</button>
+                
+                <div class="status-badge">
+                    <i class="fa-solid fa-circle status-icon" style="font-size: 0.5rem;"></i>
+                    <span id="status-text">Ready</span>
                 </div>
             </header>
 
-            <div class="visualization-grid">
-                <!-- Line Chart Card -->
-                <div class="card chart-card">
-                    <div class="card-header">
-                        <h2>Clicks by AVERAGE of Date</h2>
-                        <div class="card-actions">
-                            <i class="fa-solid fa-expand"></i>
-                            <i class="fa-solid fa-ellipsis-vertical"></i>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="line-chart"></div>
-                    </div>
-                </div>
-
-                <!-- Heatmap Card -->
-                <div class="card chart-card">
-                    <div class="card-header">
-                        <h2>Country User by Age and Clicks</h2>
-                        <div class="card-actions">
-                            <i class="fa-solid fa-expand"></i>
-                            <i class="fa-solid fa-ellipsis-vertical"></i>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="heatmap-chart"></div>
+            <!-- Scrollable Canvas -->
+            <div class="canvas" id="canvas">
+                <div class="grid-container" id="dashboard-grid">
+                    <!-- Cards will be injected here -->
+                    <div class="card full-width empty-state">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <h3>Your Workspace is Empty</h3>
+                        <p>Upload a dataset to generate insights or ask the assistant below.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 3️⃣ AI ASSISTANT PANEL -->
-            <section class="assistant-panel">
-                <div class="assistant-header">
-                    <div class="title-group">
-                        <i class="fa-solid fa-robot magic-icon"></i>
-                        <h3>AI Data Assistant</h3>
-                    </div>
+            <!-- BOTTOM INSIGHTS PANEL -->
+            <div class="insights-panel">
+                <div class="insights-header">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--primary);"></i>
+                    AI Assistant
                 </div>
-
-                <div class="chat-interface">
-                    <div class="chat-history" id="chat-history">
+                
+                <div class="chat-container">
+                    <div class="messages-area" id="chat-history">
                         <div class="message assistant">
-                            Hello! Upload a dataset, then ask me to "generate EDA", "show basic stats", or "plot charts".
+                            <div class="bubble">
+                                Hello! I'm your Data Assistant. Upload a CSV file, and I'll help you analyze, clean, and visualize it.
+                            </div>
                         </div>
                     </div>
-                    <div class="chat-input-area">
-                        <input type="text" id="chat-input" placeholder="Ask something like: 'Show me an overview of the data'...">
-                        <button id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+                    
+                    <div class="input-area">
+                        <div class="input-group">
+                            <input type="text" id="chat-input" placeholder="Ask a question about your data..." autocomplete="off">
+                            <button id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </div>
         </main>
     </div>
 
-    <!-- Hidden File Input -->
-    <input type="file" id="file-upload" accept=".csv" style="display: none;">
-
-    <!-- App Logic -->
-    <script src="app.js"></script>
+    <script src="app.js?v=1"></script>
 </body>
 </html>

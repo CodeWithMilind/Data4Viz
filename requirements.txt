@@ -12,3 +12,6 @@ seaborn
 plotly
 jinja2
 setuptools
+nbclient
+ipykernel
+jupyter_client
