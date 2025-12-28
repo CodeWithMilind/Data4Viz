@@ -1,0 +1,290 @@
+[
+    {
+        "timestamp": "2025-12-21T18:00:59.809365",
+        "module": "loader",
+        "action": "load_file",
+        "status": "failed",
+        "details": {
+            "file_path": "sample_data.csv"
+        },
+        "error": "File not found: sample_data.csv"
+    },
+    {
+        "timestamp": "2025-12-21T18:04:05.052867",
+        "module": "loader",
+        "action": "load_file",
+        "status": "failed",
+        "details": {
+            "file_path": "./sample_data.csv"
+        },
+        "error": "File not found: ./sample_data.csv"
+    },
+    {
+        "timestamp": "2025-12-21T18:04:36.363121",
+        "module": "loader",
+        "action": "load_file",
+        "status": "success",
+        "details": {
+            "file_path": "./data_engine\\sample_data.csv",
+            "rows": 41188,
+            "columns": 1
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:04:36.499343",
+        "module": "profiler",
+        "action": "profile_data",
+        "status": "success",
+        "details": {
+            "rows": 41188,
+            "columns": 1
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:04:36.511346",
+        "module": "cleaner",
+        "action": "drop_missing",
+        "status": "success",
+        "details": {
+            "rows_removed": 0
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:04:36.524385",
+        "module": "cleaner",
+        "action": "drop_duplicates",
+        "status": "success",
+        "details": {
+            "duplicates_removed": 12
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:04:36.819871",
+        "module": "exporter",
+        "action": "export_data",
+        "status": "success",
+        "details": {
+            "output_path": "output.csv"
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:08:40.660723",
+        "module": "loader",
+        "action": "load_file",
+        "status": "success",
+        "details": {
+            "file_path": "./data_engine\\sample_data.csv",
+            "rows": 6,
+            "columns": 6
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:08:40.748771",
+        "module": "profiler",
+        "action": "profile_data",
+        "status": "success",
+        "details": {
+            "rows": 6,
+            "columns": 6
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:08:40.757042",
+        "module": "cleaner",
+        "action": "drop_missing",
+        "status": "success",
+        "details": {
+            "rows_removed": 3
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:08:40.767150",
+        "module": "cleaner",
+        "action": "drop_duplicates",
+        "status": "success",
+        "details": {
+            "duplicates_removed": 1
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-21T18:08:40.813947",
+        "module": "exporter",
+        "action": "export_data",
+        "status": "success",
+        "details": {
+            "output_path": "output.csv"
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:10:06.795758",
+        "module": "loader",
+        "action": "load_csv",
+        "status": "success",
+        "details": {
+            "path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\data_engine\\data\\sample_data.csv",
+            "rows": 12,
+            "columns": 5
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:10:06.831406",
+        "module": "profiler",
+        "action": "profile",
+        "status": "success",
+        "details": {
+            "columns": [
+                "id",
+                "name",
+                "age",
+                "salary",
+                "department"
+            ],
+            "missing_values": {
+                "id": 0,
+                "name": 0,
+                "age": 2,
+                "salary": 1,
+                "department": 0
+            }
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:10:06.836096",
+        "module": "cleaner",
+        "action": "drop_missing",
+        "status": "success",
+        "details": {
+            "rows_removed": 3
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:10:06.847323",
+        "module": "cleaner",
+        "action": "drop_duplicates",
+        "status": "success",
+        "details": {
+            "duplicates_removed": 0
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:10:06.852302",
+        "module": "transformer",
+        "action": "standardize_column_names",
+        "status": "success",
+        "details": {},
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:10:06.899042",
+        "module": "validator",
+        "action": "validate",
+        "status": "success",
+        "details": {},
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:10:06.907190",
+        "module": "exporter",
+        "action": "export_data",
+        "status": "success",
+        "details": {
+            "output_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\data_engine\\data\\sample_data_processed.csv"
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:12:27.716108",
+        "module": "loader",
+        "action": "load_csv",
+        "status": "success",
+        "details": {
+            "path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\data_engine\\data\\sample_data.csv",
+            "rows": 12,
+            "columns": 5
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:12:27.744619",
+        "module": "profiler",
+        "action": "profile",
+        "status": "success",
+        "details": {
+            "columns": [
+                "id",
+                "name",
+                "age",
+                "salary",
+                "department"
+            ],
+            "missing_values": {
+                "id": 0,
+                "name": 0,
+                "age": 2,
+                "salary": 1,
+                "department": 0
+            }
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:12:27.750823",
+        "module": "cleaner",
+        "action": "drop_missing",
+        "status": "success",
+        "details": {
+            "rows_removed": 3
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:12:27.756804",
+        "module": "cleaner",
+        "action": "drop_duplicates",
+        "status": "success",
+        "details": {
+            "duplicates_removed": 0
+        },
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:12:27.761700",
+        "module": "transformer",
+        "action": "standardize_column_names",
+        "status": "success",
+        "details": {},
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:12:27.800709",
+        "module": "validator",
+        "action": "validate",
+        "status": "success",
+        "details": {},
+        "error": null
+    },
+    {
+        "timestamp": "2025-12-27T19:12:27.809786",
+        "module": "exporter",
+        "action": "export_data",
+        "status": "success",
+        "details": {
+            "output_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\data_engine\\data\\sample_data_processed.csv"
+        },
+        "error": null
+    }
+]

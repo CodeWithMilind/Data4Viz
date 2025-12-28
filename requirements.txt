@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+pandas
+numpy
+sweetviz
+ydata-profiling
+autoviz
+scikit-learn
+matplotlib
+seaborn
+plotly
+jinja2
+setuptools

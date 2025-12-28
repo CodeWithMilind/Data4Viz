@@ -1,115 +1,55 @@
-"""
-loader.py
-
-This module is responsible for safely loading data
-from supported file formats into a pandas DataFrame.
-
-Supported formats:
-- CSV
-- Excel (.xlsx, .xls)
-- JSON
-
-Design principles:
-- Offline only
-- Safe file handling
-- Clear errors
-- Full logging via history.py
-"""
-
-import os
-from typing import Union
-
 import pandas as pd
-
+import os
 from history import HistoryLogger
-
 
 class DataLoader:
     """
-    DataLoader handles reading data files and converting them
-    into pandas DataFrames.
-
-    WHY a class?
-    - Keeps loader logic isolated
-    - Makes engine integration clean
-    - Easy to extend with more formats later
+    Responsible for loading data from various sources.
+    Currently supports CSV files.
     """
 
     def __init__(self, history: HistoryLogger):
-        """
-        Initialize the DataLoader.
-
-        Parameters:
-        history (HistoryLogger): Shared history logger instance
-
-        WHY:
-        - Loader should not create its own logger
-        - One central history across the entire engine
-        """
         self.history = history
-
-    def load(self, file_path: str) -> pd.DataFrame:
+    
+    def load_csv(self, path):
         """
-        Load a file into a pandas DataFrame.
-
-        Parameters:
-        file_path (str): Path to the input data file
-
+        Loads a CSV file into a pandas DataFrame.
+        
+        Args:
+            path (str): The file path to the CSV.
+            
         Returns:
-        pd.DataFrame: Loaded data
-
-        Raises:
-        ValueError: If file type is unsupported
-        FileNotFoundError: If file does not exist
+            pd.DataFrame: The loaded data, or None if loading failed.
         """
-
+        # WHY: We use try-except to prevent the app from crashing if the file is missing or bad.
         try:
-            # 1️⃣ Check if file exists
-            # WHY: Prevent silent failures and unclear pandas errors
-            if not os.path.exists(file_path):
-                raise FileNotFoundError(f"File not found: {file_path}")
+            # WHY: Check if file exists before trying to load to give a clear error.
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"The file at {path} was not found.")
+            
+            # WHY: pandas read_csv is the standard, efficient way to load CSV data.
+            df = pd.read_csv(path)
+            
+            print(f"✅ File loaded successfully from: {path}")
+            # WHY: Printing shape gives immediate feedback on data size (rows, columns).
+            print(f"📊 Dataset Shape: {df.shape[0]} rows, {df.shape[1]} columns")
 
-            # 2️⃣ Detect file extension
-            _, extension = os.path.splitext(file_path)
-            extension = extension.lower()
-
-            # 3️⃣ Load based on file type
-            if extension == ".csv":
-                df = pd.read_csv(file_path)
-
-            elif extension in [".xlsx", ".xls"]:
-                df = pd.read_excel(file_path)
-
-            elif extension == ".json":
-                df = pd.read_json(file_path)
-
-            else:
-                # Unsupported file type
-                raise ValueError(f"Unsupported file format: {extension}")
-
-            # 4️⃣ Log successful load
             self.history.log(
                 module="loader",
-                action="load_file",
+                action="load_csv",
                 status="success",
-                details={
-                    "file_path": file_path,
-                    "rows": len(df),
-                    "columns": len(df.columns)
-                }
+                details={"path": path, "rows": df.shape[0], "columns": df.shape[1]}
             )
-
+            
             return df
-
+            
         except Exception as e:
-            # 5️⃣ Log failure
+            print(f"❌ Error loading file: {e}")
             self.history.log(
                 module="loader",
-                action="load_file",
+                action="load_csv",
                 status="failed",
-                details={"file_path": file_path},
-                error=str(e)
+                error=str(e),
+                details={"path": path}
             )
-
-            # Re-raise error so engine knows something failed
-            raise
+            return None
