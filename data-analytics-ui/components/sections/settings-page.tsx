@@ -11,7 +11,7 @@
 "use client"
 
 import { useState } from "react"
-import { Settings, Sun, Globe, User, Shield, LogOut } from "lucide-react"
+import { Settings, Sun, Globe, User, Shield, LogOut, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -22,6 +22,43 @@ export function SettingsPage() {
   // UI-only state - no persistence
   const [sidebarVisibleByDefault, setSidebarVisibleByDefault] = useState(true)
   const [uiAnimations, setUiAnimations] = useState(true)
+  const [selectedProvider, setSelectedProvider] = useState("openai")
+  const [selectedModel, setSelectedModel] = useState("gpt-4o")
+
+  const providerModels: Record<string, { id: string; name: string }[]> = {
+    openai: [
+      { id: "gpt-4o", name: "GPT-4o" },
+      { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+      { id: "gpt-4-turbo", name: "GPT-4 Turbo" },
+      { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
+    ],
+    anthropic: [
+      { id: "claude-3-opus", name: "Claude 3 Opus" },
+      { id: "claude-3-sonnet", name: "Claude 3 Sonnet" },
+      { id: "claude-3-haiku", name: "Claude 3 Haiku" },
+      { id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet" },
+    ],
+    google: [
+      { id: "gemini-pro", name: "Gemini Pro" },
+      { id: "gemini-ultra", name: "Gemini Ultra" },
+      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
+    ],
+    meta: [
+      { id: "llama-3-70b", name: "Llama 3 70B" },
+      { id: "llama-3-8b", name: "Llama 3 8B" },
+      { id: "llama-2-70b", name: "Llama 2 70B" },
+    ],
+    mistral: [
+      { id: "mistral-large", name: "Mistral Large" },
+      { id: "mistral-medium", name: "Mistral Medium" },
+      { id: "mistral-small", name: "Mistral Small" },
+    ],
+  }
+
+  const handleProviderChange = (provider: string) => {
+    setSelectedProvider(provider)
+    setSelectedModel(providerModels[provider][0].id)
+  }
 
   return (
     <div className="h-full overflow-auto">
@@ -132,6 +169,70 @@ export function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Enable smooth transitions and animations</p>
                 </div>
                 <Switch checked={uiAnimations} onCheckedChange={setUiAnimations} />
+              </div>
+            </div>
+          </section>
+
+          {/* AI Model Selection Section */}
+          <section>
+            <h2 className="text-lg font-medium text-foreground mb-4 flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              AI Model
+            </h2>
+            <div className="bg-card border border-border rounded-lg p-4 space-y-4">
+              {/* Provider Selection */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">AI Provider</Label>
+                  <p className="text-xs text-muted-foreground">Select your preferred AI platform</p>
+                </div>
+                <Select value={selectedProvider} onValueChange={handleProviderChange}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="anthropic">Anthropic</SelectItem>
+                    <SelectItem value="google">Google AI</SelectItem>
+                    <SelectItem value="meta">Meta AI</SelectItem>
+                    <SelectItem value="mistral">Mistral AI</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* Model Selection */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">Model</Label>
+                  <p className="text-xs text-muted-foreground">Choose the specific model to use</p>
+                </div>
+                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {providerModels[selectedProvider].map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              {/* API Key Placeholder */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-medium">API Key</Label>
+                  <p className="text-xs text-muted-foreground">Your API key is securely stored</p>
+                </div>
+                <Button variant="outline" size="sm">
+                  Configure
+                </Button>
               </div>
             </div>
           </section>
