@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDataset, type Dataset } from "@/contexts/dataset-context"
 
 /**
@@ -142,9 +143,10 @@ function computeDatasetStats(dataset: Dataset | null) {
     })
 
     const unique = valueCounts.size
+    // Compute top 50 values to allow UI to slice dynamically
     const topValues = Array.from(valueCounts.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, 50)
       .map(([value, count]) => ({ value, count }))
 
     columnInsights[header] = {
@@ -231,6 +233,8 @@ export function OverviewPage() {
   const [insightsExpanded, setInsightsExpanded] = useState(false)
   const [selectedColumn, setSelectedColumn] = useState("city")
   const [filterType, setFilterType] = useState("all")
+  const [valueCountLimit, setValueCountLimit] = useState("5")
+  const [customValueCount, setCustomValueCount] = useState("")
   const [showPreview, setShowPreview] = useState(true)
   const [showSummary, setShowSummary] = useState(true)
   const [showMissing, setShowMissing] = useState(true)
@@ -266,6 +270,26 @@ export function OverviewPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDataset])
+
+  // Compute comprehensive dataset stats (single source of truth)
+  const datasetStats = useMemo(() => computeDatasetStats(selectedDataset), [selectedDataset])
+
+  // Calculate actual value count limit
+  const actualValueCountLimit = useMemo(() => {
+    if (valueCountLimit === "custom") {
+      const custom = Number.parseInt(customValueCount) || 5
+      return Math.min(Math.max(1, custom), 50) // Cap at 50
+    }
+    return Number.parseInt(valueCountLimit) || 5
+  }, [valueCountLimit, customValueCount])
+
+  // Get limited top values for display
+  const displayedTopValues = useMemo(() => {
+    if (!selectedDataset || !datasetStats?.columnInsights?.[selectedColumn]) {
+      return []
+    }
+    return datasetStats.columnInsights[selectedColumn].topValues.slice(0, actualValueCountLimit)
+  }, [selectedDataset, datasetStats, selectedColumn, actualValueCountLimit])
 
   // Calculate preview row count (cap at 200)
   const previewRowCount = useMemo(() => {
@@ -373,9 +397,6 @@ export function OverviewPage() {
       </main>
     )
   }
-
-  // Compute comprehensive dataset stats (single source of truth)
-  const datasetStats = useMemo(() => computeDatasetStats(selectedDataset), [selectedDataset])
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
@@ -788,33 +809,96 @@ dtypes: ${[
                       <p className="text-sm text-muted-foreground">distinct values in column</p>
                     </div>
                     <div className="space-y-3">
-                      <h4 className="text-sm font-medium text-muted-foreground">Top 5 Value Counts</h4>
-                      <div className="space-y-2">
-                        {datasetStats.columnInsights[selectedColumn].topValues.length > 0 ? (
-                          datasetStats.columnInsights[selectedColumn].topValues.map((item) => {
-                            const maxCount = Math.max(
-                              ...datasetStats.columnInsights[selectedColumn].topValues.map((v) => v.count)
-                            )
-                            return (
-                              <div key={item.value} className="flex items-center justify-between">
-                                <span className="text-sm font-medium">{item.value}</span>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-24 bg-muted rounded-full h-2">
-                                    <div
-                                      className="bg-primary h-2 rounded-full"
-                                      style={{
-                                        width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%`,
-                                      }}
-                                    />
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-sm font-medium text-muted-foreground">Top Value Counts</h4>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Show:</span>
+                          <Select value={valueCountLimit} onValueChange={setValueCountLimit}>
+                            <SelectTrigger className="w-20 h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5</SelectItem>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="20">20</SelectItem>
+                              <SelectItem value="custom">Custom</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {valueCountLimit === "custom" && (
+                            <Input
+                              type="number"
+                              min="1"
+                              max="50"
+                              value={customValueCount}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                if (val === "" || (!isNaN(Number(val)) && Number(val) > 0 && Number(val) <= 50)) {
+                                  setCustomValueCount(val)
+                                }
+                              }}
+                              placeholder="1-50"
+                              className="w-16 h-7 text-xs"
+                            />
+                          )}
+                        </div>
+                      </div>
+                      {/* Scrollable value counts container */}
+                      <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
+                        <div className="min-w-full space-y-2 pr-2">
+                          {displayedTopValues.length > 0 ? (
+                            displayedTopValues.map((item) => {
+                              const maxCount = Math.max(...displayedTopValues.map((v) => v.count))
+                              const isLongValue = String(item.value).length > 30
+                              const displayValue = isLongValue
+                                ? `${String(item.value).substring(0, 30)}...`
+                                : String(item.value)
+
+                              return (
+                                <div
+                                  key={item.value}
+                                  className="flex items-center justify-between gap-2 min-w-[300px]"
+                                >
+                                  {/* Value with truncation and tooltip */}
+                                  <div className="flex-1 min-w-0">
+                                    {isLongValue ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span
+                                            className="text-sm font-medium truncate block cursor-help"
+                                            title={String(item.value)}
+                                          >
+                                            {displayValue}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-md break-words">
+                                          <p>{String(item.value)}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <span className="text-sm font-medium">{displayValue}</span>
+                                    )}
                                   </div>
-                                  <span className="text-sm text-muted-foreground w-12 text-right">{item.count}</span>
+                                  {/* Bar and count - fixed width to maintain alignment */}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <div className="w-24 bg-muted rounded-full h-2 shrink-0">
+                                      <div
+                                        className="bg-primary h-2 rounded-full transition-all"
+                                        style={{
+                                          width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%`,
+                                        }}
+                                      />
+                                    </div>
+                                    <span className="text-sm text-muted-foreground w-12 text-right shrink-0">
+                                      {item.count}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            )
-                          })
-                        ) : (
-                          <p className="text-sm text-muted-foreground">No data available</p>
-                        )}
+                              )
+                            })
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No data available</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
