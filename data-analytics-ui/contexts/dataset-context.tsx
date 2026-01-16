@@ -55,18 +55,18 @@ function workspaceDatasetToDataset(wsDataset: WorkspaceDataset): Dataset {
 }
 
 export function DatasetProvider({ children }: { children: ReactNode }) {
-  const { currentWorkspace, uploadDatasetToWorkspace, getCurrentDataset } = useWorkspace()
+  const { currentWorkspace, uploadDatasetToWorkspace, getDatasets } = useWorkspace()
 
-  // Convert workspace dataset to Dataset format for compatibility
-  const currentDataset = useMemo(() => {
-    const wsDataset = getCurrentDataset()
-    return wsDataset ? workspaceDatasetToDataset(wsDataset) : null
-  }, [getCurrentDataset])
-
-  // For compatibility: return array with current dataset
+  // Convert workspace datasets to Dataset format for compatibility
   const datasets = useMemo(() => {
-    return currentDataset ? [currentDataset] : []
-  }, [currentDataset])
+    const wsDatasets = getDatasets()
+    return wsDatasets.map(workspaceDatasetToDataset)
+  }, [getDatasets])
+
+  // For compatibility: return first dataset as current
+  const currentDataset = useMemo(() => {
+    return datasets.length > 0 ? datasets[0] : null
+  }, [datasets])
 
   const addDataset = async (datasetData: Omit<Dataset, "id" | "uploadedAt">): Promise<Dataset> => {
     // Upload to workspace
@@ -80,8 +80,9 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
       sourceUrl: datasetData.sourceUrl,
     })
 
-    // Return the dataset from workspace
-    const wsDataset = getCurrentDataset()
+    // Return the newly uploaded dataset from workspace
+    const wsDatasets = getDatasets()
+    const wsDataset = wsDatasets[wsDatasets.length - 1] // Get the last one (newly added)
     if (!wsDataset) {
       throw new Error("Failed to upload dataset to workspace")
     }

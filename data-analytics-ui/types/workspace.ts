@@ -59,7 +59,7 @@ export interface Workspace {
   name: string
   createdAt: number
   updatedAt: number
-  dataset: WorkspaceDataset | null
+  datasets: WorkspaceDataset[]
   state: WorkspaceState
   notes: string
   steps: {

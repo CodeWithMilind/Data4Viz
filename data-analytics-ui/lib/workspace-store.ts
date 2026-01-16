@@ -79,7 +79,7 @@ class WorkspaceStore {
       name,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      dataset: null,
+      datasets: [],
       state: {
         datasetAttached: false,
         overviewReady: false,

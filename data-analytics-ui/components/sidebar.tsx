@@ -379,7 +379,7 @@ export function Sidebar({
             workspaces.map((workspace) => {
               const isActive = currentWorkspace?.id === workspace.id
               const isExpanded = expandedWorkspaceId === workspace.id
-              const datasetCount = workspace.dataset ? 1 : 0
+              const datasetCount = workspace.datasets?.length || 0
 
               return (
                 <div key={workspace.id} className="space-y-1">

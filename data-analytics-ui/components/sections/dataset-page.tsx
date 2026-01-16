@@ -21,9 +21,10 @@ import { fetchAndParseCSV, parseCSVFromFile, isValidURL } from "@/lib/csv-parser
 import { useToast } from "@/hooks/use-toast"
 
 export function DatasetPage() {
-  const { currentWorkspace, uploadDatasetToWorkspace, removeDatasetFromWorkspace, getCurrentDataset } = useWorkspace()
+  const { currentWorkspace, uploadDatasetToWorkspace, removeDatasetFromWorkspace, getDatasets } = useWorkspace()
   const { toast } = useToast()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null)
   
   // URL loading state
   const [csvUrl, setCsvUrl] = useState("")
@@ -35,7 +36,7 @@ export function DatasetPage() {
   const [fileError, setFileError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const currentDataset = getCurrentDataset()
+  const datasets = getDatasets()
 
   // Handle CSV URL loading
   const handleLoadFromUrl = async () => {
@@ -133,13 +134,16 @@ export function DatasetPage() {
   }
 
   const handleRemoveDataset = async () => {
+    if (!datasetToDelete) return
+
     try {
-      await removeDatasetFromWorkspace()
+      await removeDatasetFromWorkspace(datasetToDelete)
       toast({
         title: "Success",
         description: "Dataset removed from workspace",
       })
       setDeleteDialogOpen(false)
+      setDatasetToDelete(null)
     } catch (error) {
       toast({
         title: "Error",
@@ -260,58 +264,63 @@ export function DatasetPage() {
           </Card>
         )}
 
-        {/* Current Workspace Dataset */}
+        {/* Current Workspace Datasets */}
         {currentWorkspace && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">Workspace: {currentWorkspace.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {currentDataset ? "Dataset attached" : "No dataset attached"}
+                  {datasets.length} dataset{datasets.length !== 1 ? "s" : ""} attached
                 </p>
               </div>
             </div>
 
-            {currentDataset && (
-              <Card className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <FileSpreadsheet className="w-5 h-5 text-primary" />
+            {datasets.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {datasets.map((dataset) => (
+                  <Card key={dataset.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <FileSpreadsheet className="w-5 h-5 text-primary" />
+                          </div>
+                          <CardTitle className="text-sm font-medium truncate">{dataset.name}</CardTitle>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            setDatasetToDelete(dataset.id)
+                            setDeleteDialogOpen(true)
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Remove
+                        </Button>
                       </div>
-                      <CardTitle className="text-sm font-medium truncate">{currentDataset.name}</CardTitle>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setDeleteDialogOpen(true)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Remove
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Table className="w-3 h-3" />
-                      {currentDataset.rowCount.toLocaleString()} rows
-                    </span>
-                    <span>{currentDataset.columnCount} columns</span>
-                    {currentDataset.source === "url" && (
-                      <span className="flex items-center gap-1">
-                        <Link2 className="w-3 h-3" />
-                        URL
-                      </span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {!currentDataset && (
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Table className="w-3 h-3" />
+                          {dataset.rowCount.toLocaleString()} rows
+                        </span>
+                        <span>{dataset.columnCount} columns</span>
+                        {dataset.source === "url" && (
+                          <span className="flex items-center gap-1">
+                            <Link2 className="w-3 h-3" />
+                            URL
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Upload className="w-12 h-12 text-muted-foreground mb-4" />

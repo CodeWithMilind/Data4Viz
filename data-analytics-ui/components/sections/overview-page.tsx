@@ -225,7 +225,7 @@ const getSummaryStats = (dataset: WorkspaceDataset | null, stats: ReturnType<typ
 }
 
 export function OverviewPage() {
-  const { currentWorkspace, getCurrentDataset, setOverviewReady } = useWorkspace()
+  const { currentWorkspace, getDatasets, setOverviewReady } = useWorkspace()
   const [previewExpanded, setPreviewExpanded] = useState(true)
   const [rowsShown, setRowsShown] = useState("20")
   const [customRowCount, setCustomRowCount] = useState("")
@@ -242,8 +242,9 @@ export function OverviewPage() {
 
   // Get dataset from workspace
   const selectedDataset = useMemo(() => {
-    return getCurrentDataset()
-  }, [getCurrentDataset])
+    const datasets = getDatasets()
+    return datasets.length > 0 ? datasets[0] : null // Use first dataset for overview
+  }, [getDatasets])
 
   // Initialize selected column when dataset loads
   useEffect(() => {
@@ -340,7 +341,32 @@ export function OverviewPage() {
     }
   }
 
-  // Show message if no workspace or dataset
+  // Filter columns based on type filter (must be before early returns)
+  const filteredColumns = useMemo(() => {
+    if (!selectedDataset) return []
+    return datasetStats.columnMetadata.filter((col) => {
+      if (filterType === "all") return true
+      return col.type === filterType
+    })
+  }, [datasetStats.columnMetadata, filterType, selectedDataset])
+
+  // Helper function for type badge color
+  const getTypeBadgeColor = (type: string) => {
+    switch (type) {
+      case "numeric":
+        return "bg-blue-100 text-blue-700 border-blue-200"
+      case "categorical":
+        return "bg-green-100 text-green-700 border-green-200"
+      case "datetime":
+        return "bg-purple-100 text-purple-700 border-purple-200"
+      case "boolean":
+        return "bg-orange-100 text-orange-700 border-orange-200"
+      default:
+        return "bg-muted text-muted-foreground"
+    }
+  }
+
+  // Early returns after all hooks
   if (!currentWorkspace) {
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
@@ -372,30 +398,6 @@ export function OverviewPage() {
       </main>
     )
   }
-
-  const getTypeBadgeColor = (type: string) => {
-    switch (type) {
-      case "numeric":
-        return "bg-blue-100 text-blue-700 border-blue-200"
-      case "categorical":
-        return "bg-green-100 text-green-700 border-green-200"
-      case "datetime":
-        return "bg-purple-100 text-purple-700 border-purple-200"
-      case "boolean":
-        return "bg-orange-100 text-orange-700 border-orange-200"
-      default:
-        return "bg-muted text-muted-foreground"
-    }
-  }
-
-  // Filter columns based on type filter
-  const filteredColumns = useMemo(() => {
-    if (!selectedDataset) return []
-    return datasetStats.columnMetadata.filter((col) => {
-      if (filterType === "all") return true
-      return col.type === filterType
-    })
-  }, [datasetStats.columnMetadata, filterType])
 
   return (
     <main className="flex-1 flex flex-col h-screen bg-background overflow-hidden">

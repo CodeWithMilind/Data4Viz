@@ -16,34 +16,33 @@ import type { Workspace, WorkspaceDataset } from "@/types/workspace"
 /**
  * Export workspace to .d4v file
  */
-export async function exportWorkspace(workspace: Workspace, dataset: WorkspaceDataset | null): Promise<Blob> {
+export async function exportWorkspace(workspace: Workspace): Promise<Blob> {
   const zip = new JSZip()
 
   // Create workspace export without full dataset data (to reduce size)
   const exportWorkspace = {
     ...workspace,
-    dataset: dataset
-      ? {
-          id: dataset.id,
-          name: dataset.name,
-          fileName: dataset.fileName,
-          rowCount: dataset.rowCount,
-          columnCount: dataset.columnCount,
-          schema: dataset.schema,
-          // Don't export full data in JSON - it's in CSV
-        }
-      : null,
+    datasets: workspace.datasets.map((dataset) => ({
+      id: dataset.id,
+      name: dataset.name,
+      fileName: dataset.fileName,
+      rowCount: dataset.rowCount,
+      columnCount: dataset.columnCount,
+      schema: dataset.schema,
+      // Don't export full data in JSON - it's in CSV files
+    })),
   }
 
   // Add workspace.json
   const workspaceJson = JSON.stringify(exportWorkspace, null, 2)
   zip.file("workspace.json", workspaceJson)
 
-  // Add dataset.csv if dataset is attached
-  if (dataset) {
+  // Add dataset CSV files for each dataset
+  workspace.datasets.forEach((dataset, index) => {
     const csvContent = convertDatasetToCSV(dataset)
-    zip.file("dataset.csv", csvContent)
-  }
+    const filename = dataset.fileName || `dataset-${index + 1}.csv`
+    zip.file(filename, csvContent)
+  })
 
   // Generate ZIP blob
   const blob = await zip.generateAsync({ type: "blob" })
@@ -56,6 +55,7 @@ export async function exportWorkspace(workspace: Workspace, dataset: WorkspaceDa
 export async function importWorkspace(file: File): Promise<{
   workspace: Workspace
   datasetCsv: string | null
+  datasetFiles: { filename: string; content: string }[]
 }> {
   const zip = new JSZip()
   const zipData = await zip.loadAsync(file)
@@ -80,15 +80,30 @@ export async function importWorkspace(file: File): Promise<{
     throw new Error(`Unsupported workspace version: ${workspace.version}. Expected 1.0`)
   }
 
-  // Read dataset.csv if present
-  const datasetFile = zipData.file("dataset.csv")
-  let datasetCsv: string | null = null
+  // Read all dataset CSV files
+  const datasetFiles: { filename: string; content: string }[] = []
+  zipData.forEach((relativePath, file) => {
+    if (!file.dir && relativePath !== "workspace.json" && relativePath.endsWith(".csv")) {
+      datasetFiles.push({ filename: relativePath, content: "" })
+    }
+  })
 
-  if (datasetFile) {
-    datasetCsv = await datasetFile.async("string")
+  // Load dataset CSV contents
+  for (const datasetFile of datasetFiles) {
+    const file = zipData.file(datasetFile.filename)
+    if (file) {
+      datasetFile.content = await file.async("string")
+    }
   }
 
-  return { workspace, datasetCsv }
+  // For backward compatibility, also check for dataset.csv
+  const legacyDatasetFile = zipData.file("dataset.csv")
+  let legacyDatasetCsv: string | null = null
+  if (legacyDatasetFile) {
+    legacyDatasetCsv = await legacyDatasetFile.async("string")
+  }
+
+  return { workspace, datasetCsv: legacyDatasetCsv, datasetFiles }
 }
 
 /**

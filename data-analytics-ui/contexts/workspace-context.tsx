@@ -34,8 +34,9 @@ interface WorkspaceContextType {
     source: "file" | "url"
     sourceUrl?: string
   }) => Promise<void>
-  removeDatasetFromWorkspace: () => Promise<void>
-  getCurrentDataset: () => WorkspaceDataset | null
+  removeDatasetFromWorkspace: (datasetId: string) => Promise<void>
+  getDatasets: () => WorkspaceDataset[]
+  getDataset: (datasetId: string) => WorkspaceDataset | null
 
   // Workspace state updates
   setOverviewReady: (ready: boolean) => Promise<void>
@@ -255,7 +256,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
       const updatedWorkspace: Workspace = {
         ...currentWorkspace,
-        dataset: workspaceDataset,
+        datasets: [...currentWorkspace.datasets, workspaceDataset],
         state: {
           ...currentWorkspace.state,
           datasetAttached: true,
@@ -270,27 +271,39 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   )
 
   // Remove dataset from workspace
-  const removeDatasetFromWorkspace = useCallback(async () => {
-    if (!currentWorkspace) return
+  const removeDatasetFromWorkspace = useCallback(
+    async (datasetId: string) => {
+      if (!currentWorkspace) return
 
-    const updatedWorkspace: Workspace = {
-      ...currentWorkspace,
-      dataset: null,
-      state: {
-        ...currentWorkspace.state,
-        datasetAttached: false,
-      },
-    }
+      const updatedDatasets = currentWorkspace.datasets.filter((ds) => ds.id !== datasetId)
+      const updatedWorkspace: Workspace = {
+        ...currentWorkspace,
+        datasets: updatedDatasets,
+        state: {
+          ...currentWorkspace.state,
+          datasetAttached: updatedDatasets.length > 0,
+        },
+      }
 
-    setCurrentWorkspace(updatedWorkspace)
-    await workspaceStore.saveWorkspace(updatedWorkspace)
-    await listWorkspaces()
-  }, [currentWorkspace, listWorkspaces])
+      setCurrentWorkspace(updatedWorkspace)
+      await workspaceStore.saveWorkspace(updatedWorkspace)
+      await listWorkspaces()
+    },
+    [currentWorkspace, listWorkspaces]
+  )
 
-  // Get current dataset from workspace
-  const getCurrentDataset = useCallback((): WorkspaceDataset | null => {
-    return currentWorkspace?.dataset || null
+  // Get all datasets from workspace
+  const getDatasets = useCallback((): WorkspaceDataset[] => {
+    return currentWorkspace?.datasets || []
   }, [currentWorkspace])
+
+  // Get a specific dataset by ID
+  const getDataset = useCallback(
+    (datasetId: string): WorkspaceDataset | null => {
+      return currentWorkspace?.datasets.find((ds) => ds.id === datasetId) || null
+    },
+    [currentWorkspace]
+  )
 
   // Update state flags
   const setOverviewReady = useCallback(
@@ -424,7 +437,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       throw new Error("No workspace to export")
     }
 
-    const blob = await exportWorkspace(currentWorkspace, currentWorkspace.dataset)
+    const blob = await exportWorkspace(currentWorkspace)
     const filename = `${currentWorkspace.name.replace(/[^a-z0-9]/gi, "_")}.d4v`
     downloadBlob(blob, filename)
   }, [currentWorkspace])
@@ -432,7 +445,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   // Import workspace
   const importWorkspaceFromFile = useCallback(
     async (file: File): Promise<Workspace> => {
-      const { workspace, datasetCsv } = await importWorkspace(file)
+      const { workspace, datasetCsv, datasetFiles } = await importWorkspace(file)
 
       // Check if workspace with same ID already exists
       const existing = await workspaceStore.loadWorkspace(workspace.id)
@@ -441,25 +454,63 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         workspace.id = `workspace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       }
 
-      // Import dataset if CSV is present
-      if (datasetCsv && workspace.dataset) {
+      // Migrate old format (dataset) to new format (datasets)
+      if (!workspace.datasets && (workspace as any).dataset) {
+        workspace.datasets = [(workspace as any).dataset].filter(Boolean)
+      } else if (!workspace.datasets) {
+        workspace.datasets = []
+      }
+
+      // Import datasets from CSV files
+      const importedDatasets: WorkspaceDataset[] = []
+
+      // Import from new format (multiple CSV files)
+      for (const datasetFile of datasetFiles) {
+        try {
+          const parsed = parseCSV(datasetFile.content)
+          const datasetMetadata = workspace.datasets.find(
+            (ds) => ds.fileName === datasetFile.filename || ds.name === datasetFile.filename
+          )
+
+          if (datasetMetadata) {
+            importedDatasets.push({
+              ...datasetMetadata,
+              data: parsed.data,
+              headers: parsed.headers,
+              rowCount: parsed.rowCount,
+              columnCount: parsed.columnCount,
+              source: "file" as const,
+              uploadedAt: datasetMetadata.uploadedAt || Date.now(),
+            })
+          }
+        } catch (error) {
+          console.warn(`Failed to import dataset from ${datasetFile.filename}:`, error)
+        }
+      }
+
+      // Import from legacy format (single dataset.csv)
+      if (datasetCsv && workspace.datasets.length > 0 && importedDatasets.length === 0) {
         try {
           const parsed = parseCSV(datasetCsv)
-          
-          // Reconstruct full dataset in workspace
-          workspace.dataset = {
-            ...workspace.dataset,
+          const datasetMetadata = workspace.datasets[0]
+
+          importedDatasets.push({
+            ...datasetMetadata,
             data: parsed.data,
             headers: parsed.headers,
             rowCount: parsed.rowCount,
             columnCount: parsed.columnCount,
             source: "file" as const,
-            uploadedAt: Date.now(),
-          }
+            uploadedAt: datasetMetadata.uploadedAt || Date.now(),
+          })
         } catch (error) {
-          console.warn("Failed to import dataset from .d4v file:", error)
+          console.warn("Failed to import dataset from legacy .d4v file:", error)
         }
       }
+
+      // Update workspace with imported datasets
+      workspace.datasets = importedDatasets
+      workspace.state.datasetAttached = importedDatasets.length > 0
 
       // Save imported workspace
       await workspaceStore.saveWorkspace(workspace)
@@ -488,7 +539,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setActiveWorkspace,
         uploadDatasetToWorkspace,
         removeDatasetFromWorkspace,
-        getCurrentDataset,
+        getDatasets,
+        getDataset,
         setOverviewReady,
         setCleaningStarted,
         setFeaturesCreated,
