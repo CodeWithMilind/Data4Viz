@@ -92,31 +92,38 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
    */
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
   const scrollContainerRef = useRef<HTMLElement | null>(null)
-  const didInitRef = useRef(false)
+  const didInitRef = useRef<string | null>(null) // Track which workspace was initialized
   const prevWorkspaceIdRef = useRef<string | null>(null)
+  const prevDatasetIdRef = useRef<string | null>(null) // Track previous dataset for column loading
+  const columnsLoadedRef = useRef<string | null>(null) // Track which dataset had columns loaded
 
   // Reset selected dataset when workspace changes (ONLY when workspace actually changes)
-  // useEffect(() => {
-  //   if (activeWorkspaceId !== prevWorkspaceIdRef.current) {
-  //     prevWorkspaceIdRef.current = activeWorkspaceId
-  //     didInitRef.current = false
-  //     setSelectedDatasetId(null)
-  //     setCleaningSummary(null)
-  //     setSummaryError(null)
-  //     setHasAttemptedSync(false)
-  //   }
-  // }, [activeWorkspaceId])
+  useEffect(() => {
+    if (activeWorkspaceId !== prevWorkspaceIdRef.current) {
+      prevWorkspaceIdRef.current = activeWorkspaceId
+      didInitRef.current = null // Reset init flag for new workspace
+      columnsLoadedRef.current = null // Reset columns loaded flag
+      setSelectedDatasetId(null)
+      setCleaningSummary(null)
+      setSummaryError(null)
+      setHasAttemptedSync(false)
+      setColumns([]) // Reset columns when workspace changes
+    }
+  }, [activeWorkspaceId])
 
   // Safe initialization: Auto-select first dataset ONLY ONCE per workspace
-  // useEffect(() => {
-  //   if (!didInitRef.current && datasets.length > 0 && !selectedDatasetId && activeWorkspaceId) {
-  //     const firstDataset = datasets[0]?.fileName
-  //     if (firstDataset) {
-  //       didInitRef.current = true
-  //       setSelectedDatasetId(firstDataset)
-  //     }
-  //   }
-  // }, [datasets.length, selectedDatasetId, activeWorkspaceId])
+  useEffect(() => {
+    if (!activeWorkspaceId || datasets.length === 0) return
+    
+    // Only initialize if we haven't initialized for this workspace yet
+    if (didInitRef.current !== activeWorkspaceId && !selectedDatasetId) {
+      const firstDataset = datasets[0]?.fileName
+      if (firstDataset) {
+        didInitRef.current = activeWorkspaceId
+        setSelectedDatasetId(firstDataset)
+      }
+    }
+  }, [activeWorkspaceId, datasets.length, selectedDatasetId])
 
   // Find workspace dataset - memoized with stable dependencies
   const workspaceDataset = useMemo(() => {
@@ -176,7 +183,13 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     if (!activeWorkspaceId || !selectedDatasetId) {
       return
     }
-    
+
+    // Reset sync attempt flag when dataset changes
+    if (prevDatasetIdRef.current !== selectedDatasetId) {
+      prevDatasetIdRef.current = selectedDatasetId
+      setHasAttemptedSync(false)
+      columnsLoadedRef.current = null // Reset columns loaded when dataset changes
+    }
 
     let cancelled = false
     setIsLoadingSummary(true)
@@ -210,7 +223,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     return () => {
       cancelled = true
     }
-  }, [activeWorkspaceId, selectedDatasetId, hasAttemptedSync, workspaceDataset, syncAndFetchSummary])
+  }, [activeWorkspaceId, selectedDatasetId, workspaceDataset, syncAndFetchSummary])
 
   // Scroll sync
   useEffect(() => {
@@ -280,13 +293,19 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     })
   }, [])
 
-  // Stable dataset change handler - NO dependencies to prevent re-creation
-  const handleDatasetChange = useCallback((value: string) => {
-    if (value && value !== selectedDatasetId) {
-      setSelectedDatasetId(value)
-      setHasAttemptedSync(false)
+  // Guard column loading callback - prevent repeated parent updates
+  const handleColumnsLoaded = useCallback((loadedColumns: ColumnInfo[]) => {
+    // Only update if dataset changed or columns haven't been loaded for this dataset
+    if (columnsLoadedRef.current !== selectedDatasetId) {
+      columnsLoadedRef.current = selectedDatasetId
+      setColumns(loadedColumns)
     }
   }, [selectedDatasetId])
+
+  // Stable dataset change handler - direct setState, no conditions
+  const handleDatasetChange = useCallback((value: string) => {
+    setSelectedDatasetId(value)
+  }, [])
 
   const handlePreview = async (request: Omit<CleaningRequest, "workspace_id">) => {
     if (!activeWorkspaceId) {
@@ -329,8 +348,6 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     }
   }
 
-  // Determine if column filter should be shown
-  const showColumnFilter = activeSection !== "quality" && activeSection !== "history" && activeSection !== "duplicates"
 
   // Empty state when no workspace selected
   if (!activeWorkspaceId || !currentWorkspace) {
@@ -458,8 +475,32 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {  <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
-          
+        <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
+          <div className="flex items-center gap-4">
+            {datasets.length > 0 ? (
+              <Select
+                value={selectedDatasetId ?? undefined}
+                onValueChange={handleDatasetChange}
+              >
+                <SelectTrigger className="w-[200px] h-9">
+                  <SelectValue placeholder="Select dataset" />
+                </SelectTrigger>
+                <SelectContent>
+                  {datasets.map((dataset: typeof datasets[0]) => (
+                    <SelectItem key={dataset.id} value={dataset.fileName}>
+                      {dataset.name || dataset.fileName} ({dataset.rowCount} rows)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Select disabled value="">
+                <SelectTrigger className="w-[200px] h-9">
+                  <SelectValue placeholder="No datasets available" />
+                </SelectTrigger>
+              </Select>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Data Quality Score</span>
             <div className="flex items-center gap-2">
@@ -472,7 +513,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
               </span>
             </div>
           </div>
-        </header> }
+        </header>
 
         {/* REF TYPE: HTMLElement - ref is attached to a div which is HTMLElement */}
         <div ref={scrollContainerRef as React.RefObject<HTMLDivElement>} className="flex-1 overflow-y-auto">
@@ -526,11 +567,12 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                     selectedColumns={selectedColumns}
                     onColumnClick={handleColumnClick}
                     onColumnSelect={handleColumnSelect}
-                    onColumnsLoaded={setColumns}
+                    onColumnsLoaded={handleColumnsLoaded}
                   />
                 </section>
 
-                {showColumnFilter && columns.length > 0 && (
+                {/* Column Filter Panel - Visible when dataset is selected and columns are loaded */}
+                {selectedDatasetId && columns.length > 0 && (
                   <div className="space-y-4">
                     <ColumnFilterPanel
                       columns={columns}
