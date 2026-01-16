@@ -99,34 +99,15 @@ export function Header({ sidebarOpen, setSidebarOpen, activeNav }: HeaderProps) 
       </div>
       <div className="flex items-center gap-2">
         {currentWorkspace && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={handleExport}
-            >
-              <Download className="w-3.5 h-3.5" />
-              Export
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".d4v"
-              onChange={handleImport}
-              className="hidden"
-              id="workspace-import"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Import
-            </Button>
-          </>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={handleExport}
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export
+          </Button>
         )}
       </div>
     </header>

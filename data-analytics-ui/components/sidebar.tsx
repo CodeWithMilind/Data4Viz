@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   Database,
   LayoutGrid,
@@ -25,6 +25,9 @@ import {
   History,
   Plus,
   Trash2,
+  Upload,
+  MoreVertical,
+  Pencil,
   FolderOpen as FolderIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -93,17 +96,32 @@ export function Sidebar({
     isLoading,
     createWorkspace,
     loadWorkspace,
+    updateWorkspaceName,
     deleteWorkspace,
     setActiveWorkspace,
+    importWorkspaceFromFile,
   } = useWorkspace()
   const { toast } = useToast()
 
   const [workspacesOpen, setWorkspacesOpen] = useState(true)
+  const [expandedWorkspaceId, setExpandedWorkspaceId] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [newWorkspaceName, setNewWorkspaceName] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingWorkspaceId, setEditingWorkspaceId] = useState<string | null>(null)
+  const [editingWorkspaceName, setEditingWorkspaceName] = useState("")
+  const [isRenaming, setIsRenaming] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-expand active workspace when it changes
+  useEffect(() => {
+    if (currentWorkspace && expandedWorkspaceId !== currentWorkspace.id) {
+      setExpandedWorkspaceId(currentWorkspace.id)
+    }
+  }, [currentWorkspace?.id])
 
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) {
@@ -138,6 +156,8 @@ export function Sidebar({
   const handleSwitchWorkspace = async (id: string) => {
     try {
       await loadWorkspace(id)
+      // Toggle expanded state
+      setExpandedWorkspaceId(expandedWorkspaceId === id ? null : id)
       toast({
         title: "Success",
         description: "Workspace switched",
@@ -146,6 +166,77 @@ export function Sidebar({
       toast({
         title: "Error",
         description: "Failed to switch workspace",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditClick = (workspace: { id: string; name: string }) => {
+    setEditingWorkspaceId(workspace.id)
+    setEditingWorkspaceName(workspace.name)
+    setEditDialogOpen(true)
+  }
+
+  const handleRenameWorkspace = async () => {
+    if (!editingWorkspaceId || !editingWorkspaceName.trim()) {
+      toast({
+        title: "Error",
+        description: "Workspace name cannot be empty",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsRenaming(true)
+    try {
+      await updateWorkspaceName(editingWorkspaceId, editingWorkspaceName.trim())
+      setEditDialogOpen(false)
+      setEditingWorkspaceId(null)
+      setEditingWorkspaceName("")
+      toast({
+        title: "Success",
+        description: "Workspace renamed",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to rename workspace",
+        variant: "destructive",
+      })
+    } finally {
+      setIsRenaming(false)
+    }
+  }
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.endsWith(".d4v")) {
+      toast({
+        title: "Error",
+        description: "Please select a .d4v file",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const importedWorkspace = await importWorkspaceFromFile(file)
+      // Auto-load the imported workspace
+      await loadWorkspace(importedWorkspace.id)
+      setExpandedWorkspaceId(importedWorkspace.id)
+      toast({
+        title: "Success",
+        description: "Workspace imported and loaded",
+      })
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to import workspace",
         variant: "destructive",
       })
     }
@@ -214,45 +305,64 @@ export function Sidebar({
             <span>WORKSPACES</span>
             <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", !workspacesOpen && "-rotate-90")} />
           </button>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
-                <Plus className="w-3.5 h-3.5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Workspace</DialogTitle>
-                <DialogDescription>Create a new analysis workspace to organize your data work.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <label htmlFor="workspace-name" className="text-sm font-medium">
-                    Workspace Name
-                  </label>
-                  <Input
-                    id="workspace-name"
-                    value={newWorkspaceName}
-                    onChange={(e) => setNewWorkspaceName(e.target.value)}
-                    placeholder="My Analysis Workspace"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleCreateWorkspace()
-                      }
-                    }}
-                  />
+          <div className="flex items-center gap-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".d4v"
+              onChange={handleImport}
+              className="hidden"
+              id="workspace-import-sidebar"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import workspace"
+            >
+              <Upload className="w-3.5 h-3.5" />
+            </Button>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6" title="Create workspace">
+                  <Plus className="w-3.5 h-3.5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Workspace</DialogTitle>
+                  <DialogDescription>Create a new analysis workspace to organize your data work.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <label htmlFor="workspace-name" className="text-sm font-medium">
+                      Workspace Name
+                    </label>
+                    <Input
+                      id="workspace-name"
+                      value={newWorkspaceName}
+                      onChange={(e) => setNewWorkspaceName(e.target.value)}
+                      placeholder="My Analysis Workspace"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleCreateWorkspace()
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateWorkspace} disabled={isCreating}>
-                  {isCreating ? "Creating..." : "Create"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateWorkspace} disabled={isCreating}>
+                    {isCreating ? "Creating..." : "Create"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div
@@ -266,35 +376,82 @@ export function Sidebar({
           ) : workspaces.length === 0 ? (
             <div className="p-2 text-xs text-muted-foreground text-center">No workspaces</div>
           ) : (
-            workspaces.map((workspace) => (
-              <div
-                key={workspace.id}
-                className={cn(
-                  "group flex items-center justify-between px-2 py-1.5 rounded-md text-sm transition-colors",
-                  currentWorkspace?.id === workspace.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent",
-                )}
-              >
-                <button
-                  onClick={() => handleSwitchWorkspace(workspace.id)}
-                  className="flex-1 min-w-0 text-left truncate"
-                >
-                  {workspace.name}
-                </button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteClick(workspace.id)
-                  }}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </div>
-            ))
+            workspaces.map((workspace) => {
+              const isActive = currentWorkspace?.id === workspace.id
+              const isExpanded = expandedWorkspaceId === workspace.id
+              const datasetCount = workspace.dataset ? 1 : 0
+
+              return (
+                <div key={workspace.id} className="space-y-1">
+                  <div
+                    className={cn(
+                      "group flex items-center justify-between px-2 py-1.5 rounded-md text-sm transition-colors",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent",
+                    )}
+                  >
+                    <button
+                      onClick={() => handleSwitchWorkspace(workspace.id)}
+                      className="flex-1 min-w-0 text-left truncate flex items-center gap-2"
+                    >
+                      <ChevronDown
+                        className={cn(
+                          "w-3 h-3 transition-transform shrink-0",
+                          isExpanded ? "rotate-0" : "-rotate-90",
+                        )}
+                      />
+                      <span className="truncate">{workspace.name}</span>
+                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="w-3 h-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditClick(workspace)
+                          }}
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteClick(workspace.id)
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  {isExpanded && (
+                    <div className="pl-6 pr-2 py-1 text-xs text-muted-foreground">
+                      {datasetCount === 0 ? (
+                        <span>No dataset attached</span>
+                      ) : (
+                        <span>
+                          {datasetCount} dataset{datasetCount !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })
           )}
         </div>
       </div>
@@ -364,6 +521,42 @@ export function Sidebar({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Rename Workspace Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Workspace</DialogTitle>
+            <DialogDescription>Change the name of your workspace.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="edit-workspace-name" className="text-sm font-medium">
+                Workspace Name
+              </label>
+              <Input
+                id="edit-workspace-name"
+                value={editingWorkspaceName}
+                onChange={(e) => setEditingWorkspaceName(e.target.value)}
+                placeholder="Workspace name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleRenameWorkspace()
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameWorkspace} disabled={isRenaming}>
+              {isRenaming ? "Renaming..." : "Rename"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Workspace Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -19,6 +19,7 @@ interface WorkspaceContextType {
   createWorkspace: (name: string) => Promise<Workspace>
   loadWorkspace: (id: string) => Promise<void>
   saveWorkspace: () => Promise<void>
+  updateWorkspaceName: (id: string, newName: string) => Promise<void>
   deleteWorkspace: (id: string) => Promise<void>
   listWorkspaces: () => Promise<void>
   setActiveWorkspace: (id: string | null) => Promise<void>
@@ -141,6 +142,35 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       throw error
     }
   }, [currentWorkspace, listWorkspaces])
+
+  // Update workspace name
+  const updateWorkspaceName = useCallback(
+    async (id: string, newName: string) => {
+      try {
+        const workspace = await workspaceStore.loadWorkspace(id)
+        if (!workspace) {
+          throw new Error("Workspace not found")
+        }
+
+        const updatedWorkspace: Workspace = {
+          ...workspace,
+          name: newName,
+        }
+
+        await workspaceStore.saveWorkspace(updatedWorkspace)
+        await listWorkspaces()
+
+        // Update current workspace if it's the one being renamed
+        if (currentWorkspace?.id === id) {
+          setCurrentWorkspace(updatedWorkspace)
+        }
+      } catch (error) {
+        console.error("Failed to update workspace name:", error)
+        throw error
+      }
+    },
+    [currentWorkspace, listWorkspaces]
+  )
 
   // Delete workspace
   const deleteWorkspace = useCallback(
@@ -452,6 +482,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         createWorkspace,
         loadWorkspace,
         saveWorkspace,
+        updateWorkspaceName,
         deleteWorkspace,
         listWorkspaces,
         setActiveWorkspace,
