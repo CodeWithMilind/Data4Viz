@@ -1,14 +1,22 @@
 "use client"
 
+/**
+ * Outliers Card
+ *
+ * IMPORTANT: No mock data. Shows empty state until backend provides data.
+ * Backend is the single source of truth.
+ */
+
 import { useState } from "react"
-import { Filter, Play, Eye, AlertTriangle, Info } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { AlertTriangle, Database, Eye, Filter, Info, Play } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import type { CleaningRequest } from "@/types/dataCleaning"
 
 interface OutlierColumn {
   name: string
@@ -22,49 +30,19 @@ interface OutlierColumn {
 }
 
 interface OutliersCardProps {
+  datasetId: string
   columns?: OutlierColumn[]
   selectedColumns?: string[]
-  onAction?: (columnName: string, method: string, action: string) => void
+  onPreview?: (request: CleaningRequest) => Promise<any>
+  onApply?: (request: CleaningRequest) => Promise<any>
 }
 
-// Mock data
-const mockColumns: OutlierColumn[] = [
-  {
-    name: "Age",
-    outlierCount: 45,
-    min: -5,
-    max: 150,
-    mean: 35.2,
-    median: 34,
-    q1: 28,
-    q3: 42,
-  },
-  {
-    name: "Salary",
-    outlierCount: 32,
-    min: -1000,
-    max: 999999,
-    mean: 65000,
-    median: 62000,
-    q1: 45000,
-    q3: 80000,
-  },
-  {
-    name: "Experience",
-    outlierCount: 12,
-    min: -2,
-    max: 50,
-    mean: 8.5,
-    median: 7,
-    q1: 3,
-    q3: 12,
-  },
-]
-
 export function OutliersCard({
-  columns = mockColumns,
+  datasetId,
+  columns = [],
   selectedColumns = [],
-  onAction,
+  onPreview,
+  onApply,
 }: OutliersCardProps) {
   const [detectionMethods, setDetectionMethods] = useState<Record<string, "IQR" | "Z-Score">>({})
   const [actions, setActions] = useState<Record<string, "cap" | "remove" | "ignore">>({})
@@ -72,18 +50,56 @@ export function OutliersCard({
 
   // Filter: Only show selected numeric columns
   const filteredColumns =
-    selectedColumns.length === 0
-      ? columns
-      : columns.filter((col) => selectedColumns.includes(col.name))
+    selectedColumns.length === 0 ? columns : columns.filter((col) => selectedColumns.includes(col.name))
 
-  const handleApply = (column: OutlierColumn) => {
+  const handleApply = async (column: OutlierColumn) => {
+    if (!onApply) return
+
     const method = detectionMethods[column.name] || "IQR"
     const action = actions[column.name] || "cap"
-    onAction?.(column.name, method, action)
+
+    const request: CleaningRequest = {
+      dataset_id: datasetId,
+      operation: "outliers",
+      column: column.name,
+      action: action === "ignore" ? "ignore" : action === "cap" ? "cap" : "remove",
+      parameters: {
+        method: method,
+      },
+      preview: false,
+    }
+
+    try {
+      await onApply(request)
+    } catch (error) {
+      console.error("Failed to apply outlier action:", error)
+    }
   }
 
-  const handlePreview = (column: OutlierColumn) => {
+  const handlePreview = async (column: OutlierColumn) => {
+    if (!onPreview) return
+
     setPreviewedColumns((prev) => new Set(prev).add(column.name))
+
+    const method = detectionMethods[column.name] || "IQR"
+    const action = actions[column.name] || "cap"
+
+    const request: CleaningRequest = {
+      dataset_id: datasetId,
+      operation: "outliers",
+      column: column.name,
+      action: action === "ignore" ? "ignore" : action === "cap" ? "cap" : "remove",
+      parameters: {
+        method: method,
+      },
+      preview: true,
+    }
+
+    try {
+      await onPreview(request)
+    } catch (error) {
+      console.error("Failed to preview outlier action:", error)
+    }
   }
 
   const getDefaultMethod = (column: OutlierColumn) => {
@@ -96,7 +112,6 @@ export function OutliersCard({
 
   const canApply = (column: OutlierColumn) => {
     const action = getDefaultAction(column)
-    // Require preview for destructive actions
     if (action === "remove" && !previewedColumns.has(column.name)) return false
     return true
   }
@@ -133,8 +148,8 @@ export function OutliersCard({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <Info className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No numeric columns with outliers in selected columns</p>
+            <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No data available. Upload or connect a dataset to begin.</p>
           </div>
         </CardContent>
       </Card>
@@ -233,7 +248,6 @@ export function OutliersCard({
                       value={action}
                       onValueChange={(v) => {
                         setActions({ ...actions, [column.name]: v as "cap" | "remove" | "ignore" })
-                        // Clear preview when action changes
                         setPreviewedColumns((prev) => {
                           const next = new Set(prev)
                           next.delete(column.name)

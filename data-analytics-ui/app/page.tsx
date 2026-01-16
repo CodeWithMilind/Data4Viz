@@ -10,14 +10,14 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background" suppressHydrationWarning>
       <Sidebar
         activeNav={activeNav}
         setActiveNav={setActiveNav}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
       />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0" suppressHydrationWarning>
         <Header
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}

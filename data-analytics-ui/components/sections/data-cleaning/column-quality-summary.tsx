@@ -1,12 +1,21 @@
 "use client"
 
-import { CheckCircle2, AlertCircle, XCircle, ArrowRight } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+/**
+ * Column Quality Summary
+ *
+ * IMPORTANT: No mock data. Shows empty state until backend provides data.
+ * Backend is the single source of truth.
+ */
+
+import { useEffect } from "react"
+import { AlertCircle, ArrowRight, CheckCircle2, Database, XCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import type { ColumnInfo } from "./column-filter-panel"
 
 interface ColumnQuality {
   name: string
@@ -19,103 +28,33 @@ interface ColumnQuality {
 }
 
 interface ColumnQualitySummaryProps {
+  datasetId: string
   columns?: ColumnQuality[]
   selectedColumns?: string[]
   onColumnClick?: (columnName: string, issueType: string) => void
   onColumnSelect?: (columnName: string) => void
+  onColumnsLoaded?: (columns: ColumnInfo[]) => void
 }
 
-// Mock data - in production, this would come from props
-const mockColumns: ColumnQuality[] = [
-  {
-    name: "Age",
-    dataType: "numeric",
-    missingPercentage: 12.0,
-    duplicateContribution: 2.1,
-    typeConsistency: "consistent",
-    outlierCount: 45,
-    healthScore: 72,
-  },
-  {
-    name: "Salary",
-    dataType: "numeric",
-    missingPercentage: 8.0,
-    duplicateContribution: 1.5,
-    typeConsistency: "consistent",
-    outlierCount: 32,
-    healthScore: 85,
-  },
-  {
-    name: "Department",
-    dataType: "categorical",
-    missingPercentage: 4.5,
-    duplicateContribution: 0.8,
-    typeConsistency: "warning",
-    outlierCount: 0,
-    healthScore: 92,
-  },
-  {
-    name: "Email",
-    dataType: "categorical",
-    missingPercentage: 23.1,
-    duplicateContribution: 5.2,
-    typeConsistency: "inconsistent",
-    outlierCount: 0,
-    healthScore: 45,
-  },
-  {
-    name: "Hire_Date",
-    dataType: "datetime",
-    missingPercentage: 2.3,
-    duplicateContribution: 0.3,
-    typeConsistency: "consistent",
-    outlierCount: 0,
-    healthScore: 95,
-  },
-  {
-    name: "Location",
-    dataType: "categorical",
-    missingPercentage: 3.4,
-    duplicateContribution: 0.6,
-    typeConsistency: "consistent",
-    outlierCount: 0,
-    healthScore: 96,
-  },
-  {
-    name: "Manager_ID",
-    dataType: "numeric",
-    missingPercentage: 1.7,
-    duplicateContribution: 0.2,
-    typeConsistency: "consistent",
-    outlierCount: 0,
-    healthScore: 98,
-  },
-  {
-    name: "Performance_Score",
-    dataType: "numeric",
-    missingPercentage: 5.7,
-    duplicateContribution: 1.0,
-    typeConsistency: "warning",
-    outlierCount: 12,
-    healthScore: 78,
-  },
-  {
-    name: "Phone",
-    dataType: "categorical",
-    missingPercentage: 16.4,
-    duplicateContribution: 3.8,
-    typeConsistency: "inconsistent",
-    outlierCount: 0,
-    healthScore: 58,
-  },
-]
-
 export function ColumnQualitySummary({
-  columns = mockColumns,
+  datasetId,
+  columns = [],
   selectedColumns = [],
   onColumnClick,
   onColumnSelect,
+  onColumnsLoaded,
 }: ColumnQualitySummaryProps) {
+  // Extract column info for filter panel
+  useEffect(() => {
+    if (columns.length > 0 && onColumnsLoaded) {
+      const columnInfo: ColumnInfo[] = columns.map((col) => ({
+        name: col.name,
+        dataType: col.dataType,
+      }))
+      onColumnsLoaded(columnInfo)
+    }
+  }, [columns, onColumnsLoaded])
+
   const getHealthColor = (score: number) => {
     if (score >= 80) return "text-green-600"
     if (score >= 60) return "text-yellow-600"
@@ -176,7 +115,32 @@ export function ColumnQualitySummary({
   }
 
   const averageHealthScore =
-    columns.reduce((sum, col) => sum + col.healthScore, 0) / columns.length
+    columns.length > 0 ? columns.reduce((sum, col) => sum + col.healthScore, 0) / columns.length : 0
+
+  // Show empty state if no columns
+  if (columns.length === 0) {
+    return (
+      <Card className="border-2">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <CheckCircle2 className="w-6 h-6 text-primary" />
+                Column Quality Summary
+              </CardTitle>
+              <CardDescription>Comprehensive overview of data quality across all columns</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-12 text-muted-foreground">
+            <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No data available. Upload or connect a dataset to begin.</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="border-2">
@@ -308,9 +272,7 @@ export function ColumnQualitySummary({
               <span className="text-muted-foreground">Poor (&lt;60)</span>
             </div>
           </div>
-          <p className="text-muted-foreground">
-            Click any row to navigate to the relevant cleaning section
-          </p>
+          <p className="text-muted-foreground">Click any row to navigate to the relevant cleaning section</p>
         </div>
       </CardContent>
     </Card>

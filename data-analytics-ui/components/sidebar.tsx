@@ -115,13 +115,19 @@ export function Sidebar({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch: only render dynamic content after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Auto-expand active workspace when it changes
   useEffect(() => {
-    if (currentWorkspace && expandedWorkspaceId !== currentWorkspace.id) {
+    if (mounted && currentWorkspace && expandedWorkspaceId !== currentWorkspace.id) {
       setExpandedWorkspaceId(currentWorkspace.id)
     }
-  }, [currentWorkspace?.id])
+  }, [mounted, currentWorkspace?.id, expandedWorkspaceId])
 
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) {
@@ -371,7 +377,10 @@ export function Sidebar({
             workspacesOpen ? "max-h-[300px] overflow-y-auto" : "max-h-0",
           )}
         >
-          {isLoading ? (
+          {!mounted ? (
+            // Server-side render: show empty state to match initial client render
+            <div className="p-2 text-xs text-muted-foreground text-center">No workspaces</div>
+          ) : isLoading ? (
             <div className="p-2 text-xs text-muted-foreground text-center">Loading...</div>
           ) : workspaces.length === 0 ? (
             <div className="p-2 text-xs text-muted-foreground text-center">No workspaces</div>
@@ -481,16 +490,17 @@ export function Sidebar({
       </div>
 
       {/* User Profile */}
-      <div className="p-4 border-t border-sidebar-border relative">
+      {/* suppressHydrationWarning: Browser extensions may add attributes like bis_skin_checked */}
+      <div className="p-4 border-t border-sidebar-border relative" suppressHydrationWarning>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors">
-              <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
+            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors" suppressHydrationWarning>
+              <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center" suppressHydrationWarning>
                 <span className="text-sm font-semibold text-primary-foreground">JD</span>
               </div>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="font-medium text-sm text-sidebar-foreground truncate">John Doe</div>
-                <div className="text-xs text-muted-foreground">Free Plan</div>
+              <div className="flex-1 min-w-0 text-left" suppressHydrationWarning>
+                <div className="font-medium text-sm text-sidebar-foreground truncate" suppressHydrationWarning>John Doe</div>
+                <div className="text-xs text-muted-foreground" suppressHydrationWarning>Free Plan</div>
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
             </button>

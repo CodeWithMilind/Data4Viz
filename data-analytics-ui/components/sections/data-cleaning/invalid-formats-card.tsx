@@ -1,15 +1,23 @@
 "use client"
 
+/**
+ * Invalid Formats Card
+ *
+ * IMPORTANT: No mock data. Shows empty state until backend provides data.
+ * Backend is the single source of truth.
+ */
+
 import { useState } from "react"
-import { AlertTriangle, Play, Eye, Info, CheckCircle2, AlertCircle, Filter } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { AlertCircle, AlertTriangle, CheckCircle2, Database, Eye, Filter, Info, Play } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import type { CleaningRequest } from "@/types/dataCleaning"
 
 interface InvalidFormatIssue {
   columnName: string
@@ -19,49 +27,19 @@ interface InvalidFormatIssue {
 }
 
 interface InvalidFormatsCardProps {
+  datasetId: string
   issues?: InvalidFormatIssue[]
   selectedColumns?: string[]
-  onAction?: (columnName: string, actionType: string, config?: Record<string, any>) => void
+  onPreview?: (request: CleaningRequest) => Promise<any>
+  onApply?: (request: CleaningRequest) => Promise<any>
 }
 
-// Mock data - only columns with invalid values
-const mockIssues: InvalidFormatIssue[] = [
-  {
-    columnName: "Age",
-    expectedType: "numeric",
-    invalidCount: 23,
-    sampleInvalidValues: ["twenty-five", "N/A", "unknown"],
-  },
-  {
-    columnName: "Date_Joined",
-    expectedType: "datetime",
-    invalidCount: 18,
-    sampleInvalidValues: ["2024/13/45", "not-a-date", "invalid"],
-  },
-  {
-    columnName: "Department",
-    expectedType: "categorical",
-    invalidCount: 45,
-    sampleInvalidValues: ["Sales", "SALES", "sales", "SaLeS"],
-  },
-  {
-    columnName: "Email",
-    expectedType: "categorical",
-    invalidCount: 56,
-    sampleInvalidValues: ["john@", "invalid", "test@.com"],
-  },
-  {
-    columnName: "Phone",
-    expectedType: "categorical",
-    invalidCount: 34,
-    sampleInvalidValues: ["123", "abc-def", "12345"],
-  },
-]
-
 export function InvalidFormatsCard({
-  issues = mockIssues,
+  datasetId,
+  issues = [],
   selectedColumns = [],
-  onAction,
+  onPreview,
+  onApply,
 }: InvalidFormatsCardProps) {
   const [selectedActions, setSelectedActions] = useState<
     Record<
@@ -78,9 +56,8 @@ export function InvalidFormatsCard({
   const [previewedColumns, setPreviewedColumns] = useState<Set<string>>(new Set())
 
   // Filter: Only show issues for selected columns that have invalid values
-  const filteredIssues = issues.filter(
-    (issue) => selectedColumns.length === 0 || selectedColumns.includes(issue.columnName),
-  )
+  const filteredIssues =
+    selectedColumns.length === 0 ? issues : issues.filter((issue) => selectedColumns.includes(issue.columnName))
 
   const handleActionChange = (columnName: string, action: "convert" | "remove" | "replace") => {
     setSelectedActions((prev) => ({
@@ -90,7 +67,6 @@ export function InvalidFormatsCard({
         replaceConfig: action === "replace" ? prev[columnName]?.replaceConfig || { method: "mean" } : undefined,
       },
     }))
-    // Clear preview when action changes
     setPreviewedColumns((prev) => {
       const next = new Set(prev)
       next.delete(columnName)
@@ -109,32 +85,67 @@ export function InvalidFormatsCard({
     }))
   }
 
-  const handlePreview = (issue: InvalidFormatIssue) => {
-    setPreviewedColumns((prev) => new Set(prev).add(issue.columnName))
-  }
+  const handlePreview = async (issue: InvalidFormatIssue) => {
+    if (!onPreview) return
 
-  const handleApply = (issue: InvalidFormatIssue) => {
+    setPreviewedColumns((prev) => new Set(prev).add(issue.columnName))
+
     const action = selectedActions[issue.columnName]
     if (!action) return
 
-    onAction?.(issue.columnName, action.action, {
-      expectedType: issue.expectedType,
-      ...action.replaceConfig,
-    })
+    const request: CleaningRequest = {
+      dataset_id: datasetId,
+      operation: "invalid_format",
+      column: issue.columnName,
+      action: action.action === "convert" ? "safe_convert" : action.action === "remove" ? "remove_invalid" : "replace_invalid",
+      parameters: {
+        expected_type: issue.expectedType,
+        ...(action.action === "replace" ? action.replaceConfig : {}),
+      },
+      preview: true,
+    }
+
+    try {
+      await onPreview(request)
+    } catch (error) {
+      console.error("Failed to preview invalid format fix:", error)
+    }
+  }
+
+  const handleApply = async (issue: InvalidFormatIssue) => {
+    if (!onApply) return
+
+    const action = selectedActions[issue.columnName]
+    if (!action) return
+
+    const request: CleaningRequest = {
+      dataset_id: datasetId,
+      operation: "invalid_format",
+      column: issue.columnName,
+      action: action.action === "convert" ? "safe_convert" : action.action === "remove" ? "remove_invalid" : "replace_invalid",
+      parameters: {
+        expected_type: issue.expectedType,
+        ...(action.action === "replace" ? action.replaceConfig : {}),
+      },
+      preview: false,
+    }
+
+    try {
+      await onApply(request)
+    } catch (error) {
+      console.error("Failed to apply invalid format fix:", error)
+    }
   }
 
   const canApply = (issue: InvalidFormatIssue) => {
     const action = selectedActions[issue.columnName]
     if (!action) return false
 
-    // For replace action, ensure method is selected
     if (action.action === "replace") {
       if (!action.replaceConfig?.method) return false
-      // If custom value is required, ensure it's provided
       if (action.replaceConfig.method === "custom" && !action.replaceConfig.customValue) return false
     }
 
-    // Require preview for safety (except for convert which is safe)
     if (action.action !== "convert" && !previewedColumns.has(issue.columnName)) return false
 
     return true
@@ -156,7 +167,6 @@ export function InvalidFormatsCard({
         { value: "most_frequent", label: "Most frequent date" },
       ]
     }
-    // categorical
     return [
       { value: "normalize", label: "Normalize text" },
       { value: "unknown", label: "Replace with 'Unknown'" },
@@ -195,8 +205,8 @@ export function InvalidFormatsCard({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No format issues detected in selected columns</p>
+            <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No data available. Upload or connect a dataset to begin.</p>
           </div>
         </CardContent>
       </Card>
@@ -260,7 +270,6 @@ export function InvalidFormatsCard({
                     onValueChange={(v) => handleActionChange(issue.columnName, v as "convert" | "remove" | "replace")}
                     className="space-y-3"
                   >
-                    {/* Option 1: Attempt Conversion (Default) */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <RadioGroupItem value="convert" id={`${issue.columnName}-convert`} />
@@ -273,7 +282,6 @@ export function InvalidFormatsCard({
                       </p>
                     </div>
 
-                    {/* Option 2: Remove Rows */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <RadioGroupItem value="remove" id={`${issue.columnName}-remove`} />
@@ -295,7 +303,6 @@ export function InvalidFormatsCard({
                       )}
                     </div>
 
-                    {/* Option 3: Replace Invalid Values */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <RadioGroupItem value="replace" id={`${issue.columnName}-replace`} />

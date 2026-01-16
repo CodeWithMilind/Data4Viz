@@ -110,6 +110,17 @@ export function DatasetPage() {
         return
       }
 
+      // IMPORTANT: Sync dataset to backend storage so cleaning operations can work on it
+      // Workspace is the single source of truth - backend needs the file for cleaning
+      try {
+        const { uploadDatasetToWorkspace: uploadToBackend } = await import("@/lib/api/dataCleaningClient")
+        await uploadToBackend(currentWorkspace.id, file)
+      } catch (backendError) {
+        console.warn("Failed to sync dataset to backend (cleaning may not work):", backendError)
+        // Continue with frontend upload even if backend sync fails
+      }
+
+      // Upload to frontend workspace (IndexedDB)
       await uploadDatasetToWorkspace({
         name: file.name,
         data: parsed.data,
@@ -118,8 +129,18 @@ export function DatasetPage() {
         columnCount: parsed.columnCount,
         source: "file",
       })
+      
+      toast({
+        title: "Success",
+        description: "Dataset uploaded to workspace",
+      })
     } catch (error) {
       setFileError(error instanceof Error ? error.message : "Failed to parse CSV file")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload dataset",
+        variant: "destructive",
+      })
     } finally {
       setIsLoadingFile(false)
       // Reset file input

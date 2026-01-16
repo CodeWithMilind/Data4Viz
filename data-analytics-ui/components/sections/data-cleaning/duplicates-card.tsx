@@ -1,46 +1,49 @@
 "use client"
 
+/**
+ * Duplicates Card
+ *
+ * IMPORTANT: No mock data. Shows empty state until backend provides data.
+ * Backend is the single source of truth.
+ */
+
 import { useState } from "react"
-import { Copy, AlertTriangle, Play, Eye, Info } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+import { AlertTriangle, Copy, Database, Eye, Play } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type { CleaningRequest } from "@/types/dataCleaning"
 
 interface DuplicatesCardProps {
+  datasetId: string
   totalRows?: number
   duplicateCount?: number
   duplicatePercentage?: number
   availableColumns?: string[]
-  onAction?: (actionType: string, columns?: string[]) => void
+  onPreview?: (request: CleaningRequest) => Promise<any>
+  onApply?: (request: CleaningRequest) => Promise<any>
 }
 
-// Mock duplicate rows for preview
-const mockDuplicateRows = [
-  { id: 1, name: "John Doe", email: "john@example.com", age: 30, department: "Sales" },
-  { id: 2, name: "John Doe", email: "john@example.com", age: 30, department: "Sales" },
-  { id: 45, name: "Jane Smith", email: "jane@example.com", age: 28, department: "Marketing" },
-  { id: 46, name: "Jane Smith", email: "jane@example.com", age: 28, department: "Marketing" },
-  { id: 123, name: "Bob Johnson", email: "bob@example.com", age: 35, department: "IT" },
-  { id: 124, name: "Bob Johnson", email: "bob@example.com", age: 35, department: "IT" },
-]
-
 export function DuplicatesCard({
-  totalRows = 1950,
-  duplicateCount = 12,
-  duplicatePercentage = 0.6,
-  availableColumns = ["Name", "Email", "Age", "Department", "Salary", "Location"],
-  onAction,
+  datasetId,
+  totalRows,
+  duplicateCount,
+  duplicatePercentage,
+  availableColumns = [],
+  onPreview,
+  onApply,
 }: DuplicatesCardProps) {
   const [detectionMode, setDetectionMode] = useState<"all" | "selected">("all")
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
   const [removalStrategy, setRemovalStrategy] = useState<"keep-first" | "keep-last" | "remove-all">("keep-first")
   const [showPreview, setShowPreview] = useState(false)
+  const [previewData, setPreviewData] = useState<any[]>([])
 
   const handleColumnToggle = (column: string) => {
     setSelectedColumns((prev) =>
@@ -48,16 +51,67 @@ export function DuplicatesCard({
     )
   }
 
-  const handleApply = () => {
-    const columns = detectionMode === "all" ? undefined : selectedColumns
-    onAction?.(removalStrategy, columns)
+  const handleApply = async () => {
+    if (!onApply) return
+
+    const request: CleaningRequest = {
+      dataset_id: datasetId,
+      operation: "duplicates",
+      columns: detectionMode === "all" ? undefined : selectedColumns,
+      action: removalStrategy,
+      preview: false,
+    }
+
+    try {
+      await onApply(request)
+    } catch (error) {
+      console.error("Failed to apply duplicate removal:", error)
+    }
   }
 
-  const handlePreview = () => {
-    setShowPreview(!showPreview)
+  const handlePreview = async () => {
+    if (!onPreview) return
+
+    setShowPreview(true)
+
+    const request: CleaningRequest = {
+      dataset_id: datasetId,
+      operation: "duplicates",
+      columns: detectionMode === "all" ? undefined : selectedColumns,
+      action: removalStrategy,
+      preview: true,
+    }
+
+    try {
+      const response = await onPreview(request)
+      setPreviewData(response.before_sample || [])
+    } catch (error) {
+      console.error("Failed to preview duplicate removal:", error)
+    }
   }
 
   const canApply = detectionMode === "all" || (detectionMode === "selected" && selectedColumns.length > 0)
+
+  // Show empty state if no data available
+  if (totalRows === undefined || duplicateCount === undefined) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Copy className="w-5 h-5 text-muted-foreground" />
+            Duplicates
+          </CardTitle>
+          <CardDescription>Detect and remove duplicate rows from your dataset</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No data available. Upload or connect a dataset to begin.</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>
@@ -71,7 +125,7 @@ export function DuplicatesCard({
             <CardDescription>Detect and remove duplicate rows from your dataset</CardDescription>
           </div>
           <Badge variant="secondary">
-            {duplicateCount} duplicates ({duplicatePercentage.toFixed(1)}%)
+            {duplicateCount} duplicates ({duplicatePercentage?.toFixed(1) || 0}%)
           </Badge>
         </div>
       </CardHeader>
@@ -111,20 +165,24 @@ export function DuplicatesCard({
               <Label className="text-xs text-muted-foreground mb-3 block">
                 Select columns to check for duplicates:
               </Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {availableColumns.map((col) => (
-                  <div key={col} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`dup-col-${col}`}
-                      checked={selectedColumns.includes(col)}
-                      onCheckedChange={() => handleColumnToggle(col)}
-                    />
-                    <Label htmlFor={`dup-col-${col}`} className="text-sm cursor-pointer">
-                      {col}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+              {availableColumns.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {availableColumns.map((col) => (
+                    <div key={col} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`dup-col-${col}`}
+                        checked={selectedColumns.includes(col)}
+                        onCheckedChange={() => handleColumnToggle(col)}
+                      />
+                      <Label htmlFor={`dup-col-${col}`} className="text-sm cursor-pointer">
+                        {col}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No columns available</p>
+              )}
               {selectedColumns.length === 0 && (
                 <p className="text-xs text-muted-foreground mt-2">Select at least one column</p>
               )}
@@ -179,8 +237,8 @@ export function DuplicatesCard({
                   <AlertTriangle className="w-4 h-4" />
                   <AlertDescription className="text-xs">
                     <strong>Strong Warning:</strong> This will remove ALL rows that have duplicates, including the first
-                    occurrence. This may result in significant data loss ({duplicateCount} rows will be removed). Preview
-                    changes before applying.
+                    occurrence. This may result in significant data loss ({duplicateCount} rows will be removed).
+                    Preview changes before applying.
                   </AlertDescription>
                 </Alert>
               )}
@@ -189,28 +247,24 @@ export function DuplicatesCard({
         </div>
 
         {/* Preview Table */}
-        {showPreview && (
+        {showPreview && previewData.length > 0 && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Preview Duplicate Rows</Label>
             <div className="border rounded-md overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Age</TableHead>
-                    <TableHead>Department</TableHead>
+                    {Object.keys(previewData[0] || {}).map((key) => (
+                      <TableHead key={key}>{key}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockDuplicateRows.map((row) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-mono text-xs">{row.id}</TableCell>
-                      <TableCell>{row.name}</TableCell>
-                      <TableCell>{row.email}</TableCell>
-                      <TableCell>{row.age}</TableCell>
-                      <TableCell>{row.department}</TableCell>
+                  {previewData.map((row, idx) => (
+                    <TableRow key={idx}>
+                      {Object.values(row).map((value: any, colIdx) => (
+                        <TableCell key={colIdx}>{String(value ?? "")}</TableCell>
+                      ))}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -229,7 +283,7 @@ export function DuplicatesCard({
 
         {/* Actions */}
         <div className="flex items-center gap-2 pt-2 border-t">
-          <Button variant="outline" size="sm" onClick={handlePreview} className="gap-2">
+          <Button variant="outline" size="sm" onClick={handlePreview} className="gap-2" disabled={!canApply}>
             <Eye className="w-4 h-4" />
             {showPreview ? "Hide" : "Show"} Preview
           </Button>

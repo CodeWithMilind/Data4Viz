@@ -1,0 +1,16 @@
+Name,Age,Salary,Department,Email,Phone,Hire_Date
+John Doe,30,50000,Sales,john@example.com,555-0101,2020-01-15
+Jane Smith,25,60000,Marketing,jane@example.com,555-0102,2019-03-20
+Bob Johnson,35,55000,IT,bob@example.com,555-0103,2021-06-10
+Alice Brown,28,52000,Sales,alice@example.com,555-0104,2020-11-05
+Charlie Wilson,45,70000,IT,charlie@example.com,555-0105,2018-09-12
+Diana Prince,32,58000,Marketing,diana@example.com,555-0106,2021-02-28
+Frank Miller,29,51000,Sales,frank@example.com,555-0107,2022-01-10
+Grace Lee,27,54000,HR,grace@example.com,555-0108,2021-08-15
+Henry Ford,38,65000,IT,henry@example.com,555-0109,2019-12-01
+Ivy Chen,31,56000,Marketing,ivy@example.com,555-0110,2020-07-22
+John Doe,30,50000,Sales,john@example.com,555-0101,2020-01-15
+twenty-five,25,45000,Sales,invalid-email,12345,not-a-date
+NaN,40,60000,Marketing,,555-0112,2021-05-10
+Test User,150,999999,IT,test@example.com,555-0113,2022-12-31
+Sample Name,-5,30000,Sales,sample@example.com,555-0114,2023-01-01

@@ -1,6 +1,14 @@
 "use client"
 
-import { useState } from "react"
+/**
+ * Files Page
+ * 
+ * IMPORTANT: Workspace is the single source of truth.
+ * Shows files from workspace storage (original datasets + cleaned datasets).
+ * No fake or sample data - all files come from backend workspace storage.
+ */
+
+import { useState, useEffect } from "react"
 import {
   FileText,
   FileSpreadsheet,
@@ -13,72 +21,30 @@ import {
   Grid,
   List,
   MoreVertical,
-  Bot,
+  Loader2,
+  Database,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useWorkspace } from "@/contexts/workspace-context"
 import { cn } from "@/lib/utils"
 
-interface GeneratedFile {
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
+interface WorkspaceFile {
   id: string
   name: string
-  type: "csv" | "json" | "png" | "py" | "txt"
-  size: string
-  createdAt: string
-  generatedBy: string
+  size: number
+  type: string
+  created_at: string
 }
 
-const initialFiles: GeneratedFile[] = [
-  {
-    id: "1",
-    name: "cleaned_sales_data.csv",
-    type: "csv",
-    size: "2.4 MB",
-    createdAt: "2024-01-15 14:30",
-    generatedBy: "Data Cleaning Agent",
-  },
-  {
-    id: "2",
-    name: "analysis_report.json",
-    type: "json",
-    size: "156 KB",
-    createdAt: "2024-01-15 15:45",
-    generatedBy: "AI Agent",
-  },
-  {
-    id: "3",
-    name: "revenue_chart.png",
-    type: "png",
-    size: "890 KB",
-    createdAt: "2024-01-14 10:20",
-    generatedBy: "Visualization Agent",
-  },
-  {
-    id: "4",
-    name: "feature_engineering.py",
-    type: "py",
-    size: "12 KB",
-    createdAt: "2024-01-14 09:15",
-    generatedBy: "AI Agent",
-  },
-  {
-    id: "5",
-    name: "outlier_detection_results.csv",
-    type: "csv",
-    size: "1.1 MB",
-    createdAt: "2024-01-13 16:00",
-    generatedBy: "Outlier Detection Agent",
-  },
-  {
-    id: "6",
-    name: "insights_summary.txt",
-    type: "txt",
-    size: "24 KB",
-    createdAt: "2024-01-13 11:30",
-    generatedBy: "AI Agent",
-  },
-]
+interface WorkspaceFilesResponse {
+  workspace_id: string
+  files: WorkspaceFile[]
+}
 
 const getFileIcon = (type: string) => {
   switch (type) {
@@ -111,20 +77,91 @@ const getFileColor = (type: string) => {
 }
 
 export function FilesPage() {
-  const [files, setFiles] = useState<GeneratedFile[]>(initialFiles)
+  const { activeWorkspaceId } = useWorkspace()
+  const [files, setFiles] = useState<WorkspaceFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
 
+  // Fetch workspace files from backend
+  useEffect(() => {
+    async function fetchFiles() {
+      if (!activeWorkspaceId) {
+        setFiles([])
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch workspace files: ${response.statusText}`)
+        }
+        const data: WorkspaceFilesResponse = await response.json()
+        setFiles(data.files)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch files"
+        setError(errorMessage)
+        setFiles([])
+        console.error("Error fetching workspace files:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFiles()
+  }, [activeWorkspaceId])
+
   const filteredFiles = files.filter((file) => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
-  const deleteFile = (id: string) => {
-    setFiles(files.filter((f) => f.id !== id))
-    setSelectedFiles((prev) => {
-      const next = new Set(prev)
-      next.delete(id)
-      return next
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const formatDate = (isoString: string): string => {
+    const date = new Date(isoString)
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     })
+  }
+
+  const handleDownload = async (file: WorkspaceFile) => {
+    if (!activeWorkspaceId) return
+
+    try {
+      const response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files/${file.id}/download`)
+      if (!response.ok) {
+        throw new Error("Failed to download file")
+      }
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = file.name
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error("Error downloading file:", err)
+    }
+  }
+
+  // Note: File deletion would require a backend endpoint
+  // For now, we'll just show the option but it won't work
+  const deleteFile = (id: string) => {
+    console.warn("File deletion not yet implemented - requires backend endpoint")
   }
 
   const toggleFileSelection = (id: string) => {
@@ -139,13 +176,48 @@ export function FilesPage() {
     })
   }
 
+  // Empty state when no workspace selected
+  if (!activeWorkspaceId) {
+    return (
+      <main className="flex-1 flex items-center justify-center h-screen bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Database className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <CardTitle>No Workspace Selected</CardTitle>
+            <CardDescription>
+              Please create or select a workspace to view files
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </main>
+    )
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <main className="flex-1 flex items-center justify-center h-screen bg-background">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading workspace files...</p>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
+
   return (
     <main className="flex-1 flex flex-col bg-background overflow-hidden">
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center justify-between px-6 bg-card">
         <div className="flex items-center gap-3">
           <h1 className="font-semibold text-foreground">Files</h1>
-          <span className="text-sm text-muted-foreground">{files.length} files generated by AI</span>
+          <span className="text-sm text-muted-foreground">
+            {files.length} {files.length === 1 ? "file" : "files"} in workspace
+          </span>
         </div>
         <div className="flex items-center gap-2">
           {selectedFiles.size > 0 && (
@@ -219,13 +291,16 @@ export function FilesPage() {
                     <Icon className={cn("w-5 h-5", getFileColor(file.type))} />
                     <span className="font-medium text-sm text-foreground truncate">{file.name}</span>
                   </div>
-                  <div className="col-span-2 flex items-center text-sm text-muted-foreground">{file.size}</div>
+                  <div className="col-span-2 flex items-center text-sm text-muted-foreground">
+                    {formatFileSize(file.size)}
+                  </div>
                   <div className="col-span-3 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Bot className="w-4 h-4 text-primary" />
-                    <span className="truncate">{file.generatedBy}</span>
+                    <span className="truncate">
+                      {file.name.includes("_cleaned_") ? "Data Cleaning" : "Original Dataset"}
+                    </span>
                   </div>
                   <div className="col-span-2 flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{file.createdAt}</span>
+                    <span className="text-sm text-muted-foreground">{formatDate(file.created_at)}</span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="w-7 h-7" onClick={(e) => e.stopPropagation()}>
@@ -233,17 +308,9 @@ export function FilesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Preview
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(file)}>
                           <Download className="w-4 h-4 mr-2" />
                           Download
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => deleteFile(file.id)}>
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -309,13 +376,25 @@ export function FilesPage() {
           </div>
         )}
 
-        {filteredFiles.length === 0 && (
+        {filteredFiles.length === 0 && !error && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <FileText className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="font-medium text-foreground mb-1">No files found</h3>
-            <p className="text-sm text-muted-foreground">Files generated by AI agents will appear here.</p>
+            <p className="text-sm text-muted-foreground">
+              {searchQuery ? "No files match your search." : "This workspace has no files. Upload datasets or apply cleaning operations to generate files."}
+            </p>
+          </div>
+        )}
+        
+        {error && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Database className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="font-medium text-foreground mb-1">Error loading files</h3>
+            <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         )}
       </div>
