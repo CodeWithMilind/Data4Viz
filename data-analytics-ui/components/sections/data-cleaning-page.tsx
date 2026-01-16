@@ -571,17 +571,6 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                   />
                 </section>
 
-                {/* Column Filter Panel - Visible when dataset is selected and columns are loaded */}
-                {selectedDatasetId && columns.length > 0 && (
-                  <div className="space-y-4">
-                    <ColumnFilterPanel
-                      columns={columns}
-                      selectedColumns={selectedColumns}
-                      onSelectionChange={setSelectedColumns}
-                    />
-                  </div>
-                )}
-
                 {/* Missing Values Section */}
                 <section
                   id="missing"
@@ -633,6 +622,16 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                   }}
                   className="space-y-4"
                 >
+                  {/* Column Filter Panel - Visible ONLY in Outliers section */}
+                  {activeSection === "outliers" && selectedDatasetId && columns.length > 0 && (
+                    <div className="space-y-4">
+                      <ColumnFilterPanel
+                        columns={columns}
+                        selectedColumns={selectedColumns}
+                        onSelectionChange={setSelectedColumns}
+                      />
+                    </div>
+                  )}
                   <OutliersCard
                     datasetId={selectedDatasetId}
                     selectedColumns={selectedColumns}
