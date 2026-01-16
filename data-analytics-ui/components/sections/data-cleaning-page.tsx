@@ -96,27 +96,27 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   const prevWorkspaceIdRef = useRef<string | null>(null)
 
   // Reset selected dataset when workspace changes (ONLY when workspace actually changes)
-  useEffect(() => {
-    if (activeWorkspaceId !== prevWorkspaceIdRef.current) {
-      prevWorkspaceIdRef.current = activeWorkspaceId
-      didInitRef.current = false
-      setSelectedDatasetId(null)
-      setCleaningSummary(null)
-      setSummaryError(null)
-      setHasAttemptedSync(false)
-    }
-  }, [activeWorkspaceId])
+  // useEffect(() => {
+  //   if (activeWorkspaceId !== prevWorkspaceIdRef.current) {
+  //     prevWorkspaceIdRef.current = activeWorkspaceId
+  //     didInitRef.current = false
+  //     setSelectedDatasetId(null)
+  //     setCleaningSummary(null)
+  //     setSummaryError(null)
+  //     setHasAttemptedSync(false)
+  //   }
+  // }, [activeWorkspaceId])
 
   // Safe initialization: Auto-select first dataset ONLY ONCE per workspace
-  useEffect(() => {
-    if (!didInitRef.current && datasets.length > 0 && !selectedDatasetId && activeWorkspaceId) {
-      const firstDataset = datasets[0]?.fileName
-      if (firstDataset) {
-        didInitRef.current = true
-        setSelectedDatasetId(firstDataset)
-      }
-    }
-  }, [datasets.length, selectedDatasetId, activeWorkspaceId])
+  // useEffect(() => {
+  //   if (!didInitRef.current && datasets.length > 0 && !selectedDatasetId && activeWorkspaceId) {
+  //     const firstDataset = datasets[0]?.fileName
+  //     if (firstDataset) {
+  //       didInitRef.current = true
+  //       setSelectedDatasetId(firstDataset)
+  //     }
+  //   }
+  // }, [datasets.length, selectedDatasetId, activeWorkspaceId])
 
   // Find workspace dataset - memoized with stable dependencies
   const workspaceDataset = useMemo(() => {
@@ -457,8 +457,8 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
-          <div className="flex items-center gap-4">
+        {  <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
+          {/* <div className="flex items-center gap-4">
             {datasets.length > 0 ? (
               <Select
                 value={selectedDatasetId ?? undefined}
@@ -482,7 +482,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                 </SelectTrigger>
               </Select>
             )}
-          </div>
+          </div> */}
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Data Quality Score</span>
             <div className="flex items-center gap-2">
@@ -495,7 +495,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
               </span>
             </div>
           </div>
-        </header>
+        </header> }
 
         {/* REF TYPE: HTMLElement - ref is attached to a div which is HTMLElement */}
         <div ref={scrollContainerRef as React.RefObject<HTMLDivElement>} className="flex-1 overflow-y-auto">
