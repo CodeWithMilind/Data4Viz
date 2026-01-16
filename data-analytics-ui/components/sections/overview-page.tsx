@@ -20,7 +20,7 @@ import {
   Database,
   Loader2,
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -29,121 +29,196 @@ import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useDataset, type Dataset } from "@/contexts/dataset-context"
 
-// Summary stats helper - will be computed from dataset
-const getSummaryStats = (dataset: Dataset | null) => {
+/**
+ * Infer column type from data values
+ * Analyzes sample values to determine if column is numeric, datetime, boolean, or categorical
+ */
+function inferColumnType(values: any[], columnName: string): "numeric" | "datetime" | "boolean" | "categorical" {
+  if (values.length === 0) return "categorical"
+
+  // Check for boolean type
+  const nonNullValues = values.filter((v) => v !== null && v !== undefined && v !== "")
+  if (nonNullValues.length > 0) {
+    const allBooleans = nonNullValues.every(
+      (v) => typeof v === "boolean" || v === "true" || v === "false" || v === "True" || v === "False"
+    )
+    if (allBooleans) return "boolean"
+  }
+
+  // Check for datetime patterns
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}/, // YYYY-MM-DD
+    /^\d{2}\/\d{2}\/\d{4}/, // MM/DD/YYYY
+    /^\d{4}\/\d{2}\/\d{2}/, // YYYY/MM/DD
+    /^\d{2}-\d{2}-\d{4}/, // MM-DD-YYYY
+  ]
+  const dateMatches = nonNullValues.filter((v) => {
+    const str = String(v)
+    return datePatterns.some((pattern) => pattern.test(str)) || !isNaN(Date.parse(str))
+  })
+  if (dateMatches.length > nonNullValues.length * 0.8) return "datetime"
+
+  // Check for numeric type
+  const numericMatches = nonNullValues.filter((v) => {
+    if (typeof v === "number") return true
+    const str = String(v).trim()
+    return str !== "" && !isNaN(Number(str)) && isFinite(Number(str))
+  })
+  if (numericMatches.length > nonNullValues.length * 0.8) return "numeric"
+
+  // Default to categorical
+  return "categorical"
+}
+
+/**
+ * Compute comprehensive dataset statistics
+ * Single source of truth for all derived metrics
+ */
+function computeDatasetStats(dataset: Dataset | null) {
+  if (!dataset || !dataset.data || dataset.data.length === 0) {
+    return {
+      totalRows: 0,
+      totalColumns: 0,
+      numericColumns: 0,
+      categoricalColumns: 0,
+      datetimeColumns: 0,
+      booleanColumns: 0,
+      columnMetadata: [] as Array<{ name: string; type: string; nullable: boolean }>,
+      missingValues: [] as Array<{ column: string; missing: number; percentage: number; type: string }>,
+      totalMissingColumns: 0,
+      duplicateRows: 0,
+      columnInsights: {} as Record<string, { unique: number; topValues: { value: string; count: number }[] }>,
+    }
+  }
+
+  const headers = dataset.headers
+  const data = dataset.data
+  const rowCount = data.length
+
+  // Analyze each column
+  const columnMetadata: Array<{ name: string; type: string; nullable: boolean }> = []
+  const missingValues: Array<{ column: string; missing: number; percentage: number; type: string }> = []
+  const columnInsights: Record<string, { unique: number; topValues: { value: string; count: number }[] }> = {}
+
+  // Count duplicates (compare stringified rows)
+  const rowStrings = data.map((row) => JSON.stringify(row))
+  const uniqueRows = new Set(rowStrings)
+  const duplicateRows = rowCount - uniqueRows.size
+
+  headers.forEach((header) => {
+    // Extract column values
+    const columnValues = data.map((row) => row[header])
+
+    // Count missing values
+    const missingCount = columnValues.filter((v) => v === null || v === undefined || v === "").length
+    const missingPercentage = rowCount > 0 ? (missingCount / rowCount) * 100 : 0
+
+    // Infer column type
+    const columnType = inferColumnType(columnValues, header)
+
+    // Store column metadata
+    columnMetadata.push({
+      name: header,
+      type: columnType,
+      nullable: missingCount > 0,
+    })
+
+    // Store missing value info
+    if (missingCount > 0) {
+      missingValues.push({
+        column: header,
+        missing: missingCount,
+        percentage: missingPercentage,
+        type: columnType,
+      })
+    }
+
+    // Compute column insights (unique values and top frequencies)
+    const nonNullValues = columnValues.filter((v) => v !== null && v !== undefined && v !== "")
+    const valueCounts = new Map<string, number>()
+    nonNullValues.forEach((v) => {
+      const key = String(v)
+      valueCounts.set(key, (valueCounts.get(key) || 0) + 1)
+    })
+
+    const unique = valueCounts.size
+    const topValues = Array.from(valueCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([value, count]) => ({ value, count }))
+
+    columnInsights[header] = {
+      unique,
+      topValues,
+    }
+  })
+
+  // Count columns by type
+  const numericColumns = columnMetadata.filter((c) => c.type === "numeric").length
+  const categoricalColumns = columnMetadata.filter((c) => c.type === "categorical").length
+  const datetimeColumns = columnMetadata.filter((c) => c.type === "datetime").length
+  const booleanColumns = columnMetadata.filter((c) => c.type === "boolean").length
+
+  // Sort missing values by percentage (descending)
+  missingValues.sort((a, b) => b.percentage - a.percentage)
+
+  return {
+    totalRows: rowCount,
+    totalColumns: headers.length,
+    numericColumns,
+    categoricalColumns,
+    datetimeColumns,
+    booleanColumns,
+    columnMetadata,
+    missingValues,
+    totalMissingColumns: missingValues.length,
+    duplicateRows,
+    columnInsights,
+  }
+}
+
+/**
+ * Format summary stats for display cards
+ */
+const getSummaryStats = (dataset: Dataset | null, stats: ReturnType<typeof computeDatasetStats>) => {
   if (!dataset) {
     return []
   }
-  
-  // Basic stats from dataset
-  const totalRows = dataset.rowCount.toLocaleString()
-  const totalColumns = dataset.columnCount.toString()
-  
-  // For now, we'll use placeholder values for column type analysis
-  // In a real implementation, you'd analyze the data types
+
   return [
-    { label: "Total Rows", value: totalRows, icon: Rows3, subtext: "records loaded" },
-    { label: "Total Columns", value: totalColumns, icon: Columns3, subtext: "features" },
-    { label: "Numeric Columns", value: "-", icon: Hash, subtext: "analyze data types" },
-    { label: "Categorical Columns", value: "-", icon: Type, subtext: "analyze data types" },
-    { label: "Datetime Columns", value: "-", icon: Calendar, subtext: "analyze data types" },
-    { label: "Missing Columns", value: "-", icon: AlertCircle, subtext: "analyze nulls" },
-    { label: "Duplicated Rows", value: "-", icon: Copy, subtext: "analyze duplicates" },
+    { label: "Total Rows", value: stats.totalRows.toLocaleString(), icon: Rows3, subtext: "records loaded" },
+    { label: "Total Columns", value: stats.totalColumns.toString(), icon: Columns3, subtext: "features" },
+    {
+      label: "Numeric Columns",
+      value: stats.numericColumns.toString(),
+      icon: Hash,
+      subtext: stats.numericColumns > 0 ? `${stats.numericColumns} numeric columns` : "no numeric columns",
+    },
+    {
+      label: "Categorical Columns",
+      value: stats.categoricalColumns.toString(),
+      icon: Type,
+      subtext: stats.categoricalColumns > 0 ? `${stats.categoricalColumns} categorical columns` : "no categorical columns",
+    },
+    {
+      label: "Datetime Columns",
+      value: stats.datetimeColumns.toString(),
+      icon: Calendar,
+      subtext: stats.datetimeColumns > 0 ? `${stats.datetimeColumns} datetime columns` : "no datetime columns",
+    },
+    {
+      label: "Missing Columns",
+      value: stats.totalMissingColumns.toString(),
+      icon: AlertCircle,
+      subtext: stats.totalMissingColumns > 0 ? "columns with nulls" : "no missing values",
+    },
+    {
+      label: "Duplicated Rows",
+      value: stats.duplicateRows.toString(),
+      icon: Copy,
+      subtext: stats.duplicateRows > 0 ? "duplicate rows found" : "no duplicates found",
+    },
   ]
-}
-
-// Dummy data for dataset preview
-const columns = [
-  "id",
-  "name",
-  "age",
-  "email",
-  "city",
-  "country",
-  "salary",
-  "department",
-  "hire_date",
-  "is_active",
-  "score",
-  "category",
-]
-
-const generateRows = (count: number) => {
-  const rows = []
-  for (let i = 1; i <= count; i++) {
-    rows.push({
-      id: i,
-      name: `User ${i}`,
-      age: 20 + (i % 40),
-      email: `user${i}@example.com`,
-      city: ["New York", "London", "Tokyo", "Paris", "Berlin"][i % 5],
-      country: ["USA", "UK", "Japan", "France", "Germany"][i % 5],
-      salary: 40000 + i * 1000,
-      department: ["Engineering", "Sales", "Marketing", "HR", "Finance"][i % 5],
-      hire_date: `2023-0${(i % 9) + 1}-${(i % 28) + 1}`,
-      is_active: i % 3 !== 0,
-      score: (i * 7) % 100,
-      category: ["A", "B", "C"][i % 3],
-    })
-  }
-  return rows
-}
-
-// Column metadata
-const columnMeta = [
-  { name: "id", type: "numeric", nullable: false },
-  { name: "name", type: "categorical", nullable: false },
-  { name: "age", type: "numeric", nullable: true },
-  { name: "email", type: "categorical", nullable: false },
-  { name: "city", type: "categorical", nullable: true },
-  { name: "country", type: "categorical", nullable: true },
-  { name: "salary", type: "numeric", nullable: true },
-  { name: "department", type: "categorical", nullable: false },
-  { name: "hire_date", type: "datetime", nullable: true },
-  { name: "is_active", type: "categorical", nullable: false },
-  { name: "score", type: "numeric", nullable: true },
-  { name: "category", type: "categorical", nullable: false },
-]
-
-// Missing data info
-const missingData = [
-  { column: "age", missing: 142, percentage: 14.2, type: "numeric" },
-  { column: "city", missing: 89, percentage: 8.9, type: "categorical" },
-  { column: "salary", missing: 67, percentage: 6.7, type: "numeric" },
-  { column: "hire_date", missing: 45, percentage: 4.5, type: "datetime" },
-  { column: "country", missing: 23, percentage: 2.3, type: "categorical" },
-]
-
-// Column insights data
-const columnInsights: Record<string, { unique: number; topValues: { value: string; count: number }[] }> = {
-  city: {
-    unique: 5,
-    topValues: [
-      { value: "New York", count: 210 },
-      { value: "London", count: 198 },
-      { value: "Tokyo", count: 205 },
-      { value: "Paris", count: 192 },
-      { value: "Berlin", count: 195 },
-    ],
-  },
-  department: {
-    unique: 5,
-    topValues: [
-      { value: "Engineering", count: 215 },
-      { value: "Sales", count: 198 },
-      { value: "Marketing", count: 202 },
-      { value: "HR", count: 188 },
-      { value: "Finance", count: 197 },
-    ],
-  },
-  category: {
-    unique: 3,
-    topValues: [
-      { value: "A", count: 340 },
-      { value: "B", count: 332 },
-      { value: "C", count: 328 },
-    ],
-  },
 }
 
 export function OverviewPage() {
@@ -175,8 +250,22 @@ export function OverviewPage() {
     const dataset = datasets.find((d) => d.id === datasetId)
     if (dataset) {
       setCurrentDataset(dataset)
+      // Reset selected column to first column if current selection doesn't exist
+      if (dataset.headers.length > 0 && !dataset.headers.includes(selectedColumn)) {
+        setSelectedColumn(dataset.headers[0])
+      }
     }
   }
+
+  // Initialize selected column when dataset loads
+  useEffect(() => {
+    if (selectedDataset && selectedDataset.headers.length > 0) {
+      if (!selectedDataset.headers.includes(selectedColumn)) {
+        setSelectedColumn(selectedDataset.headers[0])
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDataset])
 
   // Calculate preview row count (cap at 200)
   const previewRowCount = useMemo(() => {
@@ -285,6 +374,9 @@ export function OverviewPage() {
     )
   }
 
+  // Compute comprehensive dataset stats (single source of truth)
+  const datasetStats = useMemo(() => computeDatasetStats(selectedDataset), [selectedDataset])
+
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
       case "numeric":
@@ -293,15 +385,21 @@ export function OverviewPage() {
         return "bg-green-100 text-green-700 border-green-200"
       case "datetime":
         return "bg-purple-100 text-purple-700 border-purple-200"
+      case "boolean":
+        return "bg-orange-100 text-orange-700 border-orange-200"
       default:
         return "bg-muted text-muted-foreground"
     }
   }
 
-  const filteredColumns = columnMeta.filter((col) => {
-    if (filterType === "all") return true
-    return col.type === filterType
-  })
+  // Filter columns based on type filter
+  const filteredColumns = useMemo(() => {
+    if (!selectedDataset) return []
+    return datasetStats.columnMetadata.filter((col) => {
+      if (filterType === "all") return true
+      return col.type === filterType
+    })
+  }, [datasetStats.columnMetadata, filterType])
 
   return (
     <main className="flex-1 flex flex-col h-screen bg-background overflow-hidden">
@@ -501,7 +599,7 @@ export function OverviewPage() {
         {/* 2. Dataset Overview Summary */}
         {showSummary && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {getSummaryStats(selectedDataset).map((stat) => {
+            {getSummaryStats(selectedDataset, datasetStats).map((stat) => {
               const Icon = stat.icon
               return (
                 <Card key={stat.label} className="bg-card">
@@ -538,25 +636,27 @@ export function OverviewPage() {
                 {/* df.info() style summary */}
                 <div className="bg-muted/30 rounded-lg p-4 font-mono text-sm overflow-auto max-h-48">
                   <pre className="text-muted-foreground">
-                    {`<class 'pandas.core.frame.DataFrame'>
-RangeIndex: 1000 entries, 0 to 999
-Data columns (total 12 columns):
- #   Column      Non-Null Count  Dtype  
----  ------      --------------  -----  
- 0   id          1000 non-null   int64  
- 1   name        1000 non-null   object 
- 2   age         858 non-null    float64
- 3   email       1000 non-null   object 
- 4   city        911 non-null    object 
- 5   country     977 non-null    object 
- 6   salary      933 non-null    float64
- 7   department  1000 non-null   object 
- 8   hire_date   955 non-null    datetime64[ns]
- 9   is_active   1000 non-null   bool   
- 10  score       1000 non-null   int64  
- 11  category    1000 non-null   object 
-dtypes: bool(1), datetime64[ns](1), float64(2), int64(2), object(6)
-memory usage: 87.9 KB`}
+                    {selectedDataset
+                      ? `<class 'pandas.core.frame.DataFrame'>
+RangeIndex: ${datasetStats.totalRows} entries, 0 to ${datasetStats.totalRows - 1}
+Data columns (total ${datasetStats.totalColumns} columns):
+${datasetStats.columnMetadata
+  .map((col, idx) => {
+    const missingCount = datasetStats.missingValues.find((m) => m.column === col.name)?.missing || 0
+    const nonNullCount = datasetStats.totalRows - missingCount
+    const dtype = col.type === "numeric" ? "float64" : col.type === "datetime" ? "datetime64[ns]" : col.type === "boolean" ? "bool" : "object"
+    return ` #   ${col.name.padEnd(12)} ${nonNullCount} non-null    ${dtype.padEnd(12)}`
+  })
+  .join("\n")}
+dtypes: ${[
+  datasetStats.booleanColumns > 0 && `bool(${datasetStats.booleanColumns})`,
+  datasetStats.datetimeColumns > 0 && `datetime64[ns](${datasetStats.datetimeColumns})`,
+  datasetStats.numericColumns > 0 && `float64(${datasetStats.numericColumns})`,
+  datasetStats.categoricalColumns > 0 && `object(${datasetStats.categoricalColumns})`,
+]
+  .filter(Boolean)
+  .join(", ")}`
+                      : "No dataset loaded"}
                   </pre>
                 </div>
 
@@ -604,7 +704,7 @@ memory usage: 87.9 KB`}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-foreground">Top Columns with Missing Values</h4>
                   <div className="space-y-3">
-                    {missingData.map((item) => (
+                    {datasetStats.missingValues.slice(0, 10).map((item) => (
                       <div key={item.column} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
@@ -627,8 +727,9 @@ memory usage: 87.9 KB`}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-foreground">Categorical Columns with Missing Values</h4>
                   <div className="space-y-3">
-                    {missingData
+                    {datasetStats.missingValues
                       .filter((item) => item.type === "categorical")
+                      .slice(0, 10)
                       .map((item) => (
                         <div key={item.column} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
@@ -661,13 +762,13 @@ memory usage: 87.9 KB`}
                   <BarChart3 className="w-4 h-4 text-muted-foreground" />
                   <CardTitle className="text-base">Column Insights</CardTitle>
                 </div>
-                {insightsExpanded && (
+                {insightsExpanded && selectedDataset && (
                   <Select value={selectedColumn} onValueChange={setSelectedColumn}>
                     <SelectTrigger className="w-40 h-8 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.keys(columnInsights).map((col) => (
+                      {selectedDataset.headers.map((col) => (
                         <SelectItem key={col} value={col}>
                           {col}
                         </SelectItem>
@@ -679,32 +780,41 @@ memory usage: 87.9 KB`}
             </CardHeader>
             <CollapsibleContent>
               <CardContent className="pt-0">
-                {columnInsights[selectedColumn] && (
+                {selectedDataset && datasetStats.columnInsights[selectedColumn] && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-muted-foreground">Unique Values</h4>
-                      <div className="text-3xl font-bold">{columnInsights[selectedColumn].unique}</div>
+                      <div className="text-3xl font-bold">{datasetStats.columnInsights[selectedColumn].unique}</div>
                       <p className="text-sm text-muted-foreground">distinct values in column</p>
                     </div>
                     <div className="space-y-3">
                       <h4 className="text-sm font-medium text-muted-foreground">Top 5 Value Counts</h4>
                       <div className="space-y-2">
-                        {columnInsights[selectedColumn].topValues.map((item) => (
-                          <div key={item.value} className="flex items-center justify-between">
-                            <span className="text-sm font-medium">{item.value}</span>
-                            <div className="flex items-center gap-2">
-                              <div className="w-24 bg-muted rounded-full h-2">
-                                <div
-                                  className="bg-primary h-2 rounded-full"
-                                  style={{
-                                    width: `${(item.count / 340) * 100}%`,
-                                  }}
-                                />
+                        {datasetStats.columnInsights[selectedColumn].topValues.length > 0 ? (
+                          datasetStats.columnInsights[selectedColumn].topValues.map((item) => {
+                            const maxCount = Math.max(
+                              ...datasetStats.columnInsights[selectedColumn].topValues.map((v) => v.count)
+                            )
+                            return (
+                              <div key={item.value} className="flex items-center justify-between">
+                                <span className="text-sm font-medium">{item.value}</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-24 bg-muted rounded-full h-2">
+                                    <div
+                                      className="bg-primary h-2 rounded-full"
+                                      style={{
+                                        width: `${maxCount > 0 ? (item.count / maxCount) * 100 : 0}%`,
+                                      }}
+                                    />
+                                  </div>
+                                  <span className="text-sm text-muted-foreground w-12 text-right">{item.count}</span>
+                                </div>
                               </div>
-                              <span className="text-sm text-muted-foreground w-12 text-right">{item.count}</span>
-                            </div>
-                          </div>
-                        ))}
+                            )
+                          })
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No data available</p>
+                        )}
                       </div>
                     </div>
                   </div>
