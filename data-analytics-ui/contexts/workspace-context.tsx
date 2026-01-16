@@ -33,6 +33,7 @@ interface WorkspaceContextType {
     source: "file" | "url"
     sourceUrl?: string
   }) => Promise<void>
+  removeDatasetFromWorkspace: () => Promise<void>
   getCurrentDataset: () => WorkspaceDataset | null
 
   // Workspace state updates
@@ -109,6 +110,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     await listWorkspaces()
     setCurrentWorkspace(workspace)
     workspaceStore.setActiveWorkspace(workspace.id)
+    setActiveWorkspaceIdState(workspace.id)
     return workspace
   }, [listWorkspaces])
 
@@ -119,6 +121,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       if (workspace) {
         setCurrentWorkspace(workspace)
         workspaceStore.setActiveWorkspace(id)
+        setActiveWorkspaceIdState(id)
       }
     } catch (error) {
       console.error("Failed to load workspace:", error)
@@ -235,6 +238,24 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     },
     [currentWorkspace, listWorkspaces]
   )
+
+  // Remove dataset from workspace
+  const removeDatasetFromWorkspace = useCallback(async () => {
+    if (!currentWorkspace) return
+
+    const updatedWorkspace: Workspace = {
+      ...currentWorkspace,
+      dataset: null,
+      state: {
+        ...currentWorkspace.state,
+        datasetAttached: false,
+      },
+    }
+
+    setCurrentWorkspace(updatedWorkspace)
+    await workspaceStore.saveWorkspace(updatedWorkspace)
+    await listWorkspaces()
+  }, [currentWorkspace, listWorkspaces])
 
   // Get current dataset from workspace
   const getCurrentDataset = useCallback((): WorkspaceDataset | null => {
@@ -435,6 +456,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         listWorkspaces,
         setActiveWorkspace,
         uploadDatasetToWorkspace,
+        removeDatasetFromWorkspace,
         getCurrentDataset,
         setOverviewReady,
         setCleaningStarted,

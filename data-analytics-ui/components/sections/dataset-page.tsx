@@ -1,16 +1,29 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Database, Upload, FileSpreadsheet, Table, Link2, Loader2, AlertCircle } from "lucide-react"
+import { Database, Upload, FileSpreadsheet, Table, Link2, Loader2, AlertCircle, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { fetchAndParseCSV, parseCSVFromFile, isValidURL } from "@/lib/csv-parser"
+import { useToast } from "@/hooks/use-toast"
 
 export function DatasetPage() {
-  const { currentWorkspace, uploadDatasetToWorkspace, getCurrentDataset } = useWorkspace()
+  const { currentWorkspace, uploadDatasetToWorkspace, removeDatasetFromWorkspace, getCurrentDataset } = useWorkspace()
+  const { toast } = useToast()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   
   // URL loading state
   const [csvUrl, setCsvUrl] = useState("")
@@ -117,6 +130,23 @@ export function DatasetPage() {
 
   const handleUploadClick = () => {
     fileInputRef.current?.click()
+  }
+
+  const handleRemoveDataset = async () => {
+    try {
+      await removeDatasetFromWorkspace()
+      toast({
+        title: "Success",
+        description: "Dataset removed from workspace",
+      })
+      setDeleteDialogOpen(false)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove dataset",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -252,6 +282,15 @@ export function DatasetPage() {
                       </div>
                       <CardTitle className="text-sm font-medium truncate">{currentDataset.name}</CardTitle>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Remove
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -287,6 +326,28 @@ export function DatasetPage() {
         )}
 
       </div>
+
+      {/* Remove Dataset Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Dataset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the dataset from the workspace. The dataset data will be permanently deleted.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveDataset}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }
