@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Wrench, Database, CheckCircle2, AlertCircle, Copy, AlertTriangle, Filter, History } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,12 +14,29 @@ import { ColumnQualitySummary } from "./data-cleaning/column-quality-summary"
 import { InvalidFormatsCard } from "./data-cleaning/invalid-formats-card"
 import { OutliersCard } from "./data-cleaning/outliers-card"
 import { CleaningHistoryPanel } from "./data-cleaning/cleaning-history-panel"
+import { ColumnFilterPanel, type ColumnInfo } from "./data-cleaning/column-filter-panel"
 
 const availableDatasets = [
   { id: "1", name: "sales_data.csv", rows: 1950, columns: 12 },
   { id: "2", name: "customer_info.csv", rows: 5420, columns: 8 },
   { id: "3", name: "product_inventory.csv", rows: 890, columns: 15 },
   { id: "4", name: "employee_records.csv", rows: 234, columns: 10 },
+]
+
+// Mock column data - in production, this would come from the dataset
+const mockColumns: ColumnInfo[] = [
+  { name: "Age", dataType: "numeric" },
+  { name: "Salary", dataType: "numeric" },
+  { name: "Department", dataType: "categorical" },
+  { name: "Hire_Date", dataType: "datetime" },
+  { name: "Location", dataType: "categorical" },
+  { name: "Manager_ID", dataType: "numeric" },
+  { name: "Performance_Score", dataType: "numeric" },
+  { name: "Last_Review_Date", dataType: "datetime" },
+  { name: "Email", dataType: "categorical" },
+  { name: "Phone", dataType: "categorical" },
+  { name: "Name", dataType: "categorical" },
+  { name: "Experience", dataType: "numeric" },
 ]
 
 const navItems = [
@@ -38,6 +55,7 @@ interface DataCleaningPageProps {
 export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProps) {
   const [selectedDataset, setSelectedDataset] = useState<string>("1")
   const [activeSection, setActiveSection] = useState("quality")
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(mockColumns.map((col) => col.name)) // Default: all selected
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -80,6 +98,11 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   }
 
   const handleColumnClick = (columnName: string, issueType: string) => {
+    // Auto-select column if not already selected
+    if (!selectedColumns.includes(columnName)) {
+      setSelectedColumns([...selectedColumns, columnName])
+    }
+
     // Scroll to the relevant section based on issue type
     const sectionMap: Record<string, string> = {
       missing: "missing",
@@ -90,6 +113,12 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     }
     const targetSection = sectionMap[issueType] || "quality"
     scrollToSection(targetSection)
+  }
+
+  const handleColumnSelect = (columnName: string) => {
+    if (!selectedColumns.includes(columnName)) {
+      setSelectedColumns([...selectedColumns, columnName])
+    }
   }
 
   const handleAction = (columnName: string, actionType: string, value?: string) => {
@@ -111,10 +140,11 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     })
   }
 
-  const handleInvalidFormatAction = (columnName: string, actionType: string) => {
+  const handleInvalidFormatAction = (columnName: string, actionType: string, config?: Record<string, any>) => {
     onApplyCleaningAction?.({
       columnName,
       actionType: `format_${actionType}`,
+      value: JSON.stringify(config),
     })
   }
 
@@ -129,6 +159,9 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   }
 
   const currentDataset = availableDatasets.find((d) => d.id === selectedDataset)
+
+  // Determine if column filter should be shown (not for quality summary and history)
+  const showColumnFilter = activeSection !== "quality" && activeSection !== "history" && activeSection !== "duplicates"
 
   if (!selectedDataset) {
     return (
@@ -241,8 +274,23 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
               }}
               className="space-y-4"
             >
-              <ColumnQualitySummary onColumnClick={handleColumnClick} />
+              <ColumnQualitySummary
+                selectedColumns={selectedColumns}
+                onColumnClick={handleColumnClick}
+                onColumnSelect={handleColumnSelect}
+              />
             </section>
+
+            {/* Global Column Filter Panel */}
+            {showColumnFilter && (
+              <div className="space-y-4">
+                <ColumnFilterPanel
+                  columns={mockColumns}
+                  selectedColumns={selectedColumns}
+                  onSelectionChange={setSelectedColumns}
+                />
+              </div>
+            )}
 
             {/* Missing Values Section */}
             <section
@@ -252,7 +300,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
               }}
               className="space-y-4"
             >
-              <MissingValuesCard onAction={handleAction} />
+              <MissingValuesCard selectedColumns={selectedColumns} onAction={handleAction} />
             </section>
 
             {/* Duplicates Section */}
@@ -267,7 +315,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                 totalRows={currentDataset?.rows || 1950}
                 duplicateCount={12}
                 duplicatePercentage={0.6}
-                availableColumns={["Name", "Email", "Age", "Department", "Salary", "Location"]}
+                availableColumns={mockColumns.map((col) => col.name)}
                 onAction={handleDuplicateAction}
               />
             </section>
@@ -280,7 +328,10 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
               }}
               className="space-y-4"
             >
-              <InvalidFormatsCard onAction={handleInvalidFormatAction} />
+              <InvalidFormatsCard
+                selectedColumns={selectedColumns}
+                onAction={handleInvalidFormatAction}
+              />
             </section>
 
             {/* Outliers Section */}
@@ -291,7 +342,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
               }}
               className="space-y-4"
             >
-              <OutliersCard onAction={handleOutlierAction} />
+              <OutliersCard selectedColumns={selectedColumns} onAction={handleOutlierAction} />
             </section>
 
             {/* Cleaning History Section */}

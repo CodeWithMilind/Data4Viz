@@ -5,10 +5,9 @@ import { Filter, Play, Eye, AlertTriangle, Info } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface OutlierColumn {
@@ -24,6 +23,7 @@ interface OutlierColumn {
 
 interface OutliersCardProps {
   columns?: OutlierColumn[]
+  selectedColumns?: string[]
   onAction?: (columnName: string, method: string, action: string) => void
 }
 
@@ -61,9 +61,20 @@ const mockColumns: OutlierColumn[] = [
   },
 ]
 
-export function OutliersCard({ columns = mockColumns, onAction }: OutliersCardProps) {
+export function OutliersCard({
+  columns = mockColumns,
+  selectedColumns = [],
+  onAction,
+}: OutliersCardProps) {
   const [detectionMethods, setDetectionMethods] = useState<Record<string, "IQR" | "Z-Score">>({})
   const [actions, setActions] = useState<Record<string, "cap" | "remove" | "ignore">>({})
+  const [previewedColumns, setPreviewedColumns] = useState<Set<string>>(new Set())
+
+  // Filter: Only show selected numeric columns
+  const filteredColumns =
+    selectedColumns.length === 0
+      ? columns
+      : columns.filter((col) => selectedColumns.includes(col.name))
 
   const handleApply = (column: OutlierColumn) => {
     const method = detectionMethods[column.name] || "IQR"
@@ -72,8 +83,7 @@ export function OutliersCard({ columns = mockColumns, onAction }: OutliersCardPr
   }
 
   const handlePreview = (column: OutlierColumn) => {
-    // Placeholder preview handler
-    console.log("Preview outliers for", column.name)
+    setPreviewedColumns((prev) => new Set(prev).add(column.name))
   }
 
   const getDefaultMethod = (column: OutlierColumn) => {
@@ -82,6 +92,53 @@ export function OutliersCard({ columns = mockColumns, onAction }: OutliersCardPr
 
   const getDefaultAction = (column: OutlierColumn) => {
     return actions[column.name] || "cap"
+  }
+
+  const canApply = (column: OutlierColumn) => {
+    const action = getDefaultAction(column)
+    // Require preview for destructive actions
+    if (action === "remove" && !previewedColumns.has(column.name)) return false
+    return true
+  }
+
+  if (selectedColumns.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-muted-foreground" />
+            Outliers
+          </CardTitle>
+          <CardDescription>Detect and handle outlier values in numeric columns</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <Filter className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>Select numeric columns in the filter above to view outliers</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (filteredColumns.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-muted-foreground" />
+            Outliers
+          </CardTitle>
+          <CardDescription>Detect and handle outlier values in numeric columns</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            <Info className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No numeric columns with outliers in selected columns</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -96,15 +153,17 @@ export function OutliersCard({ columns = mockColumns, onAction }: OutliersCardPr
             <CardDescription>Detect and handle outlier values in numeric columns</CardDescription>
           </div>
           <Badge variant="secondary">
-            {columns.reduce((sum, col) => sum + col.outlierCount, 0)} outliers detected
+            {filteredColumns.reduce((sum, col) => sum + col.outlierCount, 0)} outliers detected
           </Badge>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {columns.map((column) => {
+          {filteredColumns.map((column) => {
             const method = getDefaultMethod(column)
             const action = getDefaultAction(column)
+            const hasPreviewed = previewedColumns.has(column.name)
+            const canApplyAction = canApply(column)
 
             return (
               <div key={column.name} className="border rounded-lg p-4 space-y-4">
@@ -172,7 +231,15 @@ export function OutliersCard({ columns = mockColumns, onAction }: OutliersCardPr
                     <Label className="text-sm font-medium mb-2 block">Action</Label>
                     <RadioGroup
                       value={action}
-                      onValueChange={(v) => setActions({ ...actions, [column.name]: v as "cap" | "remove" | "ignore" })}
+                      onValueChange={(v) => {
+                        setActions({ ...actions, [column.name]: v as "cap" | "remove" | "ignore" })
+                        // Clear preview when action changes
+                        setPreviewedColumns((prev) => {
+                          const next = new Set(prev)
+                          next.delete(column.name)
+                          return next
+                        })
+                      }}
                     >
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
@@ -194,6 +261,16 @@ export function OutliersCard({ columns = mockColumns, onAction }: OutliersCardPr
                         <p className="text-xs text-muted-foreground ml-6">
                           Delete rows containing outlier values (may reduce dataset size)
                         </p>
+                        {action === "remove" && (
+                          <Alert variant="destructive" className="ml-6">
+                            <AlertTriangle className="w-4 h-4" />
+                            <AlertDescription className="text-xs">
+                              <strong>Warning:</strong> This will remove {column.outlierCount} row
+                              {column.outlierCount !== 1 ? "s" : ""} from your dataset. Preview changes before
+                              applying.
+                            </AlertDescription>
+                          </Alert>
+                        )}
 
                         <div className="flex items-center gap-2">
                           <RadioGroupItem value="ignore" id={`${column.name}-ignore`} />
@@ -216,26 +293,28 @@ export function OutliersCard({ columns = mockColumns, onAction }: OutliersCardPr
                   </AlertDescription>
                 </Alert>
 
-                <div className="flex items-center gap-2 pt-2">
-                  <Button variant="outline" size="sm" onClick={() => handlePreview(column)} className="gap-2">
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePreview(column)}
+                    className="gap-2"
+                    disabled={!action}
+                  >
                     <Eye className="w-4 h-4" />
-                    Preview Changes
+                    {hasPreviewed ? "Previewed" : "Preview Changes"}
                   </Button>
-                  <Button size="sm" onClick={() => handleApply(column)} className="gap-2">
+                  <Button size="sm" onClick={() => handleApply(column)} disabled={!canApplyAction} className="gap-2">
                     <Play className="w-4 h-4" />
                     Apply Action
                   </Button>
+                  {!canApplyAction && action === "remove" && (
+                    <p className="text-xs text-muted-foreground ml-auto">Please preview changes before applying</p>
+                  )}
                 </div>
               </div>
             )
           })}
-
-          {columns.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Info className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p>No numeric columns with outliers detected</p>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

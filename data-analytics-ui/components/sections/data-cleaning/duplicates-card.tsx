@@ -39,7 +39,7 @@ export function DuplicatesCard({
 }: DuplicatesCardProps) {
   const [detectionMode, setDetectionMode] = useState<"all" | "selected">("all")
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
-  const [removalStrategy, setRemovalStrategy] = useState<"keep-first" | "keep-last">("keep-first")
+  const [removalStrategy, setRemovalStrategy] = useState<"keep-first" | "keep-last" | "remove-all">("keep-first")
   const [showPreview, setShowPreview] = useState(false)
 
   const handleColumnToggle = (column: string) => {
@@ -56,6 +56,8 @@ export function DuplicatesCard({
   const handlePreview = () => {
     setShowPreview(!showPreview)
   }
+
+  const canApply = detectionMode === "all" || (detectionMode === "selected" && selectedColumns.length > 0)
 
   return (
     <Card>
@@ -106,7 +108,9 @@ export function DuplicatesCard({
 
           {detectionMode === "selected" && (
             <div className="ml-6 p-4 border rounded-md bg-muted/30">
-              <Label className="text-xs text-muted-foreground mb-3 block">Select columns to check for duplicates:</Label>
+              <Label className="text-xs text-muted-foreground mb-3 block">
+                Select columns to check for duplicates:
+              </Label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {availableColumns.map((col) => (
                   <div key={col} className="flex items-center gap-2">
@@ -131,18 +135,55 @@ export function DuplicatesCard({
         {/* Removal Strategy */}
         <div className="space-y-3">
           <Label className="text-sm font-medium">Removal Strategy</Label>
-          <RadioGroup value={removalStrategy} onValueChange={(v) => setRemovalStrategy(v as "keep-first" | "keep-last")}>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="keep-first" id="dup-keep-first" />
-              <Label htmlFor="dup-keep-first" className="cursor-pointer">
-                Remove duplicates (keep first occurrence)
-              </Label>
+          <RadioGroup
+            value={removalStrategy}
+            onValueChange={(v) => setRemovalStrategy(v as "keep-first" | "keep-last" | "remove-all")}
+            className="space-y-3"
+          >
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="keep-first" id="dup-keep-first" />
+                <Label htmlFor="dup-keep-first" className="cursor-pointer font-medium">
+                  Keep first occurrence (default)
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground ml-6">
+                Removes duplicate rows, keeping the first occurrence of each duplicate set.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="keep-last" id="dup-keep-last" />
-              <Label htmlFor="dup-keep-last" className="cursor-pointer">
-                Remove duplicates (keep last occurrence)
-              </Label>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="keep-last" id="dup-keep-last" />
+                <Label htmlFor="dup-keep-last" className="cursor-pointer font-medium">
+                  Keep last occurrence
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground ml-6">
+                Removes duplicate rows, keeping the last occurrence of each duplicate set.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="remove-all" id="dup-remove-all" />
+                <Label htmlFor="dup-remove-all" className="cursor-pointer font-medium">
+                  Remove all duplicate rows
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground ml-6">
+                Removes all rows that are part of a duplicate set, including the first occurrence.
+              </p>
+              {removalStrategy === "remove-all" && (
+                <Alert variant="destructive" className="ml-6 mt-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  <AlertDescription className="text-xs">
+                    <strong>Strong Warning:</strong> This will remove ALL rows that have duplicates, including the first
+                    occurrence. This may result in significant data loss ({duplicateCount} rows will be removed). Preview
+                    changes before applying.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </RadioGroup>
         </div>
@@ -178,29 +219,31 @@ export function DuplicatesCard({
           </div>
         )}
 
-        {/* Warning */}
+        {/* General Warning */}
         <Alert variant="destructive">
           <AlertTriangle className="w-4 h-4" />
           <AlertDescription>
-            Removing duplicates may result in data loss. Preview changes before applying.
+            Removing duplicates may result in data loss. Always preview changes before applying.
           </AlertDescription>
         </Alert>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 pt-2 border-t">
           <Button variant="outline" size="sm" onClick={handlePreview} className="gap-2">
             <Eye className="w-4 h-4" />
             {showPreview ? "Hide" : "Show"} Preview
           </Button>
-          <Button
-            size="sm"
-            onClick={handleApply}
-            disabled={detectionMode === "selected" && selectedColumns.length === 0}
-            className="gap-2"
-          >
+          <Button size="sm" onClick={handleApply} disabled={!canApply} className="gap-2">
             <Play className="w-4 h-4" />
             Remove Duplicates
           </Button>
+          {!canApply && (
+            <p className="text-xs text-muted-foreground ml-auto">
+              {detectionMode === "selected" && selectedColumns.length === 0
+                ? "Select at least one column"
+                : ""}
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -20,7 +20,9 @@ interface ColumnQuality {
 
 interface ColumnQualitySummaryProps {
   columns?: ColumnQuality[]
+  selectedColumns?: string[]
   onColumnClick?: (columnName: string, issueType: string) => void
+  onColumnSelect?: (columnName: string) => void
 }
 
 // Mock data - in production, this would come from props
@@ -108,7 +110,12 @@ const mockColumns: ColumnQuality[] = [
   },
 ]
 
-export function ColumnQualitySummary({ columns = mockColumns, onColumnClick }: ColumnQualitySummaryProps) {
+export function ColumnQualitySummary({
+  columns = mockColumns,
+  selectedColumns = [],
+  onColumnClick,
+  onColumnSelect,
+}: ColumnQualitySummaryProps) {
   const getHealthColor = (score: number) => {
     if (score >= 80) return "text-green-600"
     if (score >= 60) return "text-yellow-600"
@@ -148,6 +155,11 @@ export function ColumnQualitySummary({ columns = mockColumns, onColumnClick }: C
   }
 
   const handleColumnClick = (column: ColumnQuality) => {
+    // Auto-select column in filter
+    if (onColumnSelect && !selectedColumns.includes(column.name)) {
+      onColumnSelect(column.name)
+    }
+
     // Determine which section to navigate to based on issues
     let issueType = "overview"
     if (column.missingPercentage > 20) {
@@ -272,7 +284,7 @@ export function ColumnQualitySummary({ columns = mockColumns, onColumnClick }: C
                       handleColumnClick(column)
                     }}
                   >
-                    View
+                    {selectedColumns.includes(column.name) ? "Selected" : "Select"}
                     <ArrowRight className="w-3 h-3" />
                   </Button>
                 </TableCell>
