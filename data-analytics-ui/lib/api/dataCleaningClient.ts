@@ -175,3 +175,96 @@ export async function applyCleaning(payload: CleaningRequest): Promise<CleaningR
     throw error;
   }
 }
+
+/**
+ * Column summary from cleaning analysis
+ */
+export interface ColumnSummary {
+  name: string;
+  type: string;
+  missing_pct: number;
+  duplicates_pct: number;
+  outliers: number | null;
+  health_score: number;
+}
+
+/**
+ * Cleaning summary response
+ */
+export interface CleaningSummaryResponse {
+  rows: number;
+  columns: ColumnSummary[];
+  overall_score: number;
+}
+
+/**
+ * Fetch data cleaning summary for a dataset
+ * 
+ * Workspace provides datasets, backend provides analysis.
+ * Data Cleaning combines both to show quality metrics.
+ * 
+ * IMPORTANT: Gracefully handles 404/Not Found when endpoint is not implemented.
+ * Returns safe fallback response instead of throwing error to prevent UI failure.
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetName Dataset filename (required)
+ * @returns Cleaning summary with column metrics, or safe fallback if endpoint not found
+ */
+export async function getCleaningSummary(
+  workspaceId: string,
+  datasetName: string
+): Promise<CleaningSummaryResponse> {
+  const requestUrl = `${BASE_URL}/workspaces/${workspaceId}/cleaning/summary`;
+  const requestBody = { dataset: datasetName };
+  
+  console.log(`[getCleaningSummary] Request URL: ${requestUrl}`);
+  console.log(`[getCleaningSummary] Request body:`, requestBody);
+  console.log(`[getCleaningSummary] Called with workspaceId=${workspaceId}, datasetName=${datasetName}`);
+  
+  try {
+    const response = await fetch(requestUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log(`[getCleaningSummary] Response status: ${response.status}`);
+    console.log(`[getCleaningSummary] Response ok: ${response.ok}`);
+
+    // Handle 404/Not Found gracefully - endpoint may not be implemented yet
+    if (response.status === 404) {
+      console.warn(`[getCleaningSummary] 404 - Endpoint not found, returning fallback`);
+      return {
+        rows: 0,
+        columns: [],
+        overall_score: 0,
+      };
+    }
+
+    if (!response.ok) {
+      // For other errors, also return safe fallback to prevent UI crash
+      const errorText = await response.text().catch(() => response.statusText);
+      console.warn(`[getCleaningSummary] Error ${response.status}: ${errorText}`);
+      return {
+        rows: 0,
+        columns: [],
+        overall_score: 0,
+      };
+    }
+
+    const data: CleaningSummaryResponse = await response.json();
+    console.log(`[getCleaningSummary] Parsed JSON data:`, data);
+    console.log(`[getCleaningSummary] Success - rows=${data.rows}, columns=${data.columns.length}, overall_score=${data.overall_score}`);
+    return data;
+  } catch (error) {
+    // Network errors or other exceptions - return safe fallback instead of throwing
+    console.warn("[getCleaningSummary] Network error, using fallback:", error);
+    return {
+      rows: 0,
+      columns: [],
+      overall_score: 0,
+    };
+  }
+}

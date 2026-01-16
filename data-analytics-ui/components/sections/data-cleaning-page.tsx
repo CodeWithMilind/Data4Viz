@@ -21,7 +21,7 @@
  * - Conditional rendering based on workspace state only
  */
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import { AlertCircle, CheckCircle2, Copy, Database, Filter, History, Loader2, AlertTriangle, Wrench } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,7 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { previewCleaning, applyCleaning } from "@/lib/api/dataCleaningClient"
+import { previewCleaning, applyCleaning, getCleaningSummary, type CleaningSummaryResponse } from "@/lib/api/dataCleaningClient"
 import { cn } from "@/lib/utils"
 import type { CleaningRequest } from "@/types/dataCleaning"
 import { CleaningHistoryPanel } from "./data-cleaning/cleaning-history-panel"
@@ -62,14 +62,27 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   const { activeWorkspaceId, currentWorkspace } = useWorkspace()
   
   // Get datasets directly from workspace - no backend fetch, no fake data
-  const datasets = currentWorkspace?.datasets ?? []
+  // Use stable dependencies to prevent infinite re-renders
+  const datasets = useMemo(() => {
+    if (!currentWorkspace?.datasets) return []
+    return currentWorkspace.datasets
+  }, [currentWorkspace?.id, currentWorkspace?.datasets?.length])
   
-  // State management
-  const [mounted, setMounted] = useState(false)
-  const [selectedDataset, setSelectedDataset] = useState<string | null>(null)
+  // State management - SINGLE source of truth for dataset selection
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState("quality")
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
   const [columns, setColumns] = useState<ColumnInfo[]>([])
+  
+  /**
+   * Cleaning summary state
+   * Workspace provides datasets, backend provides analysis.
+   * Data Cleaning combines both to show quality metrics.
+   */
+  const [cleaningSummary, setCleaningSummary] = useState<CleaningSummaryResponse | null>(null)
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
+  const [hasAttemptedSync, setHasAttemptedSync] = useState(false)
   
   /**
    * REF TYPE: HTMLElement (not HTMLDivElement)
@@ -79,32 +92,127 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
    */
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
   const scrollContainerRef = useRef<HTMLElement | null>(null)
+  const didInitRef = useRef(false)
+  const prevWorkspaceIdRef = useRef<string | null>(null)
 
-  // Prevent hydration mismatch: only render dataset-dependent UI after mount
+  // Reset selected dataset when workspace changes (ONLY when workspace actually changes)
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Auto-select first dataset when datasets are available (client-side only)
-  // IMPORTANT: Use dataset.fileName as the identifier (backend expects filename)
-  // Only auto-select if no dataset is currently selected (null)
-  useEffect(() => {
-    if (mounted && datasets.length > 0 && selectedDataset === null) {
-      setSelectedDataset(datasets[0].fileName)
-    }
-  }, [mounted, datasets, selectedDataset])
-  
-  // Reset selected dataset when workspace changes
-  useEffect(() => {
-    if (activeWorkspaceId) {
-      setSelectedDataset(null)
+    if (activeWorkspaceId !== prevWorkspaceIdRef.current) {
+      prevWorkspaceIdRef.current = activeWorkspaceId
+      didInitRef.current = false
+      setSelectedDatasetId(null)
+      setCleaningSummary(null)
+      setSummaryError(null)
+      setHasAttemptedSync(false)
     }
   }, [activeWorkspaceId])
 
+  // Safe initialization: Auto-select first dataset ONLY ONCE per workspace
+  useEffect(() => {
+    if (!didInitRef.current && datasets.length > 0 && !selectedDatasetId && activeWorkspaceId) {
+      const firstDataset = datasets[0]?.fileName
+      if (firstDataset) {
+        didInitRef.current = true
+        setSelectedDatasetId(firstDataset)
+      }
+    }
+  }, [datasets.length, selectedDatasetId, activeWorkspaceId])
+
+  // Find workspace dataset - memoized with stable dependencies
+  const workspaceDataset = useMemo(() => {
+    if (!selectedDatasetId || !currentWorkspace?.datasets || datasets.length === 0) return null
+    return datasets.find((ds) => ds.fileName === selectedDatasetId) || null
+  }, [selectedDatasetId, currentWorkspace?.id, datasets.length])
+
+  // Sync dataset to backend and fetch summary
+  const syncAndFetchSummary = useCallback(async (datasetId: string, workspaceId: string, dataset: typeof workspaceDataset) => {
+    if (!datasetId || !workspaceId || !dataset) return
+
+    try {
+      const csvContent = [
+        dataset.headers.join(","),
+        ...dataset.data.map((row) =>
+          dataset.headers.map((header) => {
+            const value = row[header]
+            if (value === null || value === undefined) return ""
+            const str = String(value)
+            if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+              return `"${str.replace(/"/g, '""')}"`
+            }
+            return str
+          }).join(",")
+        ),
+      ].join("\n")
+
+      const csvBlob = new Blob([csvContent], { type: "text/csv" })
+      const csvFile = new File([csvBlob], dataset.fileName, { type: "text/csv" })
+
+      const { uploadDatasetToWorkspace } = await import("@/lib/api/dataCleaningClient")
+      await uploadDatasetToWorkspace(workspaceId, csvFile)
+      
+      const summary = await getCleaningSummary(workspaceId, datasetId)
+      if (summary.rows > 0 || summary.columns.length > 0) {
+        setCleaningSummary((prev) => prev?.rows === summary.rows && prev?.columns.length === summary.columns.length ? prev : summary)
+        setSummaryError(null)
+      }
+      setIsLoadingSummary(false)
+    } catch (error) {
+      console.error("[syncAndFetchSummary] Error:", error)
+      try {
+        const summary = await getCleaningSummary(workspaceId, datasetId)
+        setCleaningSummary(summary)
+        setSummaryError(null)
+        setIsLoadingSummary(false)
+      } catch (fetchError) {
+        const errorMessage = fetchError instanceof Error ? fetchError.message : "Failed to load cleaning summary"
+        setSummaryError(errorMessage)
+        setIsLoadingSummary(false)
+      }
+    }
+  }, [])
+
+  // Fetch cleaning summary when dataset is selected
+  useEffect(() => {
+    if (!activeWorkspaceId || !selectedDatasetId) {
+      return
+    }
+
+    let cancelled = false
+    setIsLoadingSummary(true)
+    setSummaryError(null)
+
+    getCleaningSummary(activeWorkspaceId, selectedDatasetId)
+      .then((summary) => {
+        if (cancelled) return
+        
+        if (summary.columns.length === 0 && summary.rows === 0 && !hasAttemptedSync && workspaceDataset) {
+          setHasAttemptedSync(true)
+          syncAndFetchSummary(selectedDatasetId, activeWorkspaceId, workspaceDataset)
+        } else {
+          setCleaningSummary(summary)
+          setSummaryError(null)
+          setIsLoadingSummary(false)
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return
+        if (!hasAttemptedSync && workspaceDataset) {
+          setHasAttemptedSync(true)
+          syncAndFetchSummary(selectedDatasetId, activeWorkspaceId, workspaceDataset)
+        } else {
+          const errorMessage = error instanceof Error ? error.message : "Failed to load cleaning summary"
+          setSummaryError(errorMessage)
+          setIsLoadingSummary(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWorkspaceId, selectedDatasetId, hasAttemptedSync, workspaceDataset, syncAndFetchSummary])
+
   // Scroll sync
   useEffect(() => {
-    if (!mounted) return
-
     const container = scrollContainerRef.current
     if (!container) return
 
@@ -119,28 +227,30 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
           currentSection = item.id
         }
       }
-      setActiveSection(currentSection)
+      // Only update if section actually changed to prevent unnecessary re-renders
+      setActiveSection((prev) => prev !== currentSection ? currentSection : prev)
     }
 
     container.addEventListener("scroll", handleScroll)
     return () => container.removeEventListener("scroll", handleScroll)
-  }, [mounted, selectedDataset])
+  }, [])
 
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = useCallback((sectionId: string) => {
     const section = sectionRefs.current[sectionId]
     const container = scrollContainerRef.current
     if (section && container) {
-      const containerRect = container.getBoundingClientRect()
+      const containerDiv = container as HTMLDivElement
+      const containerRect = containerDiv.getBoundingClientRect()
       const sectionRect = section.getBoundingClientRect()
-      const scrollTop = container.scrollTop + (sectionRect.top - containerRect.top) - 24
+      const scrollTop = containerDiv.scrollTop + (sectionRect.top - containerRect.top) - 24
 
-      container.scrollTo({
+      containerDiv.scrollTo({
         top: scrollTop,
         behavior: "smooth",
       })
     }
-    setActiveSection(sectionId)
-  }
+    setActiveSection((prev) => prev !== sectionId ? sectionId : prev)
+  }, [])
 
   const handleColumnClick = (columnName: string, issueType: string) => {
     // Auto-select column if not already selected
@@ -160,11 +270,22 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     scrollToSection(targetSection)
   }
 
-  const handleColumnSelect = (columnName: string) => {
-    if (!selectedColumns.includes(columnName)) {
-      setSelectedColumns([...selectedColumns, columnName])
+  const handleColumnSelect = useCallback((columnName: string) => {
+    setSelectedColumns((prev) => {
+      if (!prev.includes(columnName)) {
+        return [...prev, columnName]
+      }
+      return prev
+    })
+  }, [])
+
+  // Stable dataset change handler - NO dependencies to prevent re-creation
+  const handleDatasetChange = useCallback((value: string) => {
+    if (value && value !== selectedDatasetId) {
+      setSelectedDatasetId(value)
+      setHasAttemptedSync(false)
     }
-  }
+  }, [selectedDatasetId])
 
   const handlePreview = async (request: Omit<CleaningRequest, "workspace_id">) => {
     if (!activeWorkspaceId) {
@@ -210,8 +331,8 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   // Determine if column filter should be shown
   const showColumnFilter = activeSection !== "quality" && activeSection !== "history" && activeSection !== "duplicates"
 
-  // Render same initial HTML on server and client (prevents hydration mismatch)
-  if (!mounted) {
+  // Empty state when no workspace selected
+  if (!activeWorkspaceId || !currentWorkspace) {
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
         <Card className="w-full max-w-md">
@@ -265,8 +386,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   }
 
   // Dataset selection screen (only shown if datasets exist but none selected)
-  // IMPORTANT: selectedDataset is null initially, not empty string
-  if (selectedDataset === null) {
+  if (selectedDatasetId === null) {
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
         <Card className="w-full max-w-md">
@@ -279,15 +399,13 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
           </CardHeader>
           <CardContent className="space-y-4">
             <Select
-              value={selectedDataset || undefined}
-              onValueChange={(value) => setSelectedDataset(value)}
+              value={selectedDatasetId ?? undefined}
+              onValueChange={handleDatasetChange}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a dataset..." />
               </SelectTrigger>
               <SelectContent>
-                {/* Only render real datasets from workspace - no fake data */}
-                {/* Use fileName as the value since backend expects filename */}
                 {datasets.map((dataset: typeof datasets[0]) => (
                   <SelectItem key={dataset.id} value={dataset.fileName}>
                     <div className="flex items-center gap-3">
@@ -341,25 +459,24 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
           <div className="flex items-center gap-4">
-            {mounted && datasets.length > 0 ? (
+            {datasets.length > 0 ? (
               <Select
-                value={selectedDataset || undefined}
-                onValueChange={(value) => setSelectedDataset(value)}
+                value={selectedDatasetId ?? undefined}
+                onValueChange={handleDatasetChange}
               >
                 <SelectTrigger className="w-[200px] h-9">
                   <SelectValue placeholder="Select dataset" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Only render real datasets from workspace - no fake data */}
-                  {datasets.map((dataset) => (
-                    <SelectItem key={dataset.id} value={dataset.id}>
+                  {datasets.map((dataset: typeof datasets[0]) => (
+                    <SelectItem key={dataset.id} value={dataset.fileName}>
                       {dataset.name || dataset.fileName} ({dataset.rowCount} rows)
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             ) : (
-              <Select disabled>
+              <Select disabled value="">
                 <SelectTrigger className="w-[200px] h-9">
                   <SelectValue placeholder="No datasets available" />
                 </SelectTrigger>
@@ -369,8 +486,13 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Data Quality Score</span>
             <div className="flex items-center gap-2">
-              <Progress value={0} className="w-32 h-2" />
-              <span className="text-sm font-semibold text-muted-foreground">—</span>
+              <Progress 
+                value={cleaningSummary?.overall_score ?? 0} 
+                className="w-32 h-2" 
+              />
+              <span className="text-sm font-semibold text-muted-foreground">
+                {cleaningSummary ? `${cleaningSummary.overall_score}%` : "—"}
+              </span>
             </div>
           </div>
         </header>
@@ -378,44 +500,69 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
         {/* REF TYPE: HTMLElement - ref is attached to a div which is HTMLElement */}
         <div ref={scrollContainerRef as React.RefObject<HTMLDivElement>} className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-8">
-            {/* Column Quality Summary - KEY SECTION */}
-            {selectedDataset && (
-              <section
-                id="quality"
-                ref={(el) => {
-                  sectionRefs.current["quality"] = el
-                }}
-                className="space-y-4"
-              >
-                <ColumnQualitySummary
-                  datasetId={selectedDataset!}
-                  selectedColumns={selectedColumns}
-                  onColumnClick={handleColumnClick}
-                  onColumnSelect={handleColumnSelect}
-                  onColumnsLoaded={setColumns}
-                />
-              </section>
-            )}
-
-            {!selectedDataset && (
-              <div className="text-center py-12 text-muted-foreground">
-                <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No data available. Upload or connect a dataset to begin.</p>
+            {/* Loading state: Show skeleton while fetching summary */}
+            {isLoadingSummary && selectedDatasetId && (
+              <div className="text-center py-12">
+                <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading cleaning summary...</p>
               </div>
             )}
 
-            {selectedDataset && showColumnFilter && columns.length > 0 && (
-              <div className="space-y-4">
-                <ColumnFilterPanel
-                  columns={columns}
-                  selectedColumns={selectedColumns}
-                  onSelectionChange={setSelectedColumns}
-                />
-              </div>
+            {/* Error state: Show error message if summary fetch failed */}
+            {summaryError && selectedDatasetId && !isLoadingSummary && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <AlertCircle className="w-8 h-8 mx-auto mb-4 text-destructive" />
+                  <CardTitle className="mb-2">Failed to Load Summary</CardTitle>
+                  <CardDescription>{summaryError}</CardDescription>
+                </CardContent>
+              </Card>
             )}
 
-            {selectedDataset && (
+            {/* Summary content: Render when summary is available and has columns */}
+            {/* Workspace provides datasets, backend provides analysis. Data Cleaning combines both. */}
+            {cleaningSummary && 
+             cleaningSummary.columns.length > 0 && 
+             selectedDatasetId && 
+             !isLoadingSummary && (
               <>
+                {/* Column Quality Summary - KEY SECTION */}
+                {/* Transform backend summary to ColumnQuality format expected by component */}
+                <section
+                  id="quality"
+                  ref={(el: HTMLElement | null) => {
+                    sectionRefs.current["quality"] = el
+                  }}
+                  className="space-y-4"
+                >
+                  <ColumnQualitySummary
+                    datasetId={selectedDatasetId}
+                    columns={cleaningSummary.columns.map((col) => ({
+                      name: col.name,
+                      dataType: col.type,
+                      missingPercentage: col.missing_pct,
+                      duplicateContribution: col.duplicates_pct,
+                      typeConsistency: col.health_score >= 80 ? "consistent" : col.health_score >= 60 ? "warning" : "inconsistent",
+                      outlierCount: col.outliers ?? 0,
+                      healthScore: col.health_score,
+                    }))}
+                    selectedColumns={selectedColumns}
+                    onColumnClick={handleColumnClick}
+                    onColumnSelect={handleColumnSelect}
+                    onColumnsLoaded={setColumns}
+                  />
+                </section>
+
+                {showColumnFilter && columns.length > 0 && (
+                  <div className="space-y-4">
+                    <ColumnFilterPanel
+                      columns={columns}
+                      selectedColumns={selectedColumns}
+                      onSelectionChange={setSelectedColumns}
+                    />
+                  </div>
+                )}
+
                 {/* Missing Values Section */}
                 <section
                   id="missing"
@@ -425,7 +572,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                   className="space-y-4"
                 >
                   <MissingValuesCard
-                    datasetId={selectedDataset!}
+                    datasetId={selectedDatasetId}
                     selectedColumns={selectedColumns}
                     onPreview={handlePreview}
                     onApply={handleApply}
@@ -435,12 +582,12 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                 {/* Duplicates Section */}
                 <section
                   id="duplicates"
-                  ref={(el) => {
+                  ref={(el: HTMLElement | null) => {
                     sectionRefs.current["duplicates"] = el
                   }}
                   className="space-y-4"
                 >
-                  <DuplicatesCard datasetId={selectedDataset!} onPreview={handlePreview} onApply={handleApply} />
+                  <DuplicatesCard datasetId={selectedDatasetId} onPreview={handlePreview} onApply={handleApply} />
                 </section>
 
                 {/* Invalid Formats Section */}
@@ -452,7 +599,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                   className="space-y-4"
                 >
                   <InvalidFormatsCard
-                    datasetId={selectedDataset}
+                    datasetId={selectedDatasetId}
                     selectedColumns={selectedColumns}
                     onPreview={handlePreview}
                     onApply={handleApply}
@@ -462,13 +609,13 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                 {/* Outliers Section */}
                 <section
                   id="outliers"
-                  ref={(el) => {
+                  ref={(el: HTMLElement | null) => {
                     sectionRefs.current["outliers"] = el
                   }}
                   className="space-y-4"
                 >
                   <OutliersCard
-                    datasetId={selectedDataset!}
+                    datasetId={selectedDatasetId}
                     selectedColumns={selectedColumns}
                     onPreview={handlePreview}
                     onApply={handleApply}
@@ -486,6 +633,26 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                   <CleaningHistoryPanel />
                 </section>
               </>
+            )}
+
+            {/* Empty state: Show when no dataset selected OR no summary available */}
+            {!selectedDatasetId && (
+              <div className="text-center py-12 text-muted-foreground">
+                <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No dataset selected. Please select a dataset to view cleaning summary.</p>
+              </div>
+            )}
+
+            {/* Show empty state only if summary is truly empty (no columns) or doesn't exist */}
+            {selectedDatasetId && 
+             !isLoadingSummary && 
+             !summaryError && 
+             (!cleaningSummary || cleaningSummary.columns.length === 0) && (
+              <div className="text-center py-12 text-muted-foreground">
+                <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No cleaning summary available for this dataset.</p>
+                <p className="text-xs mt-2">Make sure the dataset file exists in workspace storage.</p>
+              </div>
             )}
           </div>
         </div>
