@@ -33,19 +33,16 @@ import { previewCleaning, applyCleaning, getCleaningSummary, type CleaningSummar
 import { cn } from "@/lib/utils"
 import type { CleaningRequest } from "@/types/dataCleaning"
 import { CleaningHistoryPanel } from "./data-cleaning/cleaning-history-panel"
-import { ColumnFilterPanel, type ColumnInfo } from "./data-cleaning/column-filter-panel"
 import { ColumnQualitySummary } from "./data-cleaning/column-quality-summary"
 import { DuplicatesCard } from "./data-cleaning/duplicates-card"
 import { InvalidFormatsCard } from "./data-cleaning/invalid-formats-card"
 import { MissingValuesCard } from "./data-cleaning/missing-values-card"
-import { OutliersCard } from "./data-cleaning/outliers-card"
 
 const navItems = [
   { id: "quality", label: "Column Quality", icon: CheckCircle2 },
   { id: "missing", label: "Missing Values", icon: AlertCircle },
   { id: "duplicates", label: "Duplicates", icon: Copy },
   { id: "invalid", label: "Invalid Formats", icon: AlertTriangle },
-  { id: "outliers", label: "Outliers", icon: Filter },
   { id: "history", label: "Cleaning History", icon: History },
 ]
 
@@ -71,8 +68,6 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   // State management - SINGLE source of truth for dataset selection
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState("quality")
-  const [selectedColumns, setSelectedColumns] = useState<string[]>([])
-  const [columns, setColumns] = useState<ColumnInfo[]>([])
   
   /**
    * Cleaning summary state
@@ -94,20 +89,17 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   const scrollContainerRef = useRef<HTMLElement | null>(null)
   const didInitRef = useRef<string | null>(null) // Track which workspace was initialized
   const prevWorkspaceIdRef = useRef<string | null>(null)
-  const prevDatasetIdRef = useRef<string | null>(null) // Track previous dataset for column loading
-  const columnsLoadedRef = useRef<string | null>(null) // Track which dataset had columns loaded
+  const prevDatasetIdRef = useRef<string | null>(null) // Track previous dataset
 
   // Reset selected dataset when workspace changes (ONLY when workspace actually changes)
   useEffect(() => {
     if (activeWorkspaceId !== prevWorkspaceIdRef.current) {
       prevWorkspaceIdRef.current = activeWorkspaceId
       didInitRef.current = null // Reset init flag for new workspace
-      columnsLoadedRef.current = null // Reset columns loaded flag
       setSelectedDatasetId(null)
       setCleaningSummary(null)
       setSummaryError(null)
       setHasAttemptedSync(false)
-      setColumns([]) // Reset columns when workspace changes
     }
   }, [activeWorkspaceId])
 
@@ -188,7 +180,6 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     if (prevDatasetIdRef.current !== selectedDatasetId) {
       prevDatasetIdRef.current = selectedDatasetId
       setHasAttemptedSync(false)
-      columnsLoadedRef.current = null // Reset columns loaded when dataset changes
     }
 
     let cancelled = false
@@ -267,15 +258,9 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   }, [])
 
   const handleColumnClick = (columnName: string, issueType: string) => {
-    // Auto-select column if not already selected
-    if (!selectedColumns.includes(columnName)) {
-      setSelectedColumns([...selectedColumns, columnName])
-    }
-
     // Scroll to the relevant section based on issue type
     const sectionMap: Record<string, string> = {
       missing: "missing",
-      outliers: "outliers",
       invalid: "invalid",
       duplicates: "duplicates",
       overview: "quality",
@@ -283,24 +268,6 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     const targetSection = sectionMap[issueType] || "quality"
     scrollToSection(targetSection)
   }
-
-  const handleColumnSelect = useCallback((columnName: string) => {
-    setSelectedColumns((prev) => {
-      if (!prev.includes(columnName)) {
-        return [...prev, columnName]
-      }
-      return prev
-    })
-  }, [])
-
-  // Guard column loading callback - prevent repeated parent updates
-  const handleColumnsLoaded = useCallback((loadedColumns: ColumnInfo[]) => {
-    // Only update if dataset changed or columns haven't been loaded for this dataset
-    if (columnsLoadedRef.current !== selectedDatasetId) {
-      columnsLoadedRef.current = selectedDatasetId
-      setColumns(loadedColumns)
-    }
-  }, [selectedDatasetId])
 
   // Stable dataset change handler - direct setState, no conditions
   const handleDatasetChange = useCallback((value: string) => {
@@ -564,10 +531,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                       outlierCount: col.outliers ?? 0,
                       healthScore: col.health_score,
                     }))}
-                    selectedColumns={selectedColumns}
                     onColumnClick={handleColumnClick}
-                    onColumnSelect={handleColumnSelect}
-                    onColumnsLoaded={handleColumnsLoaded}
                   />
                 </section>
 
@@ -581,7 +545,14 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                 >
                   <MissingValuesCard
                     datasetId={selectedDatasetId}
-                    selectedColumns={selectedColumns}
+                    columns={cleaningSummary?.columns
+                      .filter((col) => col.missing_pct > 0)
+                      .map((col) => ({
+                        name: col.name,
+                        dataType: col.type,
+                        missingCount: Math.round((cleaningSummary.rows * col.missing_pct) / 100),
+                        missingPercentage: col.missing_pct,
+                      })) || []}
                     onPreview={handlePreview}
                     onApply={handleApply}
                   />
@@ -595,7 +566,31 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                   }}
                   className="space-y-4"
                 >
-                  <DuplicatesCard datasetId={selectedDatasetId} onPreview={handlePreview} onApply={handleApply} />
+                  <DuplicatesCard
+                    datasetId={selectedDatasetId}
+                    totalRows={cleaningSummary?.rows}
+                    duplicateCount={
+                      cleaningSummary
+                        ? cleaningSummary.columns.reduce(
+                            (sum, col) => sum + Math.round((cleaningSummary.rows * col.duplicates_pct) / 100),
+                            0
+                          )
+                        : undefined
+                    }
+                    duplicatePercentage={
+                      cleaningSummary && cleaningSummary.rows > 0
+                        ? (cleaningSummary.columns.reduce(
+                            (sum, col) => sum + Math.round((cleaningSummary.rows * col.duplicates_pct) / 100),
+                            0
+                          ) /
+                            cleaningSummary.rows) *
+                          100
+                        : undefined
+                    }
+                    availableColumns={cleaningSummary?.columns.map((col) => col.name) || []}
+                    onPreview={handlePreview}
+                    onApply={handleApply}
+                  />
                 </section>
 
                 {/* Invalid Formats Section */}
@@ -608,33 +603,16 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                 >
                   <InvalidFormatsCard
                     datasetId={selectedDatasetId}
-                    selectedColumns={selectedColumns}
-                    onPreview={handlePreview}
-                    onApply={handleApply}
-                  />
-                </section>
-
-                {/* Outliers Section */}
-                <section
-                  id="outliers"
-                  ref={(el: HTMLElement | null) => {
-                    sectionRefs.current["outliers"] = el
-                  }}
-                  className="space-y-4"
-                >
-                  {/* Column Filter Panel - Visible ONLY in Outliers section */}
-                  {activeSection === "outliers" && selectedDatasetId && columns.length > 0 && (
-                    <div className="space-y-4">
-                      <ColumnFilterPanel
-                        columns={columns}
-                        selectedColumns={selectedColumns}
-                        onSelectionChange={setSelectedColumns}
-                      />
-                    </div>
-                  )}
-                  <OutliersCard
-                    datasetId={selectedDatasetId}
-                    selectedColumns={selectedColumns}
+                    issues={
+                      cleaningSummary?.columns
+                        .filter((col) => col.health_score < 80)
+                        .map((col) => ({
+                          columnName: col.name,
+                          expectedType: col.type === "numeric" ? "numeric" : col.type === "datetime" ? "datetime" : "categorical",
+                          invalidCount: Math.round((cleaningSummary.rows * (100 - col.health_score)) / 100),
+                          sampleInvalidValues: [],
+                        })) || []
+                    }
                     onPreview={handlePreview}
                     onApply={handleApply}
                   />

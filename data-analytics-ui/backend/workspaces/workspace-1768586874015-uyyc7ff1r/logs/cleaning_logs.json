@@ -1,0 +1,22 @@
+[
+  {
+    "dataset_name": "movie.csv",
+    "operation": "invalid_format",
+    "action": "remove_invalid",
+    "rows_affected": 0,
+    "parameters": {
+      "expected_type": "categorical"
+    },
+    "timestamp": "2026-01-17T03:31:07.803090"
+  },
+  {
+    "dataset_name": "movie.csv",
+    "operation": "invalid_format",
+    "action": "remove_invalid",
+    "rows_affected": 0,
+    "parameters": {
+      "expected_type": "categorical"
+    },
+    "timestamp": "2026-01-17T03:31:08.861243"
+  }
+]

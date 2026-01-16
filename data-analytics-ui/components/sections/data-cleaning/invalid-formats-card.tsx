@@ -173,7 +173,7 @@ export function InvalidFormatsCard({
     ]
   }
 
-  if (selectedColumns.length === 0) {
+  if (issues.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -185,8 +185,8 @@ export function InvalidFormatsCard({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <Filter className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>Select columns in the filter above to view format issues</p>
+            <CheckCircle2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No format issues detected in this dataset.</p>
           </div>
         </CardContent>
       </Card>

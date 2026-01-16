@@ -116,7 +116,7 @@ export function OutliersCard({
     return true
   }
 
-  if (selectedColumns.length === 0) {
+  if (columns.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -128,8 +128,8 @@ export function OutliersCard({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <Filter className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>Select numeric columns in the filter above to view outliers</p>
+            <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>No outliers detected in numeric columns.</p>
           </div>
         </CardContent>
       </Card>
