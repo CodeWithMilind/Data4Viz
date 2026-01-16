@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { useWorkspace } from "@/contexts/workspace-context"
 
 const availableDatasets = [
   { id: "1", name: "sales_data.csv", rows: 1950, columns: 12 },
@@ -64,6 +65,7 @@ interface DataCleaningPageProps {
 }
 
 export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProps) {
+  const { currentWorkspace, setCleaningStarted, addCleaningStep } = useWorkspace()
   const [activeSection, setActiveSection] = useState("missing")
   const [selectedDataset, setSelectedDataset] = useState<string>("")
 
@@ -129,6 +131,19 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
 
   const handleApplyAction = (columnName: string, actionType: string, value?: string) => {
     onApplyCleaningAction?.({ columnName, actionType, value })
+    
+    // Update workspace state
+    if (currentWorkspace) {
+      if (!currentWorkspace.state.cleaningStarted) {
+        setCleaningStarted(true)
+      }
+      addCleaningStep({
+        type: actionType,
+        name: `${actionType} on ${columnName}`,
+        description: value ? `Applied ${actionType} with value: ${value}` : undefined,
+        config: { columnName, value },
+      })
+    }
   }
 
   const handlePreview = (columnName: string, actionType: string) => {
@@ -249,7 +264,11 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
               <span className="text-sm font-semibold text-primary">78%</span>
             </div>
           </div>
-          <Button className="gap-2">
+          <Button 
+            className="gap-2" 
+            disabled={!currentWorkspace || !currentWorkspace.state.datasetAttached}
+            title={!currentWorkspace || !currentWorkspace.state.datasetAttached ? "Attach a dataset to your workspace first" : ""}
+          >
             <CheckCircle2 className="w-4 h-4" />
             Auto-Clean All
           </Button>

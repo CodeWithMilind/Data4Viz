@@ -11,12 +11,13 @@
 "use client"
 
 import { useState } from "react"
-import { Settings, Sun, Globe, User, Shield, LogOut, Bot } from "lucide-react"
+import { Settings, Sun, Globe, User, Shield, LogOut, Bot, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { WorkspaceNotes } from "@/components/workspace/workspace-notes"
 
 export function SettingsPage() {
   // UI-only state - no persistence
@@ -235,6 +236,15 @@ export function SettingsPage() {
                 </Button>
               </div>
             </div>
+          </section>
+
+          {/* Workspace Section */}
+          <section>
+            <h2 className="text-lg font-medium text-foreground mb-4 flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Workspace
+            </h2>
+            <WorkspaceNotes />
           </section>
 
           {/* Danger Zone */}

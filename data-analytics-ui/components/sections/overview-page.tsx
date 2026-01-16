@@ -28,7 +28,8 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { useDataset, type Dataset } from "@/contexts/dataset-context"
+import { useWorkspace } from "@/contexts/workspace-context"
+import type { WorkspaceDataset } from "@/types/workspace"
 
 /**
  * Infer column type from data values
@@ -75,7 +76,7 @@ function inferColumnType(values: any[], columnName: string): "numeric" | "dateti
  * Compute comprehensive dataset statistics
  * Single source of truth for all derived metrics
  */
-function computeDatasetStats(dataset: Dataset | null) {
+function computeDatasetStats(dataset: WorkspaceDataset | null) {
   if (!dataset || !dataset.data || dataset.data.length === 0) {
     return {
       totalRows: 0,
@@ -182,7 +183,7 @@ function computeDatasetStats(dataset: Dataset | null) {
 /**
  * Format summary stats for display cards
  */
-const getSummaryStats = (dataset: Dataset | null, stats: ReturnType<typeof computeDatasetStats>) => {
+const getSummaryStats = (dataset: WorkspaceDataset | null, stats: ReturnType<typeof computeDatasetStats>) => {
   if (!dataset) {
     return []
   }
@@ -224,8 +225,7 @@ const getSummaryStats = (dataset: Dataset | null, stats: ReturnType<typeof compu
 }
 
 export function OverviewPage() {
-  const { datasets, currentDataset, setCurrentDataset } = useDataset()
-  const [selectedDatasetId, setSelectedDatasetId] = useState<string>("")
+  const { currentWorkspace, getCurrentDataset, setOverviewReady } = useWorkspace()
   const [previewExpanded, setPreviewExpanded] = useState(true)
   const [rowsShown, setRowsShown] = useState("20")
   const [customRowCount, setCustomRowCount] = useState("")
@@ -240,26 +240,10 @@ export function OverviewPage() {
   const [showMissing, setShowMissing] = useState(true)
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
 
-  // Get selected dataset or use current dataset
+  // Get dataset from workspace
   const selectedDataset = useMemo(() => {
-    if (selectedDatasetId) {
-      return datasets.find((d) => d.id === selectedDatasetId) || currentDataset
-    }
-    return currentDataset
-  }, [selectedDatasetId, datasets, currentDataset])
-
-  // Update current dataset when selection changes
-  const handleDatasetChange = (datasetId: string) => {
-    setSelectedDatasetId(datasetId)
-    const dataset = datasets.find((d) => d.id === datasetId)
-    if (dataset) {
-      setCurrentDataset(dataset)
-      // Reset selected column to first column if current selection doesn't exist
-      if (dataset.headers.length > 0 && !dataset.headers.includes(selectedColumn)) {
-        setSelectedColumn(dataset.headers[0])
-      }
-    }
-  }
+    return getCurrentDataset()
+  }, [getCurrentDataset])
 
   // Initialize selected column when dataset loads
   useEffect(() => {
@@ -270,6 +254,14 @@ export function OverviewPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDataset])
+
+  // Mark overview as ready when dataset is loaded
+  useEffect(() => {
+    if (selectedDataset && currentWorkspace && !currentWorkspace.state.overviewReady) {
+      setOverviewReady(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDataset, currentWorkspace])
 
   // Compute comprehensive dataset stats (single source of truth)
   const datasetStats = useMemo(() => computeDatasetStats(selectedDataset), [selectedDataset])
@@ -348,7 +340,23 @@ export function OverviewPage() {
     }
   }
 
-  // Show dataset selector if no dataset selected
+  // Show message if no workspace or dataset
+  if (!currentWorkspace) {
+    return (
+      <main className="flex-1 flex items-center justify-center h-screen bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Database className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle>No Active Workspace</CardTitle>
+            <CardDescription>Please create or select a workspace to view dataset overview</CardDescription>
+          </CardHeader>
+        </Card>
+      </main>
+    )
+  }
+
   if (!selectedDataset) {
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
@@ -357,42 +365,9 @@ export function OverviewPage() {
             <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Database className="w-6 h-6 text-primary" />
             </div>
-            <CardTitle>Select a Dataset</CardTitle>
-            <CardDescription>Choose which dataset you want to view</CardDescription>
+            <CardTitle>No Dataset Attached</CardTitle>
+            <CardDescription>Please upload a dataset to your workspace to view overview</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {datasets.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">
-                No datasets available. Please upload a dataset first.
-              </p>
-            ) : (
-              <>
-                <Select value={selectedDatasetId} onValueChange={handleDatasetChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a dataset..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {datasets.map((dataset) => (
-                      <SelectItem key={dataset.id} value={dataset.id}>
-                        <div className="flex items-center gap-3">
-                          <Database className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <span className="font-medium">{dataset.name}</span>
-                            <span className="text-muted-foreground ml-2 text-xs">
-                              {dataset.rowCount.toLocaleString()} rows • {dataset.columnCount} columns
-                            </span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground text-center">
-                  You can change the dataset later from the selector
-                </p>
-              </>
-            )}
-          </CardContent>
         </Card>
       </main>
     )
@@ -430,30 +405,18 @@ export function OverviewPage() {
           <LayoutGrid className="w-5 h-5 text-primary" />
           <span className="font-medium text-foreground">Dataset Overview</span>
         </div>
-        {/* Dataset Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Dataset:</span>
-          <Select value={selectedDataset.id} onValueChange={handleDatasetChange}>
-            <SelectTrigger className="w-64 h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {datasets.map((dataset) => (
-                <SelectItem key={dataset.id} value={dataset.id}>
-                  <div className="flex items-center gap-3">
-                    <Database className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      <span className="font-medium">{dataset.name}</span>
-                      <span className="text-muted-foreground ml-2 text-xs">
-                        {dataset.rowCount.toLocaleString()} rows • {dataset.columnCount} columns
-                      </span>
-                    </div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Workspace Info */}
+        {currentWorkspace && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Workspace:</span>
+            <span className="text-sm font-medium">{currentWorkspace.name}</span>
+            {selectedDataset && (
+              <span className="text-xs text-muted-foreground">
+                • {selectedDataset.rowCount.toLocaleString()} rows • {selectedDataset.columnCount} columns
+              </span>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Sticky Filter Bar */}

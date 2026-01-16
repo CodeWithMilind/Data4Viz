@@ -1,6 +1,18 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode } from "react"
+/**
+ * Dataset Context (Legacy Compatibility Layer)
+ * 
+ * NOTE: This is a compatibility wrapper around Workspace.
+ * Workspace is the single source of truth for datasets.
+ * 
+ * This context provides a Dataset-like interface for components
+ * that haven't been migrated to use workspace directly.
+ */
+
+import React, { createContext, useContext, ReactNode, useMemo } from "react"
+import { useWorkspace } from "./workspace-context"
+import type { WorkspaceDataset } from "@/types/workspace"
 
 export interface Dataset {
   id: string
@@ -25,32 +37,70 @@ interface DatasetContextType {
 
 const DatasetContext = createContext<DatasetContextType | undefined>(undefined)
 
+/**
+ * Convert WorkspaceDataset to Dataset format
+ */
+function workspaceDatasetToDataset(wsDataset: WorkspaceDataset): Dataset {
+  return {
+    id: wsDataset.id,
+    name: wsDataset.name,
+    data: wsDataset.data,
+    headers: wsDataset.headers,
+    rowCount: wsDataset.rowCount,
+    columnCount: wsDataset.columnCount,
+    source: wsDataset.source,
+    sourceUrl: wsDataset.sourceUrl,
+    uploadedAt: new Date(wsDataset.uploadedAt),
+  }
+}
+
 export function DatasetProvider({ children }: { children: ReactNode }) {
-  const [datasets, setDatasets] = useState<Dataset[]>([])
-  const [currentDataset, setCurrentDataset] = useState<Dataset | null>(null)
+  const { currentWorkspace, uploadDatasetToWorkspace, getCurrentDataset } = useWorkspace()
 
-  const addDataset = (datasetData: Omit<Dataset, "id" | "uploadedAt">): Dataset => {
-    const newDataset: Dataset = {
-      ...datasetData,
-      id: `dataset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      uploadedAt: new Date(),
+  // Convert workspace dataset to Dataset format for compatibility
+  const currentDataset = useMemo(() => {
+    const wsDataset = getCurrentDataset()
+    return wsDataset ? workspaceDatasetToDataset(wsDataset) : null
+  }, [getCurrentDataset])
+
+  // For compatibility: return array with current dataset
+  const datasets = useMemo(() => {
+    return currentDataset ? [currentDataset] : []
+  }, [currentDataset])
+
+  const addDataset = async (datasetData: Omit<Dataset, "id" | "uploadedAt">): Promise<Dataset> => {
+    // Upload to workspace
+    await uploadDatasetToWorkspace({
+      name: datasetData.name,
+      data: datasetData.data,
+      headers: datasetData.headers,
+      rowCount: datasetData.rowCount,
+      columnCount: datasetData.columnCount,
+      source: datasetData.source,
+      sourceUrl: datasetData.sourceUrl,
+    })
+
+    // Return the dataset from workspace
+    const wsDataset = getCurrentDataset()
+    if (!wsDataset) {
+      throw new Error("Failed to upload dataset to workspace")
     }
-
-    setDatasets((prev) => [...prev, newDataset])
-    setCurrentDataset(newDataset)
-    return newDataset
+    return workspaceDatasetToDataset(wsDataset)
   }
 
-  const removeDataset = (id: string) => {
-    setDatasets((prev) => prev.filter((d) => d.id !== id))
-    if (currentDataset?.id === id) {
-      setCurrentDataset(null)
-    }
+  const setCurrentDataset = (_dataset: Dataset | null) => {
+    // No-op: dataset is managed by workspace
+    // This is kept for API compatibility
+  }
+
+  const removeDataset = (_id: string) => {
+    // No-op: dataset removal should be done via workspace
+    // This is kept for API compatibility
   }
 
   const clearDatasets = () => {
-    setDatasets([])
-    setCurrentDataset(null)
+    // No-op: dataset clearing should be done via workspace
+    // This is kept for API compatibility
   }
 
   return (
@@ -59,7 +109,7 @@ export function DatasetProvider({ children }: { children: ReactNode }) {
         datasets,
         currentDataset,
         setCurrentDataset,
-        addDataset,
+        addDataset: addDataset as any, // Type assertion for compatibility
         removeDataset,
         clearDatasets,
       }}

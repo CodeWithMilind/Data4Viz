@@ -12,7 +12,8 @@ import { JupyterNotebookPage } from "@/components/sections/jupyter-notebook-page
 import { FilesPage } from "@/components/sections/files-page"
 import { WelcomePage } from "@/components/sections/welcome-page"
 import { SettingsPage } from "@/components/sections/settings-page"
-import { LogsPage } from "@/components/sections/logs-page" // Added LogsPage import
+import { LogsPage } from "@/components/sections/logs-page"
+import { WorkspaceStatusBanner } from "@/components/workspace/workspace-status-banner"
 
 interface MainContentProps {
   activeNav: string
@@ -43,7 +44,7 @@ export function MainContent({ activeNav }: MainContentProps) {
         return <FilesPage />
       case "settings":
         return <SettingsPage />
-      case "logs": // Added logs case
+      case "logs":
         return <LogsPage />
       case "welcome":
       default:
@@ -51,5 +52,12 @@ export function MainContent({ activeNav }: MainContentProps) {
     }
   }
 
-  return <main className="flex-1 overflow-auto bg-background">{renderContent()}</main>
+  return (
+    <main className="flex-1 overflow-auto bg-background">
+      <div className="p-4 space-y-4">
+        {activeNav !== "settings" && <WorkspaceStatusBanner />}
+        {renderContent()}
+      </div>
+    </main>
+  )
 }

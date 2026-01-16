@@ -1,12 +1,12 @@
 "use client"
 
-import { PanelLeft, Download, Share2 } from "lucide-react"
+import { PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { WorkspaceSelector } from "@/components/workspace/workspace-selector"
 
 interface HeaderProps {
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
-  activeWorkspace: string
   activeNav: string
 }
 
@@ -23,7 +23,7 @@ const navLabels: Record<string, string> = {
   insights: "Insights",
 }
 
-export function Header({ sidebarOpen, setSidebarOpen, activeWorkspace, activeNav }: HeaderProps) {
+export function Header({ sidebarOpen, setSidebarOpen, activeNav }: HeaderProps) {
   return (
     <header className="h-14 border-b border-border bg-background flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
@@ -38,19 +38,11 @@ export function Header({ sidebarOpen, setSidebarOpen, activeWorkspace, activeNav
           </Button>
         )}
         <div>
-          <h1 className="font-semibold text-foreground">{activeWorkspace}</h1>
           <p className="text-xs text-muted-foreground">{navLabels[activeNav] || "Overview"}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-          <Share2 className="w-4 h-4" />
-          Share
-        </Button>
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-          <Download className="w-4 h-4" />
-          Export
-        </Button>
+        <WorkspaceSelector />
       </div>
     </header>
   )

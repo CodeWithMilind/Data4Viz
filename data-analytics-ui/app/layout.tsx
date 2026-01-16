@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { DatasetProvider } from "@/contexts/dataset-context"
+import { WorkspaceProvider } from "@/contexts/workspace-context"
 import "./globals.css"
 
 const _inter = Inter({ subsets: ["latin"] })
@@ -27,9 +28,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body suppressHydrationWarning className="font-sans antialiased">
-        <DatasetProvider>
-          {children}
-        </DatasetProvider>
+        <WorkspaceProvider>
+          <DatasetProvider>
+            {children}
+          </DatasetProvider>
+        </WorkspaceProvider>
         <Analytics />
       </body>
     </html>

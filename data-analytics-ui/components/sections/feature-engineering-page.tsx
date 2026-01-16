@@ -1,7 +1,11 @@
+"use client"
+
 import { Wrench, Plus, Columns } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useWorkspace } from "@/contexts/workspace-context"
+import { useEffect } from "react"
 
 const features = [
   { name: "revenue_per_customer", type: "Calculated", formula: "total_revenue / customer_count" },
@@ -10,6 +14,26 @@ const features = [
 ]
 
 export function FeatureEngineeringPage() {
+  const { currentWorkspace, setFeaturesCreated, addFeatureStep } = useWorkspace()
+
+  // Note: Features are marked as created when user clicks "New Feature" button
+  // This useEffect is intentionally left empty - features are created via handleCreateFeature
+
+  const handleCreateFeature = () => {
+    // In a real implementation, this would open a dialog to create a feature
+    // For now, just mark features as created if workspace exists
+    if (currentWorkspace) {
+      if (!currentWorkspace.state.featuresCreated) {
+        setFeaturesCreated(true)
+      }
+      addFeatureStep({
+        type: "manual",
+        name: "Feature created",
+        description: "User created a new feature",
+      })
+    }
+  }
+
   return (
     <main className="flex-1 flex flex-col h-screen bg-background overflow-auto">
       <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
@@ -17,7 +41,12 @@ export function FeatureEngineeringPage() {
           <Wrench className="w-5 h-5 text-primary" />
           <span className="font-medium text-foreground">Feature Engineering</span>
         </div>
-        <Button className="gap-2">
+        <Button 
+          className="gap-2" 
+          onClick={handleCreateFeature}
+          disabled={!currentWorkspace || !currentWorkspace.state.cleaningStarted}
+          title={!currentWorkspace || !currentWorkspace.state.cleaningStarted ? "Start data cleaning first" : ""}
+        >
           <Plus className="w-4 h-4" />
           New Feature
         </Button>

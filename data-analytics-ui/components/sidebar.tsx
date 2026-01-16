@@ -4,18 +4,12 @@ import type React from "react"
 
 import { useState } from "react"
 import {
-  Plus,
-  Search,
   Database,
   LayoutGrid,
   BarChart3,
   Settings,
   ChevronDown,
   PanelLeftClose,
-  Pencil,
-  Trash2,
-  Check,
-  X,
   Crown,
   User,
   HelpCircle,
@@ -30,9 +24,8 @@ import {
   Home,
   History,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,29 +34,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-interface Workspace {
-  id: string
-  name: string
-  datasets: number
-}
-
-const initialWorkspaces: Workspace[] = [
-  { id: "1", name: "Sales Analysis Q4", datasets: 1 },
-  { id: "2", name: "Customer Segmentation", datasets: 3 },
-  { id: "3", name: "Marketing ROI", datasets: 2 },
-]
-
 interface SidebarProps {
   activeNav: string
   setActiveNav: (id: string) => void
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
-  activeWorkspace: string
-  setActiveWorkspace: (name: string) => void
 }
 
 const navItems = [
-  { id: "welcome", icon: Home, label: "Dashboard" }, // Added Dashboard as first item
+  { id: "welcome", icon: Home, label: "Dashboard" },
   { id: "dataset", icon: Database, label: "Dataset" },
   { id: "overview", icon: LayoutGrid, label: "Overview" },
   { id: "cleaning", icon: Wrench, label: "Data Cleaning" },
@@ -74,7 +53,7 @@ const navItems = [
   { id: "notebook", icon: FileCode, label: "Jupyter Notebook" },
   { id: "files", icon: FolderOpen, label: "Files" },
   { id: "insights", icon: Lightbulb, label: "Insights" },
-  { id: "logs", icon: History, label: "Logs" }, // Added Logs menu item after Insights
+  { id: "logs", icon: History, label: "Logs" },
 ]
 
 export function Sidebar({
@@ -82,67 +61,8 @@ export function Sidebar({
   setActiveNav,
   sidebarOpen,
   setSidebarOpen,
-  activeWorkspace,
-  setActiveWorkspace,
 }: SidebarProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [workspacesOpen, setWorkspacesOpen] = useState(true)
-  const [workspaces, setWorkspaces] = useState<Workspace[]>(initialWorkspaces)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingName, setEditingName] = useState("")
-
-  const handleCreateWorkspace = () => {
-    const newId = Date.now().toString()
-    const newWorkspace: Workspace = {
-      id: newId,
-      name: `New Workspace ${workspaces.length + 1}`,
-      datasets: 0,
-    }
-    setWorkspaces((prev) => [newWorkspace, ...prev])
-    setActiveWorkspace(newWorkspace.name)
-    setEditingId(newId)
-    setEditingName(newWorkspace.name)
-    setWorkspacesOpen(true)
-  }
-
-  const handleStartEdit = (workspace: Workspace, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setEditingId(workspace.id)
-    setEditingName(workspace.name)
-  }
-
-  const handleSaveEdit = (id: string) => {
-    if (editingName.trim()) {
-      setWorkspaces((prev) => prev.map((w) => (w.id === id ? { ...w, name: editingName.trim() } : w)))
-      const workspace = workspaces.find((w) => w.id === id)
-      if (workspace && workspace.name === activeWorkspace) {
-        setActiveWorkspace(editingName.trim())
-      }
-    }
-    setEditingId(null)
-    setEditingName("")
-  }
-
-  const handleCancelEdit = () => {
-    setEditingId(null)
-    setEditingName("")
-  }
-
-  const handleDelete = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    const workspaceToDelete = workspaces.find((w) => w.id === id)
-    setWorkspaces((prev) => prev.filter((w) => w.id !== id))
-    if (workspaceToDelete && workspaceToDelete.name === activeWorkspace && workspaces.length > 1) {
-      const remaining = workspaces.filter((w) => w.id !== id)
-      setActiveWorkspace(remaining[0]?.name || "")
-    }
-  }
-
-  const handleSelectWorkspace = (workspace: Workspace) => {
-    if (editingId !== workspace.id) {
-      setActiveWorkspace(workspace.name)
-    }
-  }
+  // Workspace management removed - handled by WorkspaceSelector in header
 
   if (!sidebarOpen) {
     return null
@@ -169,116 +89,6 @@ export function Sidebar({
           </Button>
         </div>
 
-        {/* New Workspace Button */}
-        <Button
-          onClick={handleCreateWorkspace}
-          className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus className="w-4 h-4" />
-          New Workspace
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="px-4 pb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search workspaces..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-secondary border-0 placeholder:text-muted-foreground"
-          />
-        </div>
-      </div>
-
-      <div className="px-4 pb-4">
-        <button
-          onClick={() => setWorkspacesOpen(!workspacesOpen)}
-          className="w-full flex items-center justify-between text-xs font-semibold text-muted-foreground mb-2 tracking-wider hover:text-sidebar-foreground transition-colors"
-        >
-          <span>WORKSPACES</span>
-          <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", !workspacesOpen && "-rotate-90")} />
-        </button>
-        <div
-          className={cn(
-            "space-y-1 overflow-hidden transition-all duration-200",
-            workspacesOpen ? "max-h-[200px] overflow-y-auto" : "max-h-0",
-          )}
-        >
-          {workspaces
-            .filter((w) => w.name.toLowerCase().includes(searchQuery.toLowerCase()))
-            .map((workspace) => (
-              <div
-                key={workspace.id}
-                onClick={() => handleSelectWorkspace(workspace)}
-                className={cn(
-                  "group w-full text-left px-3 py-2.5 rounded-lg transition-all duration-200 cursor-pointer",
-                  "hover:bg-sidebar-accent",
-                  activeWorkspace === workspace.name ? "bg-sidebar-accent" : "bg-transparent",
-                )}
-              >
-                {editingId === workspace.id ? (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      className="h-7 text-sm bg-background"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveEdit(workspace.id)
-                        if (e.key === "Escape") handleCancelEdit()
-                      }}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-6 h-6 text-green-600 hover:text-green-700"
-                      onClick={() => handleSaveEdit(workspace.id)}
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-6 h-6 text-muted-foreground hover:text-foreground"
-                      onClick={handleCancelEdit}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm text-sidebar-foreground truncate">{workspace.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {workspace.datasets} dataset{workspace.datasets !== 1 ? "s" : ""}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-6 h-6 text-muted-foreground hover:text-sidebar-foreground"
-                        onClick={(e) => handleStartEdit(workspace, e)}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="w-6 h-6 text-muted-foreground hover:text-destructive"
-                        onClick={(e) => handleDelete(workspace.id, e)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-        </div>
       </div>
 
       {/* Navigation */}

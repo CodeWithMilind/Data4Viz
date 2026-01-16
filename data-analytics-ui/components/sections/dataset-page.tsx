@@ -1,36 +1,16 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Database, Upload, FileSpreadsheet, Table, Trash2, MoreVertical, Eye, Download, Edit, Link2, Loader2, AlertCircle } from "lucide-react"
+import { Database, Upload, FileSpreadsheet, Table, Link2, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { useDataset } from "@/contexts/dataset-context"
+import { useWorkspace } from "@/contexts/workspace-context"
 import { fetchAndParseCSV, parseCSVFromFile, isValidURL } from "@/lib/csv-parser"
-import type { Dataset } from "@/contexts/dataset-context"
 
 export function DatasetPage() {
-  const { datasets, currentDataset, addDataset, removeDataset } = useDataset()
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [datasetToDelete, setDatasetToDelete] = useState<Dataset | null>(null)
+  const { currentWorkspace, uploadDatasetToWorkspace, getCurrentDataset } = useWorkspace()
   
   // URL loading state
   const [csvUrl, setCsvUrl] = useState("")
@@ -42,18 +22,7 @@ export function DatasetPage() {
   const [fileError, setFileError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleDeleteClick = (dataset: Dataset) => {
-    setDatasetToDelete(dataset)
-    setDeleteDialogOpen(true)
-  }
-
-  const handleConfirmDelete = () => {
-    if (datasetToDelete) {
-      removeDataset(datasetToDelete.id)
-      setDatasetToDelete(null)
-      setDeleteDialogOpen(false)
-    }
-  }
+  const currentDataset = getCurrentDataset()
 
   // Handle CSV URL loading
   const handleLoadFromUrl = async () => {
@@ -79,7 +48,13 @@ export function DatasetPage() {
       const filename = pathParts[pathParts.length - 1] || "dataset.csv"
       const name = filename.endsWith(".csv") ? filename : `${filename}.csv`
 
-      addDataset({
+      // Upload directly to active workspace
+      if (!currentWorkspace) {
+        setUrlError("Please create or select a workspace first")
+        return
+      }
+
+      await uploadDatasetToWorkspace({
         name,
         data: parsed.data,
         headers: parsed.headers,
@@ -115,7 +90,13 @@ export function DatasetPage() {
     try {
       const parsed = await parseCSVFromFile(file)
       
-      addDataset({
+      // Upload directly to active workspace
+      if (!currentWorkspace) {
+        setFileError("Please create or select a workspace first")
+        return
+      }
+
+      await uploadDatasetToWorkspace({
         name: file.name,
         data: parsed.data,
         headers: parsed.headers,
@@ -145,7 +126,12 @@ export function DatasetPage() {
           <Database className="w-5 h-5 text-primary" />
           <span className="font-medium text-foreground">Dataset Management</span>
         </div>
-        <Button className="gap-2" onClick={handleUploadClick} disabled={isLoadingFile}>
+        <Button 
+          className="gap-2" 
+          onClick={handleUploadClick} 
+          disabled={isLoadingFile || !currentWorkspace}
+          title={!currentWorkspace ? "Please create or select a workspace first" : ""}
+        >
           {isLoadingFile ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -197,8 +183,9 @@ export function DatasetPage() {
               />
               <Button
                 onClick={handleLoadFromUrl}
-                disabled={isLoadingUrl || !csvUrl.trim()}
+                disabled={isLoadingUrl || !csvUrl.trim() || !currentWorkspace}
                 className="gap-2"
+                title={!currentWorkspace ? "Please create or select a workspace first" : ""}
               >
                 {isLoadingUrl ? (
                   <>
@@ -230,104 +217,76 @@ export function DatasetPage() {
           </Alert>
         )}
 
-        {/* Datasets Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {datasets.map((dataset) => (
-            <Card key={dataset.id} className="hover:shadow-md transition-shadow group">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <FileSpreadsheet className="w-5 h-5 text-primary" />
-                    </div>
-                    <CardTitle className="text-sm font-medium truncate">{dataset.name}</CardTitle>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDeleteClick(dataset)}
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Table className="w-3 h-3" />
-                    {dataset.rowCount.toLocaleString()} rows
-                  </span>
-                  <span>{dataset.columnCount} columns</span>
-                  {dataset.source === "url" && (
-                    <span className="flex items-center gap-1">
-                      <Link2 className="w-3 h-3" />
-                      URL
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {datasets.length === 0 && (
+        {/* No Workspace Message */}
+        {!currentWorkspace && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <Upload className="w-12 h-12 text-muted-foreground mb-4" />
-              <CardDescription className="text-center">Drag and drop your files here, or click to browse</CardDescription>
-              <p className="text-xs text-muted-foreground mt-2">Supports CSV files</p>
+              <Database className="w-12 h-12 text-muted-foreground mb-4" />
+              <CardTitle className="mb-2">No Active Workspace</CardTitle>
+              <CardDescription className="text-center">
+                Please create or select a workspace from the header to upload datasets.
+              </CardDescription>
             </CardContent>
           </Card>
         )}
-      </div>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Dataset</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <span className="font-medium text-foreground">{datasetToDelete?.name}</span>? This action cannot be
-              undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Current Workspace Dataset */}
+        {currentWorkspace && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Workspace: {currentWorkspace.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {currentDataset ? "Dataset attached" : "No dataset attached"}
+                </p>
+              </div>
+            </div>
+
+            {currentDataset && (
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileSpreadsheet className="w-5 h-5 text-primary" />
+                      </div>
+                      <CardTitle className="text-sm font-medium truncate">{currentDataset.name}</CardTitle>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Table className="w-3 h-3" />
+                      {currentDataset.rowCount.toLocaleString()} rows
+                    </span>
+                    <span>{currentDataset.columnCount} columns</span>
+                    {currentDataset.source === "url" && (
+                      <span className="flex items-center gap-1">
+                        <Link2 className="w-3 h-3" />
+                        URL
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!currentDataset && (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Upload className="w-12 h-12 text-muted-foreground mb-4" />
+                  <CardDescription className="text-center">
+                    Upload a dataset to get started with your analysis
+                  </CardDescription>
+                  <p className="text-xs text-muted-foreground mt-2">Supports CSV files</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+      </div>
     </main>
   )
 }
