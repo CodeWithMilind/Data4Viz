@@ -7,7 +7,7 @@
  * Backend is the single source of truth.
  */
 
-import { useEffect } from "react"
+import { useEffect , useRef} from "react"
 import { AlertCircle, ArrowRight, CheckCircle2, Database, XCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,15 +45,20 @@ export function ColumnQualitySummary({
   onColumnsLoaded,
 }: ColumnQualitySummaryProps) {
   // Extract column info for filter panel
+  const didSendColumnsRef = useRef(false)
+
   useEffect(() => {
-    if (columns.length > 0 && onColumnsLoaded) {
-      const columnInfo: ColumnInfo[] = columns.map((col) => ({
-        name: col.name,
-        dataType: col.dataType,
-      }))
-      onColumnsLoaded(columnInfo)
-    }
-  }, [columns, onColumnsLoaded])
+    if (didSendColumnsRef.current) return
+    if (!columns || columns.length === 0) return
+  
+    const columnInfo: ColumnInfo[] = columns.map((col) => ({
+      name: col.name,
+      dataType: col.dataType,
+    }))
+  
+    onColumnsLoaded?.(columnInfo)
+    didSendColumnsRef.current = true
+  }, [columns])
 
   const getHealthColor = (score: number) => {
     if (score >= 80) return "text-green-600"

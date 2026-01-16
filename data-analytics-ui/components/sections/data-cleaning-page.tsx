@@ -176,6 +176,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     if (!activeWorkspaceId || !selectedDatasetId) {
       return
     }
+    
 
     let cancelled = false
     setIsLoadingSummary(true)
@@ -458,31 +459,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {  <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
-          {/* <div className="flex items-center gap-4">
-            {datasets.length > 0 ? (
-              <Select
-                value={selectedDatasetId ?? undefined}
-                onValueChange={handleDatasetChange}
-              >
-                <SelectTrigger className="w-[200px] h-9">
-                  <SelectValue placeholder="Select dataset" />
-                </SelectTrigger>
-                <SelectContent>
-                  {datasets.map((dataset: typeof datasets[0]) => (
-                    <SelectItem key={dataset.id} value={dataset.fileName}>
-                      {dataset.name || dataset.fileName} ({dataset.rowCount} rows)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Select disabled value="">
-                <SelectTrigger className="w-[200px] h-9">
-                  <SelectValue placeholder="No datasets available" />
-                </SelectTrigger>
-              </Select>
-            )}
-          </div> */}
+          
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Data Quality Score</span>
             <div className="flex items-center gap-2">
