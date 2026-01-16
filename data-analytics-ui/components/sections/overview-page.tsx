@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   LayoutGrid,
   ChevronDown,
@@ -17,13 +17,40 @@ import {
   EyeOff,
   Info,
   BarChart3,
+  Database,
+  Loader2,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { useDataset, type Dataset } from "@/contexts/dataset-context"
+
+// Summary stats helper - will be computed from dataset
+const getSummaryStats = (dataset: Dataset | null) => {
+  if (!dataset) {
+    return []
+  }
+  
+  // Basic stats from dataset
+  const totalRows = dataset.rowCount.toLocaleString()
+  const totalColumns = dataset.columnCount.toString()
+  
+  // For now, we'll use placeholder values for column type analysis
+  // In a real implementation, you'd analyze the data types
+  return [
+    { label: "Total Rows", value: totalRows, icon: Rows3, subtext: "records loaded" },
+    { label: "Total Columns", value: totalColumns, icon: Columns3, subtext: "features" },
+    { label: "Numeric Columns", value: "-", icon: Hash, subtext: "analyze data types" },
+    { label: "Categorical Columns", value: "-", icon: Type, subtext: "analyze data types" },
+    { label: "Datetime Columns", value: "-", icon: Calendar, subtext: "analyze data types" },
+    { label: "Missing Columns", value: "-", icon: AlertCircle, subtext: "analyze nulls" },
+    { label: "Duplicated Rows", value: "-", icon: Copy, subtext: "analyze duplicates" },
+  ]
+}
 
 // Dummy data for dataset preview
 const columns = [
@@ -87,17 +114,6 @@ const missingData = [
   { column: "country", missing: 23, percentage: 2.3, type: "categorical" },
 ]
 
-// Summary stats
-const summaryStats = [
-  { label: "Total Rows", value: "1,000", icon: Rows3, subtext: "records loaded" },
-  { label: "Total Columns", value: "12", icon: Columns3, subtext: "features" },
-  { label: "Numeric Columns", value: "4", icon: Hash, subtext: "id, age, salary, score" },
-  { label: "Categorical Columns", value: "7", icon: Type, subtext: "name, email, city..." },
-  { label: "Datetime Columns", value: "1", icon: Calendar, subtext: "hire_date" },
-  { label: "Missing Columns", value: "5", icon: AlertCircle, subtext: "columns with nulls" },
-  { label: "Duplicated Rows", value: "0", icon: Copy, subtext: "no duplicates found" },
-]
-
 // Column insights data
 const columnInsights: Record<string, { unique: number; topValues: { value: string; count: number }[] }> = {
   city: {
@@ -131,8 +147,11 @@ const columnInsights: Record<string, { unique: number; topValues: { value: strin
 }
 
 export function OverviewPage() {
+  const { datasets, currentDataset, setCurrentDataset } = useDataset()
+  const [selectedDatasetId, setSelectedDatasetId] = useState<string>("")
   const [previewExpanded, setPreviewExpanded] = useState(true)
   const [rowsShown, setRowsShown] = useState("20")
+  const [customRowCount, setCustomRowCount] = useState("")
   const [structureExpanded, setStructureExpanded] = useState(false)
   const [insightsExpanded, setInsightsExpanded] = useState(false)
   const [selectedColumn, setSelectedColumn] = useState("city")
@@ -140,8 +159,131 @@ export function OverviewPage() {
   const [showPreview, setShowPreview] = useState(true)
   const [showSummary, setShowSummary] = useState(true)
   const [showMissing, setShowMissing] = useState(true)
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false)
 
-  const rows = generateRows(Number.parseInt(rowsShown))
+  // Get selected dataset or use current dataset
+  const selectedDataset = useMemo(() => {
+    if (selectedDatasetId) {
+      return datasets.find((d) => d.id === selectedDatasetId) || currentDataset
+    }
+    return currentDataset
+  }, [selectedDatasetId, datasets, currentDataset])
+
+  // Update current dataset when selection changes
+  const handleDatasetChange = (datasetId: string) => {
+    setSelectedDatasetId(datasetId)
+    const dataset = datasets.find((d) => d.id === datasetId)
+    if (dataset) {
+      setCurrentDataset(dataset)
+    }
+  }
+
+  // Calculate preview row count (cap at 200)
+  const previewRowCount = useMemo(() => {
+    if (rowsShown === "custom") {
+      const custom = Number.parseInt(customRowCount) || 0
+      return Math.min(Math.max(1, custom), 200)
+    }
+    return Math.min(Number.parseInt(rowsShown) || 20, 200)
+  }, [rowsShown, customRowCount])
+
+  // Get preview rows from dataset (read-only, capped at 200)
+  const previewRows = useMemo(() => {
+    if (!selectedDataset || !selectedDataset.data || selectedDataset.data.length === 0) {
+      return []
+    }
+    return selectedDataset.data.slice(0, previewRowCount)
+  }, [selectedDataset, previewRowCount])
+
+  // Handle loading state for large datasets (performance safety)
+  useEffect(() => {
+    if (selectedDataset && selectedDataset.rowCount > 1000) {
+      setIsLoadingPreview(true)
+      // Small delay to show loading state for large datasets
+      const timer = setTimeout(() => {
+        setIsLoadingPreview(false)
+      }, 150)
+      return () => clearTimeout(timer)
+    } else {
+      setIsLoadingPreview(false)
+    }
+  }, [selectedDataset, previewRowCount])
+
+  // Get headers from dataset
+  const datasetHeaders = useMemo(() => {
+    if (!selectedDataset || !selectedDataset.headers) {
+      return []
+    }
+    return selectedDataset.headers
+  }, [selectedDataset])
+
+  // Handle row count change
+  const handleRowCountChange = (value: string) => {
+    setRowsShown(value)
+    if (value !== "custom") {
+      setCustomRowCount("")
+    }
+  }
+
+  // Handle custom row count input
+  const handleCustomRowCountChange = (value: string) => {
+    const num = Number.parseInt(value)
+    if (!isNaN(num) && num > 0) {
+      setCustomRowCount(value)
+    } else if (value === "") {
+      setCustomRowCount("")
+    }
+  }
+
+  // Show dataset selector if no dataset selected
+  if (!selectedDataset) {
+    return (
+      <main className="flex-1 flex items-center justify-center h-screen bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Database className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle>Select a Dataset</CardTitle>
+            <CardDescription>Choose which dataset you want to view</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {datasets.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">
+                No datasets available. Please upload a dataset first.
+              </p>
+            ) : (
+              <>
+                <Select value={selectedDatasetId} onValueChange={handleDatasetChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a dataset..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {datasets.map((dataset) => (
+                      <SelectItem key={dataset.id} value={dataset.id}>
+                        <div className="flex items-center gap-3">
+                          <Database className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <span className="font-medium">{dataset.name}</span>
+                            <span className="text-muted-foreground ml-2 text-xs">
+                              {dataset.rowCount.toLocaleString()} rows • {dataset.columnCount} columns
+                            </span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground text-center">
+                  You can change the dataset later from the selector
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
 
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
@@ -164,10 +306,34 @@ export function OverviewPage() {
   return (
     <main className="flex-1 flex flex-col h-screen bg-background overflow-hidden">
       {/* Header */}
-      <header className="h-14 flex items-center px-6 border-b border-border bg-card shrink-0">
+      <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-2">
           <LayoutGrid className="w-5 h-5 text-primary" />
           <span className="font-medium text-foreground">Dataset Overview</span>
+        </div>
+        {/* Dataset Selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Dataset:</span>
+          <Select value={selectedDataset.id} onValueChange={handleDatasetChange}>
+            <SelectTrigger className="w-64 h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {datasets.map((dataset) => (
+                <SelectItem key={dataset.id} value={dataset.id}>
+                  <div className="flex items-center gap-3">
+                    <Database className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <span className="font-medium">{dataset.name}</span>
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        {dataset.rowCount.toLocaleString()} rows • {dataset.columnCount} columns
+                      </span>
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </header>
 
@@ -234,63 +400,98 @@ export function OverviewPage() {
                         {previewExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </Button>
                     </CollapsibleTrigger>
-                    <CardTitle className="text-base">Dataset Preview (First {rowsShown} Rows)</CardTitle>
+                    <CardTitle className="text-base">
+                      Dataset Preview (First {previewRowCount} of {selectedDataset.rowCount.toLocaleString()} Rows)
+                    </CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Rows shown:</span>
-                    <Select value={rowsShown} onValueChange={setRowsShown}>
-                      <SelectTrigger className="w-20 h-8 text-sm">
+                    <Select value={rowsShown} onValueChange={handleRowCountChange}>
+                      <SelectTrigger className="w-24 h-8 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="10">10</SelectItem>
                         <SelectItem value="20">20</SelectItem>
                         <SelectItem value="40">40</SelectItem>
+                        <SelectItem value="custom">Custom</SelectItem>
                       </SelectContent>
                     </Select>
+                    {rowsShown === "custom" && (
+                      <Input
+                        type="number"
+                        min="1"
+                        max="200"
+                        value={customRowCount}
+                        onChange={(e) => handleCustomRowCountChange(e.target.value)}
+                        placeholder="1-200"
+                        className="w-20 h-8 text-sm"
+                      />
+                    )}
                   </div>
                 </div>
               </CardHeader>
               <CollapsibleContent>
                 <CardContent className="pt-0">
-                  <div className="border border-border rounded-lg overflow-hidden">
-                    <div className="max-h-80 overflow-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-muted/50 sticky top-0">
-                          <tr>
-                            <th className="px-3 py-2 text-left font-medium text-muted-foreground border-r border-border bg-muted/70 sticky left-0 z-10">
-                              #
-                            </th>
-                            {columns.map((col) => (
-                              <th
-                                key={col}
-                                className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap border-r border-border last:border-r-0"
-                              >
-                                {col}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((row, idx) => (
-                            <tr key={idx} className="border-t border-border hover:bg-muted/30 transition-colors">
-                              <td className="px-3 py-2 text-muted-foreground border-r border-border bg-muted/20 sticky left-0">
-                                {idx + 1}
-                              </td>
-                              {columns.map((col) => (
-                                <td
-                                  key={col}
-                                  className="px-3 py-2 whitespace-nowrap border-r border-border last:border-r-0"
-                                >
-                                  {String((row as Record<string, unknown>)[col])}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  {isLoadingPreview ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading preview...</span>
                     </div>
-                  </div>
+                  ) : previewRows.length === 0 ? (
+                    <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                      No data to display
+                    </div>
+                  ) : (
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      {/* Table container with both horizontal and vertical scrolling */}
+                      <div className="max-h-[600px] overflow-auto">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm border-collapse">
+                            {/* Sticky header row - remains visible during vertical scroll */}
+                            <thead className="bg-muted/50 sticky top-0 z-20">
+                              <tr>
+                                {/* Row number column - sticky on left during horizontal scroll */}
+                                <th className="px-3 py-2 text-left font-medium text-muted-foreground border-r border-border bg-muted/70 sticky left-0 z-30 min-w-[60px]">
+                                  #
+                                </th>
+                                {/* Data columns - scroll horizontally */}
+                                {datasetHeaders.map((col) => (
+                                  <th
+                                    key={col}
+                                    className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap border-r border-border last:border-r-0 bg-muted/70 min-w-[120px]"
+                                  >
+                                    {col}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {previewRows.map((row, idx) => (
+                                <tr key={idx} className="border-t border-border hover:bg-muted/30 transition-colors">
+                                  {/* Row number cell - sticky on left during horizontal scroll */}
+                                  <td className="px-3 py-2 text-muted-foreground border-r border-border bg-background sticky left-0 z-10 min-w-[60px]">
+                                    {idx + 1}
+                                  </td>
+                                  {/* Data cells - scroll horizontally */}
+                                  {datasetHeaders.map((header) => (
+                                    <td
+                                      key={header}
+                                      className="px-3 py-2 whitespace-nowrap border-r border-border last:border-r-0 min-w-[120px]"
+                                    >
+                                      {row[header] !== null && row[header] !== undefined
+                                        ? String(row[header])
+                                        : ""}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </CollapsibleContent>
             </Card>
@@ -300,7 +501,7 @@ export function OverviewPage() {
         {/* 2. Dataset Overview Summary */}
         {showSummary && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {summaryStats.map((stat) => {
+            {getSummaryStats(selectedDataset).map((stat) => {
               const Icon = stat.icon
               return (
                 <Card key={stat.label} className="bg-card">
