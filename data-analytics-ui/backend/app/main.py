@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.cleaning import router as cleaning_router
 from app.api.datasets import router as datasets_router
 from app.api.workspaces import router as workspaces_router
+from app.api.overview import router as overview_router
+
 from app.config import ALLOWED_ORIGINS
 
 app = FastAPI(
@@ -27,6 +29,9 @@ app.add_middleware(
 app.include_router(workspaces_router)
 app.include_router(cleaning_router)
 app.include_router(datasets_router)  # Legacy endpoint for backward compatibility
+app.include_router(overview_router, prefix="/api")
+
+
 
 
 @app.get("/")

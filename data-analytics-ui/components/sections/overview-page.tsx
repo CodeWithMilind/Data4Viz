@@ -1,6 +1,13 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+/**
+ * Overview Page
+ * 
+ * IMPORTANT: Backend is the single source of truth for all statistics.
+ * Frontend only renders API response - no calculations or inferences.
+ */
+
+import { useState, useMemo, useEffect, useRef } from "react"
 import {
   LayoutGrid,
   ChevronDown,
@@ -29,216 +36,77 @@ import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/contexts/workspace-context"
+import { getDatasetOverview, type OverviewResponse } from "@/lib/api/dataCleaningClient"
 import type { WorkspaceDataset } from "@/types/workspace"
 
 /**
- * Infer column type from data values
- * Analyzes sample values to determine if column is numeric, datetime, boolean, or categorical
- */
-function inferColumnType(values: any[], columnName: string): "numeric" | "datetime" | "boolean" | "categorical" {
-  if (values.length === 0) return "categorical"
-
-  // Check for boolean type
-  const nonNullValues = values.filter((v) => v !== null && v !== undefined && v !== "")
-  if (nonNullValues.length > 0) {
-    const allBooleans = nonNullValues.every(
-      (v) => typeof v === "boolean" || v === "true" || v === "false" || v === "True" || v === "False"
-    )
-    if (allBooleans) return "boolean"
-  }
-
-  // Check for datetime patterns
-  const datePatterns = [
-    /^\d{4}-\d{2}-\d{2}/, // YYYY-MM-DD
-    /^\d{2}\/\d{2}\/\d{4}/, // MM/DD/YYYY
-    /^\d{4}\/\d{2}\/\d{2}/, // YYYY/MM/DD
-    /^\d{2}-\d{2}-\d{4}/, // MM-DD-YYYY
-  ]
-  const dateMatches = nonNullValues.filter((v) => {
-    const str = String(v)
-    return datePatterns.some((pattern) => pattern.test(str)) || !isNaN(Date.parse(str))
-  })
-  if (dateMatches.length > nonNullValues.length * 0.8) return "datetime"
-
-  // Check for numeric type
-  const numericMatches = nonNullValues.filter((v) => {
-    if (typeof v === "number") return true
-    const str = String(v).trim()
-    return str !== "" && !isNaN(Number(str)) && isFinite(Number(str))
-  })
-  if (numericMatches.length > nonNullValues.length * 0.8) return "numeric"
-
-  // Default to categorical
-  return "categorical"
-}
-
-/**
- * Compute comprehensive dataset statistics
- * Single source of truth for all derived metrics
- */
-function computeDatasetStats(dataset: WorkspaceDataset | null) {
-  if (!dataset || !dataset.data || dataset.data.length === 0) {
-    return {
-      totalRows: 0,
-      totalColumns: 0,
-      numericColumns: 0,
-      categoricalColumns: 0,
-      datetimeColumns: 0,
-      booleanColumns: 0,
-      columnMetadata: [] as Array<{ name: string; type: string; nullable: boolean }>,
-      missingValues: [] as Array<{ column: string; missing: number; percentage: number; type: string }>,
-      totalMissingColumns: 0,
-      duplicateRows: 0,
-      columnInsights: {} as Record<string, { unique: number; topValues: { value: string; count: number }[] }>,
-    }
-  }
-
-  const headers = dataset.headers
-  const data = dataset.data
-  const rowCount = data.length
-
-  // Analyze each column
-  const columnMetadata: Array<{ name: string; type: string; nullable: boolean }> = []
-  const missingValues: Array<{ column: string; missing: number; percentage: number; type: string }> = []
-  const columnInsights: Record<string, { unique: number; topValues: { value: string; count: number }[] }> = {}
-
-  // Count duplicates (compare stringified rows)
-  const rowStrings = data.map((row) => JSON.stringify(row))
-  const uniqueRows = new Set(rowStrings)
-  const duplicateRows = rowCount - uniqueRows.size
-
-  headers.forEach((header) => {
-    // Extract column values
-    const columnValues = data.map((row) => row[header])
-
-    // Count missing values
-    const missingCount = columnValues.filter((v) => v === null || v === undefined || v === "").length
-    const missingPercentage = rowCount > 0 ? (missingCount / rowCount) * 100 : 0
-
-    // Infer column type
-    const columnType = inferColumnType(columnValues, header)
-
-    // Store column metadata
-    columnMetadata.push({
-      name: header,
-      type: columnType,
-      nullable: missingCount > 0,
-    })
-
-    // Store missing value info
-    if (missingCount > 0) {
-      missingValues.push({
-        column: header,
-        missing: missingCount,
-        percentage: missingPercentage,
-        type: columnType,
-      })
-    }
-
-    // Compute column insights (unique values and top frequencies)
-    const nonNullValues = columnValues.filter((v) => v !== null && v !== undefined && v !== "")
-    const valueCounts = new Map<string, number>()
-    nonNullValues.forEach((v) => {
-      const key = String(v)
-      valueCounts.set(key, (valueCounts.get(key) || 0) + 1)
-    })
-
-    const unique = valueCounts.size
-    // Compute top 50 values to allow UI to slice dynamically
-    const topValues = Array.from(valueCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 50)
-      .map(([value, count]) => ({ value, count }))
-
-    columnInsights[header] = {
-      unique,
-      topValues,
-    }
-  })
-
-  // Count columns by type
-  const numericColumns = columnMetadata.filter((c) => c.type === "numeric").length
-  const categoricalColumns = columnMetadata.filter((c) => c.type === "categorical").length
-  const datetimeColumns = columnMetadata.filter((c) => c.type === "datetime").length
-  const booleanColumns = columnMetadata.filter((c) => c.type === "boolean").length
-
-  // Sort missing values by percentage (descending)
-  missingValues.sort((a, b) => b.percentage - a.percentage)
-
-  return {
-    totalRows: rowCount,
-    totalColumns: headers.length,
-    numericColumns,
-    categoricalColumns,
-    datetimeColumns,
-    booleanColumns,
-    columnMetadata,
-    missingValues,
-    totalMissingColumns: missingValues.length,
-    duplicateRows,
-    columnInsights,
-  }
-}
-
-/**
  * Format summary stats for display cards
+ * Uses backend-provided data only
  */
-const getSummaryStats = (dataset: WorkspaceDataset | null, stats: ReturnType<typeof computeDatasetStats>) => {
-  if (!dataset) {
+const getSummaryStats = (overview: OverviewResponse | null) => {
+  if (!overview) {
     return []
   }
 
+  const missingColumnsCount = overview.columns.filter((col) => col.missing_count > 0).length
+
   return [
-    { label: "Total Rows", value: stats.totalRows.toLocaleString(), icon: Rows3, subtext: "records loaded" },
-    { label: "Total Columns", value: stats.totalColumns.toString(), icon: Columns3, subtext: "features" },
+    { label: "Total Rows", value: overview.total_rows.toLocaleString(), icon: Rows3, subtext: "records loaded" },
+    { label: "Total Columns", value: overview.total_columns.toString(), icon: Columns3, subtext: "features" },
     {
       label: "Numeric Columns",
-      value: stats.numericColumns.toString(),
+      value: overview.numeric_column_count.toString(),
       icon: Hash,
-      subtext: stats.numericColumns > 0 ? `${stats.numericColumns} numeric columns` : "no numeric columns",
+      subtext: overview.numeric_column_count > 0 ? `${overview.numeric_column_count} numeric columns` : "no numeric columns",
     },
     {
       label: "Categorical Columns",
-      value: stats.categoricalColumns.toString(),
+      value: overview.categorical_column_count.toString(),
       icon: Type,
-      subtext: stats.categoricalColumns > 0 ? `${stats.categoricalColumns} categorical columns` : "no categorical columns",
+      subtext: overview.categorical_column_count > 0 ? `${overview.categorical_column_count} categorical columns` : "no categorical columns",
     },
     {
       label: "Datetime Columns",
-      value: stats.datetimeColumns.toString(),
+      value: overview.datetime_column_count.toString(),
       icon: Calendar,
-      subtext: stats.datetimeColumns > 0 ? `${stats.datetimeColumns} datetime columns` : "no datetime columns",
+      subtext: overview.datetime_column_count > 0 ? `${overview.datetime_column_count} datetime columns` : "no datetime columns",
     },
     {
       label: "Missing Columns",
-      value: stats.totalMissingColumns.toString(),
+      value: missingColumnsCount.toString(),
       icon: AlertCircle,
-      subtext: stats.totalMissingColumns > 0 ? "columns with nulls" : "no missing values",
+      subtext: missingColumnsCount > 0 ? "columns with nulls" : "no missing values",
     },
     {
       label: "Duplicated Rows",
-      value: stats.duplicateRows.toString(),
+      value: overview.duplicate_row_count.toString(),
       icon: Copy,
-      subtext: stats.duplicateRows > 0 ? "duplicate rows found" : "no duplicates found",
+      subtext: overview.duplicate_row_count > 0 ? "duplicate rows found" : "no duplicates found",
     },
   ]
 }
 
 export function OverviewPage() {
-  const { currentWorkspace, getDatasets, setOverviewReady } = useWorkspace()
+  const { currentWorkspace, activeWorkspaceId, getDatasets, setOverviewReady } = useWorkspace()
   const [previewExpanded, setPreviewExpanded] = useState(true)
   const [rowsShown, setRowsShown] = useState("20")
   const [customRowCount, setCustomRowCount] = useState("")
   const [structureExpanded, setStructureExpanded] = useState(false)
   const [insightsExpanded, setInsightsExpanded] = useState(false)
-  const [selectedColumn, setSelectedColumn] = useState("city")
+  const [selectedColumn, setSelectedColumn] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [valueCountLimit, setValueCountLimit] = useState("5")
   const [customValueCount, setCustomValueCount] = useState("")
+
   const [showPreview, setShowPreview] = useState(true)
   const [showSummary, setShowSummary] = useState(true)
   const [showMissing, setShowMissing] = useState(true)
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
+
+  // Backend overview data state
+  const [overviewData, setOverviewData] = useState<OverviewResponse | null>(null)
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false)
+  const [overviewError, setOverviewError] = useState<string | null>(null)
 
   // Get dataset from workspace
   const selectedDataset = useMemo(() => {
@@ -246,43 +114,88 @@ export function OverviewPage() {
     return datasets.length > 0 ? datasets[0] : null // Use first dataset for overview
   }, [getDatasets])
 
-  // Initialize selected column when dataset loads
+  // Fetch overview data from backend when dataset is available
   useEffect(() => {
-    if (selectedDataset && selectedDataset.headers.length > 0) {
-      if (!selectedDataset.headers.includes(selectedColumn)) {
-        setSelectedColumn(selectedDataset.headers[0])
-      }
+    if (!activeWorkspaceId || !selectedDataset?.fileName) {
+      setOverviewData(null)
+      setOverviewError(null)
+      return
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDataset])
 
-  // Mark overview as ready when dataset is loaded
+    let cancelled = false
+    setIsLoadingOverview(true)
+    setOverviewError(null)
+
+    getDatasetOverview(activeWorkspaceId, selectedDataset.fileName)
+      .then((data) => {
+        if (cancelled) return
+        setOverviewData(data)
+        setOverviewError(null)
+
+        // Initialize selected column if not set
+        if (!selectedColumn && data.columns.length > 0) {
+          setSelectedColumn(data.columns[0].name)
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return
+        const errorMessage = error instanceof Error ? error.message : "Failed to load dataset overview"
+        setOverviewError(errorMessage)
+        setOverviewData(null)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingOverview(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWorkspaceId, selectedDataset?.fileName, selectedColumn])
+
+  // Initialize selected column when overview data loads
   useEffect(() => {
-    if (selectedDataset && currentWorkspace && !currentWorkspace.state.overviewReady) {
+    if (overviewData && overviewData.columns.length > 0 && !selectedColumn) {
+      setSelectedColumn(overviewData.columns[0].name)
+    }
+  }, [overviewData, selectedColumn])
+
+  // Mark overview as ready when data is loaded
+  useEffect(() => {
+    if (overviewData && currentWorkspace && !currentWorkspace.state.overviewReady) {
       setOverviewReady(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDataset, currentWorkspace])
+  }, [overviewData, currentWorkspace])
 
-  // Compute comprehensive dataset stats (single source of truth)
-  const datasetStats = useMemo(() => computeDatasetStats(selectedDataset), [selectedDataset])
-
-  // Calculate actual value count limit
+  // Calculate actual value count limit (supports custom)
   const actualValueCountLimit = useMemo(() => {
     if (valueCountLimit === "custom") {
-      const custom = Number.parseInt(customValueCount) || 5
-      return Math.min(Math.max(1, custom), 50) // Cap at 50
+      return Math.min(Math.max(Number(customValueCount) || 5, 1), 50)
     }
-    return Number.parseInt(valueCountLimit) || 5
+    return Number(valueCountLimit) || 5
   }, [valueCountLimit, customValueCount])
 
-  // Get limited top values for display
+  // Get top values from backend data, limited by actualValueCountLimit
   const displayedTopValues = useMemo(() => {
-    if (!selectedDataset || !datasetStats?.columnInsights?.[selectedColumn]) {
-      return []
-    }
-    return datasetStats.columnInsights[selectedColumn].topValues.slice(0, actualValueCountLimit)
-  }, [selectedDataset, datasetStats, selectedColumn, actualValueCountLimit])
+    if (!overviewData || !selectedColumn) return []
+
+    const insights = overviewData.column_insights?.[selectedColumn]
+    if (!insights || !insights.top_values) return []
+
+    // Convert to array, sort by count (descending), then slice
+    const entries = Object.entries(insights.top_values)
+      .map(([value, count]) => ({
+        value,
+        count: Number(count),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, actualValueCountLimit)
+
+    return entries
+  }, [overviewData, selectedColumn, actualValueCountLimit])
+
 
   // Calculate preview row count (cap at 200)
   const previewRowCount = useMemo(() => {
@@ -315,13 +228,16 @@ export function OverviewPage() {
     }
   }, [selectedDataset, previewRowCount])
 
-  // Get headers from dataset
+  // Get headers from backend overview data (or fallback to dataset)
   const datasetHeaders = useMemo(() => {
-    if (!selectedDataset || !selectedDataset.headers) {
-      return []
+    if (overviewData) {
+      return overviewData.columns.map((col) => col.name)
     }
-    return selectedDataset.headers
-  }, [selectedDataset])
+    if (selectedDataset?.headers) {
+      return selectedDataset.headers
+    }
+    return []
+  }, [overviewData, selectedDataset])
 
   // Handle row count change
   const handleRowCountChange = (value: string) => {
@@ -341,14 +257,14 @@ export function OverviewPage() {
     }
   }
 
-  // Filter columns based on type filter (must be before early returns)
+  // Filter columns based on type filter (uses backend data only)
   const filteredColumns = useMemo(() => {
-    if (!selectedDataset) return []
-    return datasetStats.columnMetadata.filter((col) => {
+    if (!overviewData) return []
+    return overviewData.columns.filter((col) => {
       if (filterType === "all") return true
-      return col.type === filterType
+      return col.inferred_type === filterType
     })
-  }, [datasetStats.columnMetadata, filterType, selectedDataset])
+  }, [overviewData, filterType])
 
   // Helper function for type badge color
   const getTypeBadgeColor = (type: string) => {
@@ -365,6 +281,9 @@ export function OverviewPage() {
         return "bg-muted text-muted-foreground"
     }
   }
+
+  // Get summary stats from backend data
+  const summaryStats = useMemo(() => getSummaryStats(overviewData), [overviewData])
 
   // Early returns after all hooks
   if (!currentWorkspace) {
@@ -399,6 +318,54 @@ export function OverviewPage() {
     )
   }
 
+  // Show loading state while fetching overview data
+  if (isLoadingOverview) {
+    return (
+      <main className="flex-1 flex items-center justify-center h-screen bg-background">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+            <p className="text-muted-foreground">Loading dataset overview...</p>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
+
+  // Show error state if overview fetch failed
+  if (overviewError) {
+    return (
+      <main className="flex-1 flex items-center justify-center h-screen bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <AlertCircle className="w-6 h-6 text-destructive" />
+            </div>
+            <CardTitle>Failed to Load Overview</CardTitle>
+            <CardDescription>{overviewError}</CardDescription>
+          </CardHeader>
+        </Card>
+      </main>
+    )
+  }
+
+  // Show empty state if no overview data
+  if (!overviewData) {
+    return (
+      <main className="flex-1 flex items-center justify-center h-screen bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Database className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <CardTitle>No Overview Data</CardTitle>
+            <CardDescription>Unable to load dataset overview. Please try again.</CardDescription>
+          </CardHeader>
+        </Card>
+      </main>
+    )
+  }
+
   return (
     <main className="flex-1 flex flex-col h-screen bg-background overflow-hidden">
       {/* Header */}
@@ -412,9 +379,9 @@ export function OverviewPage() {
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Workspace:</span>
             <span className="text-sm font-medium">{currentWorkspace.name}</span>
-            {selectedDataset && (
+            {overviewData && (
               <span className="text-xs text-muted-foreground">
-                • {selectedDataset.rowCount.toLocaleString()} rows • {selectedDataset.columnCount} columns
+                • {overviewData.total_rows.toLocaleString()} rows • {overviewData.total_columns} columns
               </span>
             )}
           </div>
@@ -585,7 +552,7 @@ export function OverviewPage() {
         {/* 2. Dataset Overview Summary */}
         {showSummary && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {getSummaryStats(selectedDataset, datasetStats).map((stat) => {
+            {summaryStats.map((stat: { label: string; value: string; icon: any; subtext: string }) => {
               const Icon = stat.icon
               return (
                 <Card key={stat.label} className="bg-card">
@@ -622,26 +589,24 @@ export function OverviewPage() {
                 {/* df.info() style summary */}
                 <div className="bg-muted/30 rounded-lg p-4 font-mono text-sm overflow-auto max-h-48">
                   <pre className="text-muted-foreground">
-                    {selectedDataset
+                    {overviewData
                       ? `<class 'pandas.core.frame.DataFrame'>
-RangeIndex: ${datasetStats.totalRows} entries, 0 to ${datasetStats.totalRows - 1}
-Data columns (total ${datasetStats.totalColumns} columns):
-${datasetStats.columnMetadata
-  .map((col, idx) => {
-    const missingCount = datasetStats.missingValues.find((m) => m.column === col.name)?.missing || 0
-    const nonNullCount = datasetStats.totalRows - missingCount
-    const dtype = col.type === "numeric" ? "float64" : col.type === "datetime" ? "datetime64[ns]" : col.type === "boolean" ? "bool" : "object"
-    return ` #   ${col.name.padEnd(12)} ${nonNullCount} non-null    ${dtype.padEnd(12)}`
-  })
-  .join("\n")}
+RangeIndex: ${overviewData.total_rows} entries, 0 to ${overviewData.total_rows - 1}
+Data columns (total ${overviewData.total_columns} columns):
+${overviewData.columns
+                        .map((col) => {
+                          const nonNullCount = overviewData.total_rows - col.missing_count
+                          const dtype = col.inferred_type === "numeric" ? "float64" : col.inferred_type === "datetime" ? "datetime64[ns]" : "object"
+                          return ` #   ${col.name.padEnd(12)} ${nonNullCount} non-null    ${dtype.padEnd(12)}`
+                        })
+                        .join("\n")}
 dtypes: ${[
-  datasetStats.booleanColumns > 0 && `bool(${datasetStats.booleanColumns})`,
-  datasetStats.datetimeColumns > 0 && `datetime64[ns](${datasetStats.datetimeColumns})`,
-  datasetStats.numericColumns > 0 && `float64(${datasetStats.numericColumns})`,
-  datasetStats.categoricalColumns > 0 && `object(${datasetStats.categoricalColumns})`,
-]
-  .filter(Boolean)
-  .join(", ")}`
+                        overviewData.datetime_column_count > 0 && `datetime64[ns](${overviewData.datetime_column_count})`,
+                        overviewData.numeric_column_count > 0 && `float64(${overviewData.numeric_column_count})`,
+                        overviewData.categorical_column_count > 0 && `object(${overviewData.categorical_column_count})`,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}`
                       : "No dataset loaded"}
                   </pre>
                 </div>
@@ -657,8 +622,8 @@ dtypes: ${[
                       >
                         <span className="text-sm font-medium">{col.name}</span>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`text-xs ${getTypeBadgeColor(col.type)}`}>
-                            {col.type}
+                          <Badge variant="outline" className={`text-xs ${getTypeBadgeColor(col.inferred_type)}`}>
+                            {col.inferred_type}
                           </Badge>
                           {col.nullable && (
                             <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
@@ -690,22 +655,26 @@ dtypes: ${[
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-foreground">Top Columns with Missing Values</h4>
                   <div className="space-y-3">
-                    {datasetStats.missingValues.slice(0, 10).map((item) => (
-                      <div key={item.column} className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{item.column}</span>
-                            <Badge variant="outline" className={`text-xs ${getTypeBadgeColor(item.type)}`}>
-                              {item.type}
-                            </Badge>
+                    {overviewData?.columns
+                      .filter((col) => col.missing_count > 0)
+                      .sort((a, b) => b.missing_percentage - a.missing_percentage)
+                      .slice(0, 10)
+                      .map((col) => (
+                        <div key={col.name} className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{col.name}</span>
+                              <Badge variant="outline" className={`text-xs ${getTypeBadgeColor(col.inferred_type)}`}>
+                                {col.inferred_type}
+                              </Badge>
+                            </div>
+                            <span className="text-muted-foreground">
+                              {col.missing_count} ({col.missing_percentage}%)
+                            </span>
                           </div>
-                          <span className="text-muted-foreground">
-                            {item.missing} ({item.percentage}%)
-                          </span>
+                          <Progress value={col.missing_percentage} className="h-2" />
                         </div>
-                        <Progress value={item.percentage} className="h-2" />
-                      </div>
-                    ))}
+                      )) || []}
                   </div>
                 </div>
 
@@ -713,20 +682,21 @@ dtypes: ${[
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-foreground">Categorical Columns with Missing Values</h4>
                   <div className="space-y-3">
-                    {datasetStats.missingValues
-                      .filter((item) => item.type === "categorical")
+                    {overviewData?.columns
+                      .filter((col) => col.inferred_type === "categorical" && col.missing_count > 0)
+                      .sort((a, b) => b.missing_percentage - a.missing_percentage)
                       .slice(0, 10)
-                      .map((item) => (
-                        <div key={item.column} className="space-y-1">
+                      .map((col) => (
+                        <div key={col.name} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium">{item.column}</span>
+                            <span className="font-medium">{col.name}</span>
                             <span className="text-muted-foreground">
-                              {item.missing} ({item.percentage}%)
+                              {col.missing_count} ({col.missing_percentage}%)
                             </span>
                           </div>
-                          <Progress value={item.percentage} className="h-2" />
+                          <Progress value={col.missing_percentage} className="h-2" />
                         </div>
-                      ))}
+                      )) || []}
                   </div>
                 </div>
               </div>
@@ -748,15 +718,15 @@ dtypes: ${[
                   <BarChart3 className="w-4 h-4 text-muted-foreground" />
                   <CardTitle className="text-base">Column Insights</CardTitle>
                 </div>
-                {insightsExpanded && selectedDataset && (
+                {insightsExpanded && overviewData && (
                   <Select value={selectedColumn} onValueChange={setSelectedColumn}>
                     <SelectTrigger className="w-40 h-8 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {selectedDataset.headers.map((col) => (
-                        <SelectItem key={col} value={col}>
-                          {col}
+                      {overviewData.columns.map((col) => (
+                        <SelectItem key={col.name} value={col.name}>
+                          {col.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -766,19 +736,34 @@ dtypes: ${[
             </CardHeader>
             <CollapsibleContent>
               <CardContent className="pt-0">
-                {selectedDataset && datasetStats.columnInsights[selectedColumn] && (
+                {selectedColumn && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-muted-foreground">Unique Values</h4>
-                      <div className="text-3xl font-bold">{datasetStats.columnInsights[selectedColumn].unique}</div>
-                      <p className="text-sm text-muted-foreground">distinct values in column</p>
+                      <h4 className="text-sm font-medium text-muted-foreground">Column Information</h4>
+                      {overviewData.column_insights?.[selectedColumn] ? (
+                        <>
+                          <div className="text-3xl font-bold">
+                            {overviewData.column_insights[selectedColumn].unique}
+                          </div>
+                          <p className="text-sm text-muted-foreground">Unique values</p>
+                        </>
+                      ) : null}
+
                     </div>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="text-sm font-medium text-muted-foreground">Top Value Counts</h4>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">Show:</span>
-                          <Select value={valueCountLimit} onValueChange={setValueCountLimit}>
+                          <Select
+                            value={valueCountLimit}
+                            onValueChange={(val) => {
+                              setValueCountLimit(val)
+                              if (val !== "custom") {
+                                setCustomValueCount("")
+                              }
+                            }}
+                          >
                             <SelectTrigger className="w-20 h-7 text-xs">
                               <SelectValue />
                             </SelectTrigger>
@@ -808,7 +793,7 @@ dtypes: ${[
                         </div>
                       </div>
                       {/* Scrollable value counts container */}
-                      <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
+                      <div className="max-h-[400px] overflow-y-auto overflow-x-auto" key={`values-container-${actualValueCountLimit}`}>
                         <div className="min-w-full space-y-2 pr-2">
                           {displayedTopValues.length > 0 ? (
                             displayedTopValues.map((item) => {
@@ -861,8 +846,11 @@ dtypes: ${[
                               )
                             })
                           ) : (
-                            <p className="text-sm text-muted-foreground">No data available</p>
+                            <p className="text-sm text-muted-foreground">
+                              No value counts available
+                            </p>
                           )}
+
                         </div>
                       </div>
                     </div>

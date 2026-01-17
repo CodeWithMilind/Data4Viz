@@ -268,3 +268,83 @@ export async function getCleaningSummary(
     };
   }
 }
+
+/**
+ * Column metadata from overview endpoint
+ */
+export interface OverviewColumnMetadata {
+  name: string;
+  inferred_type: "numeric" | "datetime" | "categorical";
+  nullable: boolean;
+  missing_count: number;
+  missing_percentage: number;
+}
+
+/**
+ * Overview response from backend
+ */
+export interface OverviewResponse {
+  total_rows: number
+  total_columns: number
+  duplicate_row_count: number
+  numeric_column_count: number
+  categorical_column_count: number
+  datetime_column_count: number
+  columns: {
+    name: string
+    inferred_type: string
+    nullable: boolean
+    missing_count: number
+    missing_percentage: number
+  }[]
+
+  // ✅ ADD THIS
+  column_insights: Record<
+    string,
+    {
+      unique: number
+      top_values: Record<string, number>
+    }
+  >
+}
+
+
+/**
+ * Fetch dataset overview from backend
+ * 
+ * IMPORTANT: Backend is the single source of truth for all overview statistics.
+ * Frontend only renders the returned data - no calculations or inferences.
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetId Dataset filename (required)
+ * @returns Overview summary with all statistics
+ * @throws Error if API call fails
+ */
+export async function getDatasetOverview(
+  workspaceId: string,
+  datasetId: string
+): Promise<OverviewResponse> {
+  const requestUrl =
+    `${BASE_URL}/api/overview?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
+
+  console.log(`[getDatasetOverview] Request URL: ${requestUrl}`);
+
+  const response = await fetch(requestUrl, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    console.error(
+      `[getDatasetOverview] Error ${response.status}: ${errorText}`
+    );
+    throw new Error(`Failed to fetch dataset overview: ${errorText}`);
+  }
+
+  const data: OverviewResponse = await response.json();
+  console.log(
+    `[getDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
+  );
+
+  return data;
+}

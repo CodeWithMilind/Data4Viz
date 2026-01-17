@@ -367,3 +367,228 @@ async def get_cleaning_summary(workspace_id: str, request: SummaryRequest):
     except Exception as e:
         logger.error(f"[get_cleaning_summary] Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to generate cleaning summary: {str(e)}")
+
+
+class OverviewRequest(BaseModel):
+    """Request model for dataset overview."""
+    dataset: str
+
+
+class ColumnMetadata(BaseModel):
+    """Column metadata in overview response."""
+    name: str
+    inferred_type: str  # "numeric", "datetime", "categorical"
+    nullable: bool
+    missing_count: int
+    missing_percentage: float
+
+
+class OverviewResponse(BaseModel):
+    """Response model for dataset overview."""
+    total_rows: int
+    total_columns: int
+    duplicate_row_count: int
+    numeric_column_count: int
+    categorical_column_count: int
+    datetime_column_count: int
+    columns: List[ColumnMetadata]
+
+
+def infer_column_type(df: pd.DataFrame, col_name: str) -> str:
+    """
+    Robustly infer column data type.
+    
+    IMPORTANT: This function prevents misclassification by:
+    1. Checking numeric types FIRST (int, float)
+    2. Only classifying as datetime if values match valid date patterns
+    3. Using reasonable year ranges (1900-2100) to prevent IDs/ratings from being dates
+    4. Defaulting to categorical for remaining string columns
+    
+    Args:
+        df: DataFrame containing the column
+        col_name: Name of the column to infer
+        
+    Returns:
+        Inferred type: "numeric", "datetime", or "categorical"
+    """
+    col_data = df[col_name]
+    
+    # Step 1: Check if already numeric (int or float)
+    if pd.api.types.is_numeric_dtype(col_data):
+        return "numeric"
+    
+    # Step 2: Check if already datetime
+    if pd.api.types.is_datetime64_any_dtype(col_data):
+        return "datetime"
+    
+    # Step 3: For object/string columns, check if they could be numeric
+    if col_data.dtype == "object":
+        # Try to convert to numeric (handles strings that are actually numbers)
+        try:
+            numeric_series = pd.to_numeric(col_data, errors="coerce")
+            # If more than 80% of non-null values can be converted to numeric, it's numeric
+            non_null = numeric_series.notna()
+            if non_null.sum() > 0:
+                conversion_rate = non_null.sum() / len(col_data)
+                if conversion_rate > 0.8:
+                    return "numeric"
+        except Exception:
+            pass
+    
+    # Step 4: Check if column could be datetime
+    # IMPORTANT: Only classify as datetime if values match valid date patterns
+    # and fall within reasonable year ranges (1900-2100)
+    if col_data.dtype == "object":
+        sample_size = min(100, len(col_data.dropna()))
+        if sample_size > 0:
+            sample_values = col_data.dropna().head(sample_size)
+            
+            # Try parsing as datetime with common formats
+            date_formats = [
+                "%Y-%m-%d",
+                "%Y/%m/%d",
+                "%m/%d/%Y",
+                "%d/%m/%Y",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%dT%H:%M:%S",
+                "%d-%m-%Y",
+            ]
+            
+            valid_date_count = 0
+            for val in sample_values:
+                val_str = str(val).strip()
+                if not val_str:
+                    continue
+                
+                # Try each date format
+                parsed = False
+                for fmt in date_formats:
+                    try:
+                        dt = pd.to_datetime(val_str, format=fmt, errors="raise")
+                        # Check if year is in reasonable range (1900-2100)
+                        if 1900 <= dt.year <= 2100:
+                            valid_date_count += 1
+                            parsed = True
+                            break
+                    except (ValueError, TypeError):
+                        continue
+                
+                # Also try pandas' flexible parser as fallback
+                if not parsed:
+                    try:
+                        dt = pd.to_datetime(val_str, errors="raise", infer_datetime_format=True)
+                        if 1900 <= dt.year <= 2100:
+                            valid_date_count += 1
+                    except (ValueError, TypeError):
+                        pass
+            
+            # If more than 70% of sample values are valid dates, classify as datetime
+            if valid_date_count / sample_size > 0.7:
+                return "datetime"
+    
+    # Step 5: Default to categorical for remaining columns
+    return "categorical"
+
+
+@router.post("/{workspace_id}/overview", response_model=OverviewResponse)
+async def get_dataset_overview(workspace_id: str, request: OverviewRequest):
+    """
+    Get comprehensive overview of a dataset.
+    
+    This endpoint provides a structured summary of the dataset including:
+    - Total rows and columns
+    - Column-wise missing value statistics
+    - Duplicate row count (row-level)
+    - Column datatype classification (numeric, datetime, categorical)
+    - Counts of each column type
+    
+    IMPORTANT: Type inference is robust and prevents misclassification:
+    - Numeric columns are detected first (int, float)
+    - Datetime is only inferred if values match valid date patterns
+    - Year ranges are validated (1900-2100) to prevent IDs/ratings from being dates
+    - Remaining columns default to categorical
+    
+    Args:
+        workspace_id: Unique workspace identifier
+        request: Request containing dataset filename
+        
+    Returns:
+        Overview summary with dataset metrics and column metadata
+    """
+    logger.info(f"[get_dataset_overview] Request received - workspace_id={workspace_id}, dataset={request.dataset}")
+    
+    try:
+        # Validate dataset exists in workspace
+        if not dataset_exists(request.dataset, workspace_id):
+            logger.warning(f"[get_dataset_overview] Dataset '{request.dataset}' not found in workspace '{workspace_id}'")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset '{request.dataset}' not found in workspace"
+            )
+        
+        # Load dataset
+        df = load_dataset(request.dataset, workspace_id)
+        logger.info(f"[get_dataset_overview] Dataset loaded - rows={len(df)}, columns={len(df.columns)}")
+        
+        total_rows = len(df)
+        total_columns = len(df.columns)
+        
+        # Calculate duplicate row count (row-level, not column-level)
+        # IMPORTANT: Ensure duplicate_count <= total_rows
+        duplicate_row_count = df.duplicated().sum()
+        duplicate_row_count = min(duplicate_row_count, total_rows)
+        
+        # Analyze each column
+        column_metadata = []
+        type_counts = {"numeric": 0, "categorical": 0, "datetime": 0}
+        
+        for col in df.columns:
+            col_data = df[col]
+            
+            # Infer column type using robust logic
+            inferred_type = infer_column_type(df, col)
+            type_counts[inferred_type] += 1
+            
+            # Calculate missing value statistics
+            missing_count = col_data.isna().sum()
+            missing_percentage = (missing_count / total_rows * 100) if total_rows > 0 else 0.0
+            # Ensure percentage is valid (0-100)
+            missing_percentage = max(0.0, min(100.0, missing_percentage))
+            
+            # Determine if column is nullable (has any missing values)
+            nullable = missing_count > 0
+            
+            column_metadata.append(ColumnMetadata(
+                name=col,
+                inferred_type=inferred_type,
+                nullable=nullable,
+                missing_count=int(missing_count),
+                missing_percentage=round(missing_percentage, 2)
+            ))
+        
+        response = OverviewResponse(
+            total_rows=total_rows,
+            total_columns=total_columns,
+            duplicate_row_count=duplicate_row_count,
+            numeric_column_count=type_counts["numeric"],
+            categorical_column_count=type_counts["categorical"],
+            datetime_column_count=type_counts["datetime"],
+            columns=column_metadata
+        )
+        
+        logger.info(
+            f"[get_dataset_overview] Response prepared - "
+            f"rows={response.total_rows}, columns={response.total_columns}, "
+            f"duplicates={response.duplicate_row_count}, "
+            f"types: numeric={response.numeric_column_count}, "
+            f"categorical={response.categorical_column_count}, "
+            f"datetime={response.datetime_column_count}"
+        )
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[get_dataset_overview] Error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to generate dataset overview: {str(e)}")
