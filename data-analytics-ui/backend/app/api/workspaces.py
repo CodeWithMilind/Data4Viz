@@ -15,7 +15,7 @@ import io
 import json
 import logging
 from datetime import datetime
-from app.config import get_workspace_datasets_dir, get_workspace_logs_dir
+from app.config import get_workspace_datasets_dir, get_workspace_logs_dir, get_workspace_files_dir
 from app.services.dataset_loader import list_workspace_datasets, list_workspace_files, load_dataset, save_dataset, dataset_exists
 from app.services.cleaning_logs import get_cleaning_logs
 
@@ -110,35 +110,84 @@ async def download_workspace_file(workspace_id: str, file_id: str):
     """
     Download a file from workspace storage.
     
+    Files can be located in:
+    - datasets/ directory (CSV files)
+    - files/ directory (JSON, overview snapshots, etc.)
+    - logs/ directory (LOG files)
+    
     Args:
         workspace_id: Unique workspace identifier
         file_id: Filename to download
         
     Returns:
-        File content as CSV
+        File content with appropriate content type
     """
     try:
+        # Check all possible file locations
         datasets_dir = get_workspace_datasets_dir(workspace_id)
-        file_path = datasets_dir / file_id
+        files_dir = get_workspace_files_dir(workspace_id)
+        logs_dir = get_workspace_logs_dir(workspace_id)
         
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail=f"File '{file_id}' not found in workspace")
+        file_path = None
         
-        # Load and return as CSV
-        df = pd.read_csv(file_path)
+        # Try datasets directory first
+        potential_path = datasets_dir / file_id
+        if potential_path.exists() and potential_path.is_file():
+            file_path = potential_path
         
-        output = io.StringIO()
-        df.to_csv(output, index=False)
-        output.seek(0)
+        # Try files directory
+        if not file_path:
+            potential_path = files_dir / file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        
+        # Try logs directory
+        if not file_path:
+            potential_path = logs_dir / file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        
+        if not file_path:
+            raise HTTPException(
+                status_code=404,
+                detail=f"File '{file_id}' not found in workspace '{workspace_id}'"
+            )
+        
+        # Determine content type based on file extension
+        suffix = file_path.suffix.lower()
+        if suffix == ".csv":
+            # For CSV files, read with pandas to ensure proper formatting
+            df = pd.read_csv(file_path)
+            output = io.StringIO()
+            df.to_csv(output, index=False)
+            output.seek(0)
+            content = output.getvalue()
+            media_type = "text/csv"
+        elif suffix == ".json":
+            # For JSON files, read and return as-is
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            media_type = "application/json"
+        elif suffix == ".log":
+            # For LOG files, read as text
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            media_type = "text/plain"
+        else:
+            # For other file types, read as binary
+            with open(file_path, "rb") as f:
+                content = f.read()
+            media_type = "application/octet-stream"
         
         return StreamingResponse(
-            iter([output.getvalue()]),
-            media_type="text/csv",
+            iter([content]),
+            media_type=media_type,
             headers={"Content-Disposition": f'attachment; filename="{file_id}"'}
         )
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error downloading file '{file_id}' from workspace '{workspace_id}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
 
 

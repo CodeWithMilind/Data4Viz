@@ -27,8 +27,19 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
+import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
@@ -36,9 +47,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 interface WorkspaceFile {
   id: string
   name: string
-  size: number
+  size?: number
   type: string
-  created_at: string
+  created_at?: string
+  updated_at?: string
 }
 
 interface WorkspaceFilesResponse {
@@ -103,14 +115,38 @@ const getFileTypeLabel = (type: string): string => {
   }
 }
 
+/**
+ * Determine if a file is deletable.
+ * 
+ * Rules:
+ * - User uploaded files (CSV, JSON) are deletable
+ * - Generated outputs (overview snapshots, cleaning results) are deletable
+ * - System/audit files (logs) are NOT deletable
+ */
+const isFileDeletable = (file: WorkspaceFile): boolean => {
+  const type = file.type?.toUpperCase() || ""
+  // LOG files are system files and should not be deletable
+  if (type === "LOG") {
+    return false
+  }
+  // All other files (CSV, JSON, OVERVIEW, CLEANING) are deletable
+  return true
+}
+
 export function FilesPage() {
   const { activeWorkspaceId } = useWorkspace()
+  const { toast } = useToast()
   const [files, setFiles] = useState<WorkspaceFile[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
+  
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [fileToDelete, setFileToDelete] = useState<WorkspaceFile | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Fetch workspace files from backend
   useEffect(() => {
@@ -146,49 +182,141 @@ export function FilesPage() {
 
   const filteredFiles = files.filter((file) => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
-  const formatFileSize = (bytes: number): string => {
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes || bytes === 0) return "0 B"
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const formatDate = (isoString: string): string => {
-    const date = new Date(isoString)
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+  const formatDate = (isoString?: string): string => {
+    if (!isoString) return "Unknown"
+    try {
+      const date = new Date(isoString)
+      if (isNaN(date.getTime())) return "Invalid date"
+      return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return "Invalid date"
+    }
   }
 
-  const handleDownload = async (file: WorkspaceFile) => {
-    if (!activeWorkspaceId) return
+  const handleDownload = async (file: WorkspaceFile, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    
+    if (!activeWorkspaceId || !file.id) {
+      toast({
+        title: "Error",
+        description: "Cannot download file: missing workspace or file ID",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
       const response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files/${file.id}/download`)
+      
       if (!response.ok) {
-        throw new Error("Failed to download file")
+        if (response.status === 404) {
+          throw new Error(`File "${file.name}" not found in workspace. It may have been deleted or moved.`)
+        }
+        const errorText = await response.text().catch(() => response.statusText)
+        throw new Error(`Failed to download file: ${errorText || response.statusText}`)
       }
+
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = file.name
+      a.download = file.name || "download"
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+
+      toast({
+        title: "Success",
+        description: `Downloaded ${file.name}`,
+      })
     } catch (err) {
       console.error("Error downloading file:", err)
+      toast({
+        title: "Download Failed",
+        description: err instanceof Error ? err.message : "Failed to download file. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
-  // Note: File deletion would require a backend endpoint
-  // For now, we'll just show the option but it won't work
-  const deleteFile = (id: string) => {
-    console.warn("File deletion not yet implemented - requires backend endpoint")
+  const handleDeleteClick = (file: WorkspaceFile, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    
+    if (!isFileDeletable(file)) {
+      toast({
+        title: "Cannot delete",
+        description: "System files cannot be deleted",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setFileToDelete(file)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!fileToDelete || !activeWorkspaceId || !fileToDelete.id) {
+      setDeleteDialogOpen(false)
+      setFileToDelete(null)
+      return
+    }
+
+    setIsDeleting(true)
+
+    try {
+      const response = await fetch(
+        `${BASE_URL}/workspaces/${activeWorkspaceId}/files/${fileToDelete.id}`,
+        {
+          method: "DELETE",
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete file: ${response.statusText}`)
+      }
+
+      // Remove file from UI list without full refresh
+      setFiles((prev) => prev.filter((f) => f.id !== fileToDelete.id))
+      
+      // Remove from selected files if it was selected
+      setSelectedFiles((prev) => {
+        const next = new Set(prev)
+        next.delete(fileToDelete.id)
+        return next
+      })
+
+      toast({
+        title: "Success",
+        description: `Deleted ${fileToDelete.name}`,
+      })
+
+      setDeleteDialogOpen(false)
+      setFileToDelete(null)
+    } catch (err) {
+      console.error("Error deleting file:", err)
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to delete file",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const toggleFileSelection = (id: string) => {
@@ -319,7 +447,7 @@ export function FilesPage() {
                     <span className="font-medium text-sm text-foreground truncate">{file.name}</span>
                   </div>
                   <div className="col-span-2 flex items-center text-sm text-muted-foreground">
-                    {formatFileSize(file.size)}
+                    {formatFileSize(file.size ?? 0)}
                   </div>
                   <div className="col-span-3 flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="truncate">
@@ -335,10 +463,22 @@ export function FilesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleDownload(file)}>
+                        <DropdownMenuItem onClick={(e) => handleDownload(file, e)}>
                           <Download className="w-4 h-4 mr-2" />
                           Download
                         </DropdownMenuItem>
+                        {isFileDeletable(file) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => handleDeleteClick(file, e)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -372,18 +512,22 @@ export function FilesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Preview
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => handleDownload(file, e)}>
                           <Download className="w-4 h-4 mr-2" />
                           Download
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => deleteFile(file.id)}>
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
+                        {isFileDeletable(file) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => handleDeleteClick(file, e)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -392,13 +536,13 @@ export function FilesPage() {
                     <span className="px-1.5 py-0.5 rounded bg-muted text-xs">
                       {getFileTypeLabel(file.type)}
                     </span>
-                    <span>{formatFileSize(file.size)}</span>
-                    <span>•</span>
-                    <span>{file.createdAt.split(" ")[0]}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
-                    <Bot className="w-3.5 h-3.5 text-primary" />
-                    <span className="truncate">{file.generatedBy}</span>
+                    <span>{formatFileSize(file.size ?? 0)}</span>
+                    {file.created_at && (
+                      <>
+                        <span>•</span>
+                        <span>{formatDate(file.created_at).split(",")[0]}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               )
@@ -428,6 +572,36 @@ export function FilesPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete <strong>{fileToDelete?.name}</strong> from the workspace.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }
