@@ -7,7 +7,7 @@
  * Frontend only renders API response - no calculations or inferences.
  */
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   LayoutGrid,
   ChevronDown,
@@ -36,7 +36,8 @@ import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, type OverviewResponse, getDatasetSchema, type SchemaResponse } from "@/lib/api/dataCleaningClient"
+import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, getWorkspaceDatasets, type OverviewResponse, getDatasetSchema, type SchemaResponse } from "@/lib/api/dataCleaningClient"
+import { getOverview, setOverview } from "@/lib/overview-cache"
 import type { WorkspaceDataset } from "@/types/workspace"
 
 /**
@@ -108,14 +109,22 @@ export function OverviewPage() {
 
   // Backend overview data state (read-only snapshot from workspace file)
   const [overviewData, setOverviewData] = useState<OverviewResponse | null>(null)
-  const [isLoadingOverview, setIsLoadingOverview] = useState(false)
+  // true only during first-time auto-fetch when overview file does not exist
+  const [isFetchingOverview, setIsFetchingOverview] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [overviewError, setOverviewError] = useState<string | null>(null)
+  const [overviewFileExists, setOverviewFileExists] = useState(false)
   
   // Schema state - single source of truth for column types
   const [schema, setSchema] = useState<SchemaResponse | null>(null)
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
+
+  // Get dataset from workspace (must be declared before useEffects that use it)
+  const selectedDataset = useMemo(() => {
+    const datasets = getDatasets()
+    return datasets.length > 0 ? datasets[0] : null // Use first dataset for overview
+  }, [getDatasets])
 
   // Fetch schema from backend when dataset is available
   useEffect(() => {
@@ -132,7 +141,7 @@ export function OverviewPage() {
     getDatasetSchema(activeWorkspaceId, selectedDataset.fileName, true)
       .then((schemaData) => {
         if (cancelled) return
-        setSchema(schemaData)
+        setSchema(schemaData ?? null)
         setSchemaError(null)
         setIsLoadingSchema(false)
       })
@@ -150,6 +159,7 @@ export function OverviewPage() {
   }, [activeWorkspaceId, selectedDataset?.fileName])
 
   // Handle manual refresh (user-initiated)
+  // STRICT RULE: After refreshing, ALWAYS reload from file, never use API response directly
   const handleRefreshOverview = async () => {
     if (!activeWorkspaceId || !selectedDataset?.fileName) return
 
@@ -157,62 +167,116 @@ export function OverviewPage() {
     setOverviewError(null)
 
     try {
-      const data = await refreshDatasetOverview(activeWorkspaceId, selectedDataset.fileName)
-      setOverviewData(data)
+      await refreshDatasetOverview(activeWorkspaceId, selectedDataset.fileName)
+      const data = await getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
+      if (data) {
+        setOverview(activeWorkspaceId, selectedDataset.fileName, data)
+        setOverviewData(data)
+        setOverviewFileExists(true)
+      } else {
+        setOverviewData(null)
+        setOverviewFileExists(false)
+      }
       setOverviewError(null)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to refresh overview"
       setOverviewError(errorMessage)
+      setOverviewFileExists(false)
     } finally {
       setIsRefreshing(false)
     }
   }
 
-  // Get dataset from workspace
-  const selectedDataset = useMemo(() => {
-    const datasets = getDatasets()
-    return datasets.length > 0 ? datasets[0] : null // Use first dataset for overview
-  }, [getDatasets])
-
-  // Fetch overview data from backend when dataset is available
+  // Load overview: global cache first (instant), else file, else auto-fetch ONCE.
   useEffect(() => {
     if (!activeWorkspaceId || !selectedDataset?.fileName) {
       setOverviewData(null)
       setOverviewError(null)
+      setOverviewFileExists(false)
       return
     }
 
-    let cancelled = false
-    setIsLoadingOverview(true)
-    setOverviewError(null)
+    const cached = getOverview(activeWorkspaceId, selectedDataset.fileName)
+    if (cached) {
+      setOverviewData(cached)
+      setOverviewError(null)
+      setOverviewFileExists(true)
+      return
+    }
 
-    getDatasetOverview(activeWorkspaceId, selectedDataset.fileName)
+    setOverviewError(null)
+    let cancelled = false
+
+    getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
       .then((data) => {
         if (cancelled) return
-        setOverviewData(data)
-        setOverviewError(null)
-
-        // Initialize selected column if not set
-        if (!selectedColumn && data.columns.length > 0) {
-          setSelectedColumn(data.columns[0].name)
+        if (data) {
+          setOverview(activeWorkspaceId, selectedDataset.fileName, data)
+          setOverviewData(data)
+          setOverviewError(null)
+          setOverviewFileExists(true)
+          if (!selectedColumn && data.columns.length > 0) {
+            setSelectedColumn(data.columns[0].name)
+          }
+          return
         }
+        setOverviewData(null)
+        setOverviewError(null)
+        setOverviewFileExists(false)
+        setIsFetchingOverview(true)
+
+        getWorkspaceDatasets(activeWorkspaceId)
+          .then((datasets) => {
+            if (cancelled) return
+            const exists = datasets.some((d) => d.id === selectedDataset.fileName)
+            if (!exists) {
+              setIsFetchingOverview(false)
+              return
+            }
+            return getDatasetOverview(activeWorkspaceId, selectedDataset.fileName, false)
+          })
+          .then((overviewOrNull) => {
+            if (cancelled) return
+            if (overviewOrNull === undefined) return
+            if (overviewOrNull === null) {
+              setIsFetchingOverview(false)
+              return
+            }
+            return getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
+          })
+          .then((fileData) => {
+            if (cancelled) return
+            setIsFetchingOverview(false)
+            if (fileData) {
+              setOverview(activeWorkspaceId, selectedDataset.fileName, fileData)
+              setOverviewData(fileData)
+              setOverviewError(null)
+              setOverviewFileExists(true)
+              if (!selectedColumn && fileData.columns.length > 0) {
+                setSelectedColumn(fileData.columns[0].name)
+              }
+            }
+          })
+          .catch((err) => {
+            if (cancelled) return
+            setOverviewError(err instanceof Error ? err.message : "Failed to fetch overview")
+            setOverviewData(null)
+            setOverviewFileExists(false)
+            setIsFetchingOverview(false)
+          })
       })
       .catch((error) => {
         if (cancelled) return
-        const errorMessage = error instanceof Error ? error.message : "Failed to load dataset overview"
-        setOverviewError(errorMessage)
+        const msg = error instanceof Error ? error.message : "Failed to load dataset overview"
+        setOverviewError(msg)
         setOverviewData(null)
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoadingOverview(false)
-        }
+        setOverviewFileExists(false)
       })
 
     return () => {
       cancelled = true
     }
-  }, [activeWorkspaceId, selectedDataset?.fileName, selectedColumn])
+  }, [activeWorkspaceId, selectedDataset?.fileName])
 
   // Initialize selected column when schema or overview data loads
   useEffect(() => {
@@ -407,22 +471,22 @@ export function OverviewPage() {
     )
   }
 
-  // Show loading state while fetching overview data
-  if (isLoadingOverview) {
+  // Spinner only during first-time auto-fetch (when overview file does not exist)
+  if (isFetchingOverview) {
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
             <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading dataset overview...</p>
+            <p className="text-muted-foreground">Fetching overview...</p>
           </CardContent>
         </Card>
       </main>
     )
   }
 
-  // Show error state if overview fetch failed
-  if (overviewError) {
+  // Error state: auto-fetch or file read failed (no Fetch button)
+  if (overviewError && !overviewData && !isFetchingOverview) {
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
         <Card className="w-full max-w-md">
@@ -438,18 +502,14 @@ export function OverviewPage() {
     )
   }
 
-  // Show empty state if no overview data
+  // No data yet: file read in progress (no spinner, no button)
   if (!overviewData) {
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
         <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Database className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <CardTitle>No Overview Data</CardTitle>
-            <CardDescription>Unable to load dataset overview. Please try again.</CardDescription>
-          </CardHeader>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">Loading overview...</p>
+          </CardContent>
         </Card>
       </main>
     )
@@ -463,18 +523,20 @@ export function OverviewPage() {
           <LayoutGrid className="w-5 h-5 text-primary" />
           <span className="font-medium text-foreground">Dataset Overview</span>
         </div>
-        {/* Workspace Info */}
-        {currentWorkspace && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Workspace:</span>
-            <span className="text-sm font-medium">{currentWorkspace.name}</span>
-            {overviewData && (
-              <span className="text-xs text-muted-foreground">
-                • {overviewData.total_rows.toLocaleString()} rows • {overviewData.total_columns} columns
-              </span>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Workspace Info */}
+          {currentWorkspace && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Workspace:</span>
+              <span className="text-sm font-medium">{currentWorkspace.name}</span>
+              {overviewData && (
+                <span className="text-xs text-muted-foreground">
+                  • {overviewData.total_rows.toLocaleString()} rows • {overviewData.total_columns} columns
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Sticky Filter Bar */}

@@ -173,10 +173,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     [currentWorkspace, listWorkspaces]
   )
 
-  // Delete workspace
+  // Delete workspace (cascade delete - removes all files)
   const deleteWorkspace = useCallback(
     async (id: string) => {
       try {
+        const { deleteWorkspace: deleteWorkspaceBackend } = await import("@/lib/api/dataCleaningClient")
+        await deleteWorkspaceBackend(id)
+        const { invalidateForWorkspace } = await import("@/lib/overview-cache")
+        invalidateForWorkspace(id)
+        const { invalidateForWorkspace: invalidateFiles } = await import("@/lib/files-cache")
+        invalidateFiles(id)
         await workspaceStore.deleteWorkspace(id)
         await listWorkspaces()
 

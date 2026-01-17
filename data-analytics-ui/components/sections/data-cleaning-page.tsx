@@ -22,30 +22,17 @@
  */
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react"
-import { AlertCircle, CheckCircle2, Copy, Database, Filter, History, Loader2, AlertTriangle, Wrench } from "lucide-react"
+import { AlertCircle, Database, Loader2, Wrench } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { previewCleaning, applyCleaning, getCleaningSummary, type CleaningSummaryResponse, getDatasetSchema, type SchemaResponse } from "@/lib/api/dataCleaningClient"
-import { cn } from "@/lib/utils"
-import type { CleaningRequest } from "@/types/dataCleaning"
-import { CleaningHistoryPanel } from "./data-cleaning/cleaning-history-panel"
+import { getCleaningSummary, type CleaningSummaryResponse, getDatasetSchema, type SchemaResponse } from "@/lib/api/dataCleaningClient"
 import { ColumnQualitySummary } from "./data-cleaning/column-quality-summary"
-import { DuplicatesCard } from "./data-cleaning/duplicates-card"
 import { InvalidFormatsCard } from "./data-cleaning/invalid-formats-card"
-import { MissingValuesCard, type MissingValuesPreviewData } from "./data-cleaning/missing-values-card"
-import { PreviewPanel } from "./data-cleaning/preview-panel"
-
-const navItems = [
-  { id: "quality", label: "Column Quality", icon: CheckCircle2 },
-  { id: "missing", label: "Missing Values", icon: AlertCircle },
-  { id: "duplicates", label: "Duplicates", icon: Copy },
-  { id: "invalid", label: "Invalid Formats", icon: AlertTriangle },
-  { id: "history", label: "Cleaning History", icon: History },
-]
+import { MissingValuesCard } from "./data-cleaning/missing-values-card"
 
 interface DataCleaningPageProps {
   onApplyCleaningAction?: (action: { columnName: string; actionType: string; value?: string }) => void
@@ -68,7 +55,6 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   
   // State management - SINGLE source of truth for dataset selection
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null)
-  const [activeSection, setActiveSection] = useState("quality")
   
   /**
    * Cleaning summary state
@@ -88,19 +74,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
   
-  /**
-   * Preview state - stores preview data from cleaning operations
-   */
-  const [previewData, setPreviewData] = useState<MissingValuesPreviewData | null>(null)
   
-  /**
-   * REF TYPE: HTMLElement (not HTMLDivElement)
-   * - Refs are attached to <section> elements which are HTMLElement
-   * - HTMLElement is the correct base type for all HTML elements
-   * - Prevents TypeScript 'align' property mismatch errors
-   */
-  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
-  const scrollContainerRef = useRef<HTMLElement | null>(null)
   const didInitRef = useRef<string | null>(null) // Track which workspace was initialized
   const prevWorkspaceIdRef = useRef<string | null>(null)
   const prevDatasetIdRef = useRef<string | null>(null) // Track previous dataset
@@ -264,57 +238,9 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     }
   }, [activeWorkspaceId, selectedDatasetId])
 
-  // Scroll sync
-  useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      // Type assertion: container is HTMLElement but we know it's a div with scrollTop
-      const scrollTop = (container as HTMLDivElement).scrollTop
-      let currentSection = "quality"
-
-      for (const item of navItems) {
-        const section = sectionRefs.current[item.id]
-        if (section && section.offsetTop - 100 <= scrollTop) {
-          currentSection = item.id
-        }
-      }
-      // Only update if section actually changed to prevent unnecessary re-renders
-      setActiveSection((prev) => prev !== currentSection ? currentSection : prev)
-    }
-
-    container.addEventListener("scroll", handleScroll)
-    return () => container.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  const scrollToSection = useCallback((sectionId: string) => {
-    const section = sectionRefs.current[sectionId]
-    const container = scrollContainerRef.current
-    if (section && container) {
-      const containerDiv = container as HTMLDivElement
-      const containerRect = containerDiv.getBoundingClientRect()
-      const sectionRect = section.getBoundingClientRect()
-      const scrollTop = containerDiv.scrollTop + (sectionRect.top - containerRect.top) - 24
-
-      containerDiv.scrollTo({
-        top: scrollTop,
-        behavior: "smooth",
-      })
-    }
-    setActiveSection((prev) => prev !== sectionId ? sectionId : prev)
-  }, [])
-
   const handleColumnClick = (columnName: string, issueType: string) => {
-    // Scroll to the relevant section based on issue type
-    const sectionMap: Record<string, string> = {
-      missing: "missing",
-      invalid: "invalid",
-      duplicates: "duplicates",
-      overview: "quality",
-    }
-    const targetSection = sectionMap[issueType] || "quality"
-    scrollToSection(targetSection)
+    // Read-only mode: no navigation, just log for debugging
+    console.log(`Column clicked: ${columnName}, issue type: ${issueType}`)
   }
 
   // Stable dataset change handler - direct setState, no conditions
@@ -322,46 +248,6 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     setSelectedDatasetId(value)
   }, [])
 
-  const handlePreview = async (request: Omit<CleaningRequest, "workspace_id">) => {
-    if (!activeWorkspaceId) {
-      throw new Error("No workspace selected. Please create or select a workspace first.")
-    }
-    try {
-      const fullRequest: CleaningRequest = {
-        ...request,
-        workspace_id: activeWorkspaceId, // REQUIRED: Workspace is the single source of truth
-      }
-      const response = await previewCleaning(fullRequest)
-      console.log("Preview response:", response)
-      return response
-    } catch (error) {
-      console.error("Preview error:", error)
-      throw error
-    }
-  }
-
-  const handleApply = async (request: Omit<CleaningRequest, "workspace_id">) => {
-    if (!activeWorkspaceId) {
-      throw new Error("No workspace selected. Please create or select a workspace first.")
-    }
-    try {
-      const fullRequest: CleaningRequest = {
-        ...request,
-        workspace_id: activeWorkspaceId, // REQUIRED: Workspace is the single source of truth
-      }
-      const response = await applyCleaning(fullRequest)
-      console.log("Apply response:", response)
-      onApplyCleaningAction?.({
-        columnName: request.column || "All",
-        actionType: request.action,
-        value: request.parameters ? JSON.stringify(request.parameters) : undefined,
-      })
-      return response
-    } catch (error) {
-      console.error("Apply error:", error)
-      throw error
-    }
-  }
 
 
   // Empty state when no workspace selected
@@ -461,37 +347,15 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
 
   return (
     <main className="flex-1 flex h-screen bg-background overflow-hidden">
-      {/* Left Navigation */}
-      <aside className="w-56 border-r border-border bg-card shrink-0 flex flex-col">
-        <div className="h-14 flex items-center px-4 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Wrench className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-foreground">Data Cleaning</span>
-          </div>
-        </div>
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => scrollToSection(item.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                activeSection === item.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Main Content */}
+      {/* Main Content - Single scrollable page, no navigation */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-primary" />
+              <span className="font-semibold text-foreground">Data Cleaning</span>
+              <Badge variant="outline" className="text-xs">Read-only Analysis</Badge>
+            </div>
             {datasets.length > 0 ? (
               <Select
                 value={selectedDatasetId ?? undefined}
@@ -530,8 +394,8 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
           </div>
         </header>
 
-        {/* REF TYPE: HTMLElement - ref is attached to a div which is HTMLElement */}
-        <div ref={scrollContainerRef as React.RefObject<HTMLDivElement>} className="flex-1 overflow-y-auto">
+        {/* Single scrollable page - no navigation */}
+        <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-8">
             {/* Loading state: Show skeleton while fetching summary */}
             {isLoadingSummary && selectedDatasetId && (
@@ -559,15 +423,8 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
              selectedDatasetId && 
              !isLoadingSummary && (
               <>
-                {/* Column Quality Summary - KEY SECTION */}
-                {/* Transform backend summary to ColumnQuality format expected by component */}
-                <section
-                  id="quality"
-                  ref={(el: HTMLElement | null) => {
-                    sectionRefs.current["quality"] = el
-                  }}
-                  className="space-y-4"
-                >
+                {/* Column Quality Summary - READ-ONLY */}
+                <section className="space-y-4">
                   <ColumnQualitySummary
                     datasetId={selectedDatasetId}
                     columns={schema?.columns.map((col) => {
@@ -583,71 +440,22 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                         healthScore: summaryCol?.health_score ?? 100,
                       }
                     }) || []}
-                    onColumnClick={handleColumnClick}
                   />
                 </section>
 
-                {/* Missing Values Section */}
-                <section
-                  id="missing"
-                  ref={(el: HTMLElement | null) => {
-                    sectionRefs.current["missing"] = el
-                  }}
-                  className="space-y-4"
-                >
+                {/* Missing Values Section - READ-ONLY */}
+                <section className="space-y-4">
                   <MissingValuesCard
                     datasetId={selectedDatasetId || ""}
                     workspaceId={activeWorkspaceId || ""}
                     schema={schema}
                     isLoadingSchema={isLoadingSchema}
                     schemaError={schemaError}
-                    onPreviewDataChange={setPreviewData}
                   />
                 </section>
 
-                {/* Duplicates Section */}
-                <section
-                  id="duplicates"
-                  ref={(el: HTMLElement | null) => {
-                    sectionRefs.current["duplicates"] = el
-                  }}
-                  className="space-y-4"
-                >
-                  <DuplicatesCard
-                    datasetId={selectedDatasetId}
-                    totalRows={cleaningSummary?.rows}
-                    duplicateCount={
-                      cleaningSummary
-                        ? cleaningSummary.columns.reduce(
-                            (sum, col) => sum + Math.round((cleaningSummary.rows * col.duplicates_pct) / 100),
-                            0
-                          )
-                        : undefined
-                    }
-                    duplicatePercentage={
-                      cleaningSummary && cleaningSummary.rows > 0
-                        ? (cleaningSummary.columns.reduce(
-                            (sum, col) => sum + Math.round((cleaningSummary.rows * col.duplicates_pct) / 100),
-                            0
-                          ) /
-                            cleaningSummary.rows) *
-                          100
-                        : undefined
-                    }
-                    availableColumns={cleaningSummary?.columns.map((col) => col.name) || []}
-                    onPreview={handlePreview}
-                    onApply={handleApply}
-                  />
-                </section>
-
-                {/* Invalid Formats Section */}
-                <section
-                  id="invalid"
-                  ref={(el: HTMLElement | null) => {
-                    sectionRefs.current["invalid"] = el
-                  }}
-                  className="space-y-4"
-                >
+                {/* Invalid Formats Section - READ-ONLY */}
+                <section className="space-y-4">
                   <InvalidFormatsCard
                     datasetId={selectedDatasetId}
                     issues={
@@ -660,31 +468,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                           sampleInvalidValues: [],
                         })) || []
                     }
-                    onPreview={handlePreview}
-                    onApply={handleApply}
                   />
-                </section>
-
-                {/* Preview Section */}
-                <section
-                  id="preview"
-                  ref={(el: HTMLElement | null) => {
-                    sectionRefs.current["preview"] = el
-                  }}
-                  className="space-y-4"
-                >
-                  <PreviewPanel previewData={previewData} />
-                </section>
-
-                {/* Cleaning History Section */}
-                <section
-                  id="history"
-                  ref={(el: HTMLElement | null) => {
-                    sectionRefs.current["history"] = el
-                  }}
-                  className="space-y-4"
-                >
-                  <CleaningHistoryPanel datasetId={selectedDatasetId} />
                 </section>
               </>
             )}

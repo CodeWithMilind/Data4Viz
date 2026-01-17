@@ -7,26 +7,13 @@
  * No frontend type inference - all types come from backend schema API.
  */
 
-import { useState } from "react"
-import { AlertCircle, Database, Eye, Filter, Info, Play, Loader2 } from "lucide-react"
+import { AlertCircle, Database, Filter, Info, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { cleanMissingValues, type SchemaResponse, type MissingValueCleanRequest } from "@/lib/api/dataCleaningClient"
-
-// Export preview data type for use in Preview panel
-export interface MissingValuesPreviewData {
-  column: string
-  rows: Record<string, any>[]
-  columns: string[]
-  affectedRows: number
-}
+import type { SchemaResponse } from "@/lib/api/dataCleaningClient"
 
 interface MissingValuesCardProps {
   datasetId: string
@@ -35,7 +22,6 @@ interface MissingValuesCardProps {
   isLoadingSchema: boolean
   schemaError: string | null
   selectedColumns?: string[]
-  onPreviewDataChange?: (data: MissingValuesPreviewData | null) => void
 }
 
 export function MissingValuesCard({
@@ -45,13 +31,7 @@ export function MissingValuesCard({
   isLoadingSchema,
   schemaError,
   selectedColumns = [],
-  onPreviewDataChange,
 }: MissingValuesCardProps) {
-  const [selectedActions, setSelectedActions] = useState<Record<string, { action: string; customValue: string }>>({})
-  const [previewedColumns, setPreviewedColumns] = useState<Set<string>>(new Set())
-  const [applyErrors, setApplyErrors] = useState<Record<string, string>>({})
-  const [isApplying, setIsApplying] = useState<Record<string, boolean>>({})
-  const [previewData, setPreviewData] = useState<Record<string, { rows: Record<string, any>[]; columns: string[]; affectedRows: number }>>({})
 
   // Get columns with missing values from schema
   const columnsWithMissing = schema?.columns.filter((col) => col.missing_count > 0) || []
@@ -62,167 +42,6 @@ export function MissingValuesCard({
       ? columnsWithMissing
       : columnsWithMissing.filter((col) => selectedColumns.includes(col.name))
 
-  const handleActionChange = (columnName: string, action: string) => {
-    setSelectedActions((prev) => ({
-      ...prev,
-      [columnName]: { ...prev[columnName], action, customValue: prev[columnName]?.customValue || "" },
-    }))
-    setPreviewedColumns((prev) => {
-      const next = new Set(prev)
-      next.delete(columnName)
-      return next
-    })
-  }
-
-  const handleCustomValueChange = (columnName: string, value: string) => {
-    setSelectedActions((prev) => ({
-      ...prev,
-      [columnName]: { ...prev[columnName], action: "custom", customValue: value },
-    }))
-  }
-
-  const handleApply = async (columnName: string) => {
-    const action = selectedActions[columnName]
-    if (!action) return
-
-    // Map frontend action to backend strategy
-    const strategyMap: Record<string, "drop" | "fill_mean" | "fill_median" | "fill_mode" | "fill_constant"> = {
-      drop: "drop",
-      mean: "fill_mean",
-      median: "fill_median",
-      mode: "fill_mode",
-      custom: "fill_constant",
-    }
-
-    const strategy = strategyMap[action.action]
-    if (!strategy) return
-
-    const request: MissingValueCleanRequest = {
-      column: columnName,
-      strategy,
-      constant_value: action.action === "custom" ? action.customValue : undefined,
-      preview: false,
-    }
-
-    setIsApplying((prev) => ({ ...prev, [columnName]: true }))
-    setApplyErrors((prev) => {
-      const next = { ...prev }
-      delete next[columnName]
-      return next
-    })
-
-    try {
-      const response = await cleanMissingValues(workspaceId, datasetId, request)
-      // Refresh schema after successful apply
-      if (response.schema) {
-        // Clear preview data after successful apply
-        setPreviewData((prev) => {
-          const next = { ...prev }
-          delete next[columnName]
-          return next
-        })
-        setPreviewedColumns((prev) => {
-          const next = new Set(prev)
-          next.delete(columnName)
-          return next
-        })
-        // Clear preview in parent component
-        if (onPreviewDataChange) {
-          onPreviewDataChange(null)
-        }
-        // Trigger schema refresh by reloading page (could be improved with state management)
-        window.location.reload()
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to apply missing values fix"
-      setApplyErrors((prev) => ({ ...prev, [columnName]: errorMessage }))
-      console.error("Failed to apply missing values fix:", error)
-    } finally {
-      setIsApplying((prev) => {
-        const next = { ...prev }
-        delete next[columnName]
-        return next
-      })
-    }
-  }
-
-  const handlePreview = async (columnName: string) => {
-    const action = selectedActions[columnName]
-    if (!action) return
-
-    // Map frontend action to backend strategy
-    const strategyMap: Record<string, "drop" | "fill_mean" | "fill_median" | "fill_mode" | "fill_constant"> = {
-      drop: "drop",
-      mean: "fill_mean",
-      median: "fill_median",
-      mode: "fill_mode",
-      custom: "fill_constant",
-    }
-
-    const strategy = strategyMap[action.action]
-    if (!strategy) return
-
-    const request: MissingValueCleanRequest = {
-      column: columnName,
-      strategy,
-      constant_value: action.action === "custom" ? action.customValue : undefined,
-      preview: true,
-    }
-
-    setPreviewedColumns((prev) => new Set(prev).add(columnName))
-
-    try {
-      const response = await cleanMissingValues(workspaceId, datasetId, request)
-      // Store preview data
-      if (response.preview_rows && response.preview_columns) {
-        const previewDataEntry = {
-          rows: response.preview_rows!,
-          columns: response.preview_columns!,
-          affectedRows: response.affected_rows,
-        }
-        setPreviewData((prev) => ({
-          ...prev,
-          [columnName]: previewDataEntry,
-        }))
-        // Notify parent component about preview data
-        if (onPreviewDataChange) {
-          onPreviewDataChange({
-            column: columnName,
-            ...previewDataEntry,
-          })
-        }
-      }
-    } catch (error) {
-      setPreviewedColumns((prev) => {
-        const next = new Set(prev)
-        next.delete(columnName)
-        return next
-      })
-      setPreviewData((prev) => {
-        const next = { ...prev }
-        delete next[columnName]
-        return next
-      })
-      console.error("Failed to preview missing values fix:", error)
-    }
-  }
-
-  // Get available strategies based on canonical_type
-  const getAvailableStrategies = (canonicalType: string) => {
-    // Numeric columns: drop, mean, median, constant (NO fill_mode)
-    if (canonicalType === "numeric") {
-      return ["drop", "mean", "median", "custom"]
-    }
-    // Categorical columns: drop, mode, constant
-    return ["drop", "mode", "custom"]
-  }
-
-  const canApply = (columnName: string) => {
-    const action = selectedActions[columnName]
-    if (!action) return false
-    if (action.action === "custom" && !action.customValue) return false
-    return !isApplying[columnName]
-  }
 
   // Loading state
   if (isLoadingSchema) {
@@ -233,7 +52,7 @@ export function MissingValuesCard({
             <AlertCircle className="w-5 h-5 text-muted-foreground" />
             Missing Values
           </CardTitle>
-          <CardDescription>Handle missing data in your columns</CardDescription>
+          <CardDescription>Read-only analysis of missing data in your columns</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
@@ -254,7 +73,7 @@ export function MissingValuesCard({
             <AlertCircle className="w-5 h-5 text-muted-foreground" />
             Missing Values
           </CardTitle>
-          <CardDescription>Handle missing data in your columns</CardDescription>
+          <CardDescription>Read-only analysis of missing data in your columns</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-destructive">
@@ -274,7 +93,7 @@ export function MissingValuesCard({
             <AlertCircle className="w-5 h-5 text-muted-foreground" />
             Missing Values
           </CardTitle>
-          <CardDescription>Handle missing data in your columns</CardDescription>
+          <CardDescription>Read-only analysis of missing data in your columns</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
@@ -294,7 +113,7 @@ export function MissingValuesCard({
             <AlertCircle className="w-5 h-5 text-muted-foreground" />
             Missing Values
           </CardTitle>
-          <CardDescription>Handle missing data in your columns</CardDescription>
+          <CardDescription>Read-only analysis of missing data in your columns</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
@@ -315,10 +134,10 @@ export function MissingValuesCard({
               <AlertCircle className="w-5 h-5 text-muted-foreground" />
               Missing Values
             </CardTitle>
-            <CardDescription>Handle missing data in your columns</CardDescription>
+            <CardDescription>Read-only analysis of missing data in your columns</CardDescription>
           </div>
           <Badge variant="secondary">
-            {filteredColumns.reduce((sum, col) => sum + col.missingCount, 0)} total missing
+            {filteredColumns.reduce((sum, col) => sum + col.missing_count, 0)} total missing
           </Badge>
         </div>
       </CardHeader>
@@ -331,18 +150,12 @@ export function MissingValuesCard({
                 <TableHead>Data Type</TableHead>
                 <TableHead className="text-right">Missing Count</TableHead>
                 <TableHead className="text-right">Missing %</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-right">Unique Count</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredColumns.map((column) => {
                 const isHighMissing = column.missing_percentage > 20
-                const action = selectedActions[column.name] || { action: "drop", customValue: "" }
-                const hasPreviewed = previewedColumns.has(column.name)
-                const canApplyAction = canApply(column.name)
-                const availableStrategies = getAvailableStrategies(column.canonical_type)
-                const applyError = applyErrors[column.name]
-                const isApplyingColumn = isApplying[column.name]
 
                 return (
                   <TableRow
@@ -375,130 +188,7 @@ export function MissingValuesCard({
                         {column.missing_percentage.toFixed(1)}%
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <RadioGroup
-                            value={action.action}
-                            onValueChange={(v) => handleActionChange(column.name, v)}
-                            className="flex flex-wrap gap-3"
-                          >
-                            {availableStrategies.includes("drop") && (
-                              <div className="flex items-center gap-1.5">
-                                <RadioGroupItem value="drop" id={`${column.name}-drop`} />
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Label htmlFor={`${column.name}-drop`} className="text-xs cursor-pointer">
-                                      Drop rows
-                                    </Label>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Remove rows where this column has missing values</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            )}
-
-                            {availableStrategies.includes("mean") && (
-                              <div className="flex items-center gap-1.5">
-                                <RadioGroupItem value="mean" id={`${column.name}-mean`} />
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Label htmlFor={`${column.name}-mean`} className="text-xs cursor-pointer">
-                                      Fill mean
-                                    </Label>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Fill missing values with the column mean (numeric only)</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            )}
-
-                            {availableStrategies.includes("median") && (
-                              <div className="flex items-center gap-1.5">
-                                <RadioGroupItem value="median" id={`${column.name}-median`} />
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Label htmlFor={`${column.name}-median`} className="text-xs cursor-pointer">
-                                      Fill median
-                                    </Label>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Fill missing values with the column median (numeric only)</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            )}
-
-                            {availableStrategies.includes("mode") && (
-                              <div className="flex items-center gap-1.5">
-                                <RadioGroupItem value="mode" id={`${column.name}-mode`} />
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Label htmlFor={`${column.name}-mode`} className="text-xs cursor-pointer">
-                                      Fill mode
-                                    </Label>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Fill missing values with the most frequent value</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            )}
-
-                            {availableStrategies.includes("custom") && (
-                              <div className="flex items-center gap-1.5">
-                                <RadioGroupItem value="custom" id={`${column.name}-custom`} />
-                                <Label htmlFor={`${column.name}-custom`} className="text-xs cursor-pointer">
-                                  Custom
-                                </Label>
-                                {action.action === "custom" && (
-                                  <Input
-                                    placeholder="Value..."
-                                    className="w-24 h-7 text-xs"
-                                    value={action.customValue}
-                                    onChange={(e) => handleCustomValueChange(column.name, e.target.value)}
-                                  />
-                                )}
-                              </div>
-                            )}
-                          </RadioGroup>
-
-                          <div className="flex items-center gap-1 ml-auto">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 gap-1"
-                              onClick={() => handlePreview(column.name)}
-                              disabled={!action.action || isApplyingColumn}
-                            >
-                              <Eye className="w-3 h-3" />
-                              {hasPreviewed ? "Previewed" : "Preview"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="h-7 gap-1"
-                              onClick={() => handleApply(column.name)}
-                              disabled={!canApplyAction || isApplyingColumn}
-                            >
-                              {isApplyingColumn ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Play className="w-3 h-3" />
-                              )}
-                              Apply
-                            </Button>
-                          </div>
-                        </div>
-                        {applyError && (
-                          <div className="text-xs text-destructive flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" />
-                            {applyError}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
+                    <TableCell className="text-right">{column.unique_count.toLocaleString()}</TableCell>
                   </TableRow>
                 )
               })}
@@ -509,8 +199,7 @@ export function MissingValuesCard({
             <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
               <Info className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
               <p className="text-sm text-destructive">
-                Columns with &gt;20% missing values are highlighted. Consider investigating the root cause before
-                applying fixes.
+                Columns with &gt;20% missing values are highlighted. This is read-only analysis for data understanding.
               </p>
             </div>
           )}

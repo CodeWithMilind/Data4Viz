@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChatMessages } from "@/components/chat-messages"
 import { ChatInput } from "@/components/chat-input"
+import { useAIConfigStore } from "@/lib/ai-config-store"
 
 export interface Message {
   id: string
@@ -13,48 +14,68 @@ export interface Message {
   suggestions?: string[]
 }
 
-const initialMessages: Message[] = [
-  {
-    id: "1",
-    role: "user",
-    content: "Show me the top 5 products by revenue",
-  },
-  {
-    id: "2",
-    role: "assistant",
-    content:
-      "Here are the top 5 products by revenue from your dataset:\n\n1. **Premium Widget Pro** — $1,245,890\n2. **Enterprise Suite** — $987,450\n3. **Analytics Dashboard** — $756,320\n4. **Data Connector Plus** — $543,210\n5. **Cloud Storage Basic** — $432,100\n\nThe Premium Widget Pro leads with significantly higher revenue, accounting for approximately 31% of the total top 5 revenue.",
-    suggestions: [
-      "Show revenue trends over time",
-      "Compare Q3 vs Q4 performance",
-      "Which regions have the highest sales?",
-    ],
-  },
-]
-
 export function ChatArea() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [messages, setMessages] = useState<Message[]>([])
+  const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const { provider, model, apiKey } = useAIConfigStore()
+
+  const canSend = provider === "groq" && !!apiKey && !isSending
+  const warning =
+    !apiKey && provider === "groq"
+      ? "Add your Groq API key in Settings to enable chat."
+      : provider !== "groq"
+        ? "Only Groq is supported. Set Groq in Settings."
+        : null
+
+  const runFetch = useCallback(
+    async (msgs: Message[]) => {
+      const forApi = msgs
+        .filter((m) => m.content !== "...")
+        .map((m) => ({ role: m.role, content: m.content }))
+      setIsSending(true)
+      setError(null)
+      setMessages((prev) => [...prev, { id: "loading", role: "assistant" as const, content: "..." }])
+
+      try {
+        const res = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: forApi, provider, model, apiKey }),
+        })
+        const data = await res.json()
+
+        setMessages((p) => p.filter((m) => m.id !== "loading"))
+        if (data.error) {
+          setError(data.error)
+          return
+        }
+        setMessages((p) => [
+          ...p,
+          { id: crypto.randomUUID(), role: "assistant" as const, content: data.content || "" },
+        ])
+      } catch (_) {
+        setMessages((p) => p.filter((m) => m.id !== "loading"))
+        setError("Network error")
+      } finally {
+        setIsSending(false)
+      }
+    },
+    [provider, model, apiKey],
+  )
 
   const handleSendMessage = (content: string) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content,
-    }
+    const userMsg: Message = { id: Date.now().toString(), role: "user", content }
+    const next = [...messages, userMsg]
+    setMessages(next)
+    runFetch(next)
+  }
 
-    setMessages((prev) => [...prev, userMessage])
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content:
-          "I'm analyzing your request. Based on the current dataset, I'll provide insights shortly...\n\nThis is a demo response. In production, this would connect to your data analysis backend.",
-        suggestions: ["Show more details", "Export this analysis", "Compare with previous period"],
-      }
-      setMessages((prev) => [...prev, aiMessage])
-    }, 1000)
+  const handleRetry = () => {
+    const base = messages.filter((m) => m.content !== "...")
+    if (base.length === 0) return
+    runFetch(base)
   }
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -63,7 +84,6 @@ export function ChatArea() {
 
   return (
     <main className="flex-1 flex flex-col h-screen bg-background">
-      {/* Header */}
       <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Workspace:</span>
@@ -75,11 +95,29 @@ export function ChatArea() {
         </Button>
       </header>
 
-      {/* Messages */}
       <ChatMessages messages={messages} onSuggestionClick={handleSuggestionClick} />
 
-      {/* Input */}
-      <ChatInput onSendMessage={handleSendMessage} />
+      <ChatInput
+        onSendMessage={handleSendMessage}
+        disabled={!canSend}
+        top={
+          <>
+            {error && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <span>{error}</span>
+                <Button variant="outline" size="sm" onClick={handleRetry}>
+                  Retry
+                </Button>
+              </div>
+            )}
+            {!error && warning && (
+              <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                {warning}
+              </div>
+            )}
+          </>
+        }
+      />
     </main>
   )
 }

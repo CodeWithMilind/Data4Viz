@@ -343,6 +343,7 @@ def save_cleaned_dataset(
     
     This maintains ONE cleaned dataset file per workspace + dataset.
     The file is always overwritten with the latest cleaned state.
+    Also removes any old timestamp-based cleaned files.
     
     Args:
         workspace_id: Workspace identifier
@@ -352,12 +353,32 @@ def save_cleaned_dataset(
     Returns:
         Filename of the saved cleaned dataset
     """
+    from app.config import get_workspace_datasets_dir
+    
     cleaned_filename = get_cleaned_dataset_filename(dataset_id)
+    
+    # Remove any old timestamp-based cleaned files for this dataset
+    datasets_dir = get_workspace_datasets_dir(workspace_id)
+    dataset_name = Path(dataset_id).stem
+    if datasets_dir.exists():
+        # Find and remove old timestamped cleaned files (format: {name}_cleaned_{timestamp}.csv)
+        # But keep the standard cleaned file: {name}_data_cleaned.csv
+        for old_file in datasets_dir.glob(f"{dataset_name}_cleaned_*.csv"):
+            # Skip the standard cleaned file
+            if old_file.name == cleaned_filename:
+                continue
+            try:
+                old_file.unlink()
+                logger.info(f"Removed old timestamped cleaned file: {old_file.name}")
+            except Exception as e:
+                logger.warning(f"Failed to remove old cleaned file {old_file}: {e}")
+    
+    # Save to the single cleaned file (always overwrite)
     saved_filename = save_dataset(
         df=df,
         dataset_id=cleaned_filename,
         workspace_id=workspace_id,
-        create_new_file=False  # Overwrite same file
+        create_new_file=False  # ALWAYS overwrite same file, never create timestamped files
     )
     logger.info(f"Saved cleaned dataset '{saved_filename}' for dataset '{dataset_id}' in workspace '{workspace_id}'")
     return saved_filename

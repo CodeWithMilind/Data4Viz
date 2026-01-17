@@ -180,15 +180,13 @@ export function ColumnQualitySummary({
               <TableHead>Type Status</TableHead>
               <TableHead className="text-right">Outliers</TableHead>
               <TableHead className="text-right">Health Score</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {columns.map((column) => (
               <TableRow
                 key={column.name}
-                className="hover:bg-muted/50 cursor-pointer"
-                onClick={() => handleColumnClick(column)}
+                className="hover:bg-muted/50"
               >
                 <TableCell className="font-medium">{column.name}</TableCell>
                 <TableCell>
@@ -243,20 +241,6 @@ export function ColumnQualitySummary({
                     </span>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 gap-1"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleColumnClick(column)
-                    }}
-                  >
-                    {selectedColumns.includes(column.name) ? "Selected" : "Select"}
-                    <ArrowRight className="w-3 h-3" />
-                  </Button>
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -277,7 +261,7 @@ export function ColumnQualitySummary({
               <span className="text-muted-foreground">Poor (&lt;60)</span>
             </div>
           </div>
-          <p className="text-muted-foreground">Click any row to navigate to the relevant cleaning section</p>
+          <p className="text-muted-foreground">Read-only analysis for data understanding</p>
         </div>
       </CardContent>
     </Card>

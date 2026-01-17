@@ -10,23 +10,29 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Settings, Sun, Globe, User, Shield, LogOut, Bot, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { WorkspaceNotes } from "@/components/workspace/workspace-notes"
+import { useAIConfigStore } from "@/lib/ai-config-store"
+import { GROQ_MODELS, GROQ_DEFAULT_MODEL } from "@/lib/groq-models"
+import { AlertTriangle } from "lucide-react"
 
 export function SettingsPage() {
-  // UI-only state - no persistence
   const [sidebarVisibleByDefault, setSidebarVisibleByDefault] = useState(true)
   const [uiAnimations, setUiAnimations] = useState(true)
-  const [selectedProvider, setSelectedProvider] = useState("openai")
-  const [selectedModel, setSelectedModel] = useState("gpt-4o")
+  const [keyInput, setKeyInput] = useState("")
+  const [keySaved, setKeySaved] = useState(false)
+
+  const { provider, model, setProvider, setModel, setApiKey, apiKey, modelAutoUpdated } = useAIConfigStore()
 
   const providerModels: Record<string, { id: string; name: string }[]> = {
+    groq: [...GROQ_MODELS],
     openai: [
       { id: "gpt-4o", name: "GPT-4o" },
       { id: "gpt-4o-mini", name: "GPT-4o Mini" },
@@ -56,9 +62,25 @@ export function SettingsPage() {
     ],
   }
 
-  const handleProviderChange = (provider: string) => {
-    setSelectedProvider(provider)
-    setSelectedModel(providerModels[provider][0].id)
+  const models = providerModels[provider] || providerModels.groq
+
+  useEffect(() => {
+    const list = providerModels[provider] || providerModels.groq
+    if (!list.some((m) => m.id === model)) {
+      setModel(provider === "groq" ? GROQ_DEFAULT_MODEL : list[0].id)
+    }
+  }, [provider, model, setModel])
+
+  const handleProviderChange = (p: string) => {
+    setProvider(p as "groq" | "openai" | "anthropic" | "google" | "meta" | "mistral")
+    setModel(p === "groq" ? GROQ_DEFAULT_MODEL : providerModels[p][0].id)
+  }
+
+  const handleSaveKey = () => {
+    setApiKey(keyInput)
+    setKeyInput("")
+    setKeySaved(true)
+    setTimeout(() => setKeySaved(false), 2000)
   }
 
   return (
@@ -187,11 +209,12 @@ export function SettingsPage() {
                   <Label className="text-sm font-medium">AI Provider</Label>
                   <p className="text-xs text-muted-foreground">Select your preferred AI platform</p>
                 </div>
-                <Select value={selectedProvider} onValueChange={handleProviderChange}>
+                <Select value={provider} onValueChange={handleProviderChange}>
                   <SelectTrigger className="w-[160px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="groq">Groq</SelectItem>
                     <SelectItem value="openai">OpenAI</SelectItem>
                     <SelectItem value="anthropic">Anthropic</SelectItem>
                     <SelectItem value="google">Google AI</SelectItem>
@@ -205,18 +228,26 @@ export function SettingsPage() {
 
               {/* Model Selection */}
               <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-sm font-medium">Model</Label>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium">Model</Label>
+                    {modelAutoUpdated && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/50 bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-700 dark:text-amber-400">
+                        <AlertTriangle className="h-3 w-3" />
+                        Auto-updated
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground">Choose the specific model to use</p>
                 </div>
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <Select value={model} onValueChange={setModel}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {providerModels[selectedProvider].map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name}
+                    {models.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -225,15 +256,24 @@ export function SettingsPage() {
 
               <Separator />
 
-              {/* API Key Placeholder */}
-              <div className="flex items-center justify-between">
+              {/* API Key */}
+              <div className="space-y-2">
                 <div>
                   <Label className="text-sm font-medium">API Key</Label>
-                  <p className="text-xs text-muted-foreground">Your API key is securely stored</p>
+                  <p className="text-xs text-muted-foreground">Stored in env or localStorage</p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Configure
-                </Button>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    value={keyInput}
+                    onChange={(e) => setKeyInput(e.target.value)}
+                    placeholder={apiKey ? "••••••••" : "Enter API key"}
+                    className="flex-1"
+                  />
+                  <Button variant="outline" size="sm" onClick={handleSaveKey}>
+                    {keySaved ? "Saved" : "Save"}
+                  </Button>
+                </div>
               </div>
             </div>
           </section>
@@ -270,7 +310,7 @@ export function SettingsPage() {
 
         {/* Footer Note */}
         <p className="text-xs text-muted-foreground text-center mt-8">
-          This is a UI demonstration. No data is saved or persisted.
+          AI provider, model, and API key are stored in localStorage.
         </p>
       </div>
     </div>

@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void
+  disabled?: boolean
+  top?: React.ReactNode
 }
 
-export function ChatInput({ onSendMessage }: ChatInputProps) {
+export function ChatInput({ onSendMessage, disabled, top }: ChatInputProps) {
   const [input, setInput] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -36,6 +38,7 @@ export function ChatInput({ onSendMessage }: ChatInputProps) {
   return (
     <div className="border-t border-border bg-card p-4">
       <div className="max-w-3xl mx-auto">
+        {top && <div className="space-y-2 mb-2">{top}</div>}
         <div className="relative flex items-end gap-2 rounded-2xl border border-border bg-background p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
           <Button
             type="button"
@@ -54,14 +57,15 @@ export function ChatInput({ onSendMessage }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             placeholder="Ask about your data..."
             rows={1}
-            className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground min-h-[36px] max-h-[200px] py-2"
+            disabled={disabled}
+            className="flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground min-h-[36px] max-h-[200px] py-2 disabled:opacity-50 disabled:cursor-not-allowed"
           />
 
           <Button
             type="button"
             size="icon"
             onClick={handleSubmit}
-            disabled={!input.trim()}
+            disabled={disabled || !input.trim()}
             className="h-9 w-9 shrink-0 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             <Send className="h-4 w-4" />

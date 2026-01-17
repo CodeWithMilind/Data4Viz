@@ -14,8 +14,9 @@ import pandas as pd
 import io
 import json
 import logging
+import shutil
 from datetime import datetime
-from app.config import get_workspace_datasets_dir, get_workspace_logs_dir, get_workspace_files_dir
+from app.config import get_workspace_dir, get_workspace_datasets_dir, get_workspace_logs_dir, get_workspace_files_dir, WORKSPACES_DIR
 from app.services.dataset_loader import list_workspace_datasets, list_workspace_files, load_dataset, save_dataset, dataset_exists
 
 logger = logging.getLogger(__name__)
@@ -594,3 +595,121 @@ async def get_dataset_overview(workspace_id: str, request: OverviewRequest):
     except Exception as e:
         logger.error(f"[get_dataset_overview] Error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to generate dataset overview: {str(e)}")
+
+
+@router.delete("/{workspace_id}")
+async def delete_workspace(workspace_id: str):
+    """
+    Delete a workspace and ALL its files (cascade delete).
+    
+    IMPORTANT: This is a hard delete operation that removes:
+    - Workspace directory and all subdirectories
+    - All uploaded datasets (CSV files in datasets/)
+    - All overview files (*_overview.json in files/)
+    - All cleaned datasets
+    - All cleaning summary JSONs
+    - All log files
+    - Any other workspace-generated files
+    
+    Safety:
+    - Deletion is scoped strictly to the workspace directory
+    - Does NOT delete files from other workspaces
+    - Does NOT delete global/system files
+    
+    Args:
+        workspace_id: Unique workspace identifier
+        
+    Returns:
+        Success message
+        
+    Raises:
+        HTTPException: If workspace doesn't exist or deletion fails
+    """
+    logger.info(f"[delete_workspace] Request received - workspace_id={workspace_id}")
+    
+    try:
+        # Get workspace directory path
+        workspace_dir = get_workspace_dir(workspace_id)
+        
+        # Safety check: Ensure we're only deleting from workspaces directory
+        # This prevents accidental deletion of files outside workspace storage
+        # Use resolve() to get absolute paths and compare
+        try:
+            workspace_abs = workspace_dir.resolve()
+            workspaces_abs = WORKSPACES_DIR.resolve()
+            # Check if workspace directory is within workspaces directory
+            if not str(workspace_abs).startswith(str(workspaces_abs)):
+                logger.error(f"[delete_workspace] Security check failed: workspace_dir is not within WORKSPACES_DIR")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Workspace directory path validation failed"
+                )
+        except Exception as e:
+            logger.error(f"[delete_workspace] Error during path validation: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Workspace directory path validation failed"
+            )
+        
+        # Check if workspace directory exists
+        if not workspace_dir.exists():
+            logger.warning(f"[delete_workspace] Workspace directory does not exist: {workspace_dir}")
+            # Return success even if directory doesn't exist (idempotent operation)
+            return {
+                "message": f"Workspace '{workspace_id}' deleted (directory did not exist)",
+                "workspace_id": workspace_id
+            }
+        
+        # Log what will be deleted (for debugging)
+        try:
+            datasets_dir = get_workspace_datasets_dir(workspace_id)
+            files_dir = get_workspace_files_dir(workspace_id)
+            logs_dir = get_workspace_logs_dir(workspace_id)
+            
+            dataset_count = len(list(datasets_dir.glob("*"))) if datasets_dir.exists() else 0
+            files_count = len(list(files_dir.glob("*"))) if files_dir.exists() else 0
+            logs_count = len(list(logs_dir.glob("*"))) if logs_dir.exists() else 0
+            
+            logger.info(
+                f"[delete_workspace] Deleting workspace '{workspace_id}': "
+                f"{dataset_count} files in datasets/, {files_count} files in files/, {logs_count} files in logs/"
+            )
+        except Exception as e:
+            logger.warning(f"[delete_workspace] Could not count files before deletion: {e}")
+        
+        # Delete entire workspace directory (cascade delete)
+        # This removes:
+        # - datasets/ directory and all CSV files
+        # - files/ directory and all JSON/overview files
+        # - logs/ directory and all LOG files
+        # - Any other files/subdirectories in the workspace
+        shutil.rmtree(workspace_dir, ignore_errors=False)
+        
+        logger.info(f"[delete_workspace] Successfully deleted workspace directory: {workspace_dir}")
+        
+        return {
+            "message": f"Workspace '{workspace_id}' and all its files deleted successfully",
+            "workspace_id": workspace_id
+        }
+        
+    except HTTPException:
+        raise
+    except FileNotFoundError:
+        # Workspace directory doesn't exist - return success (idempotent)
+        logger.info(f"[delete_workspace] Workspace directory not found: {workspace_id}")
+        return {
+            "message": f"Workspace '{workspace_id}' deleted (directory did not exist)",
+            "workspace_id": workspace_id
+        }
+    except PermissionError as e:
+        logger.error(f"[delete_workspace] Permission denied when deleting workspace '{workspace_id}': {str(e)}")
+        raise HTTPException(
+            status_code=403,
+            detail=f"Permission denied: Cannot delete workspace '{workspace_id}'"
+        )
+    except Exception as e:
+        logger.error(f"[delete_workspace] Error deleting workspace '{workspace_id}': {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete workspace: {str(e)}"
+        )

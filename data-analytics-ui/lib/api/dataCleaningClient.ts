@@ -372,7 +372,7 @@ export interface OverviewResponse {
 export async function getDatasetOverviewFromFile(
   workspaceId: string,
   datasetId: string
-): Promise<OverviewResponse> {
+): Promise<OverviewResponse | null> {
   const requestUrl =
     `${BASE_URL}/api/overview/file?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
 
@@ -384,8 +384,7 @@ export async function getDatasetOverviewFromFile(
 
   if (!response.ok) {
     if (response.status === 404) {
-      // File doesn't exist - this is expected on first load
-      throw new Error("OVERVIEW_FILE_NOT_FOUND");
+      return null;
     }
     const errorText = await response.text().catch(() => response.statusText);
     console.error(
@@ -418,7 +417,7 @@ export async function getDatasetOverview(
   workspaceId: string,
   datasetId: string,
   refresh: boolean = false
-): Promise<OverviewResponse> {
+): Promise<OverviewResponse | null> {
   const requestUrl =
     `${BASE_URL}/api/overview?workspace_id=${workspaceId}&dataset_id=${datasetId}&refresh=${refresh}`;
 
@@ -429,6 +428,9 @@ export async function getDatasetOverview(
   });
 
   if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
     const errorText = await response.text().catch(() => response.statusText);
     console.error(
       `[getDatasetOverview] Error ${response.status}: ${errorText}`
@@ -496,7 +498,7 @@ export async function getDatasetSchema(
   workspaceId: string,
   datasetId: string,
   useCurrent: boolean = true
-): Promise<SchemaResponse> {
+): Promise<SchemaResponse | null> {
   try {
     const response = await fetch(
       `${BASE_URL}/dataset/${encodeURIComponent(datasetId)}/schema?workspace_id=${encodeURIComponent(workspaceId)}&use_current=${useCurrent}`,
@@ -509,6 +511,9 @@ export async function getDatasetSchema(
     );
 
     if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
       throw new Error(`Failed to fetch dataset schema: ${response.statusText}`);
     }
 
@@ -555,6 +560,47 @@ export async function cleanMissingValues(
     return data;
   } catch (error) {
     console.error("Error cleaning missing values:", error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a workspace and ALL its files (cascade delete).
+ * 
+ * IMPORTANT: This is a hard delete operation that removes:
+ * - Workspace directory and all subdirectories
+ * - All uploaded datasets (CSV files)
+ * - All overview files (*_overview.json)
+ * - All cleaned datasets
+ * - All cleaning summary JSONs
+ * - All log files
+ * - Any other workspace-generated files
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @returns Success message
+ * @throws Error if API call fails
+ */
+export async function deleteWorkspace(workspaceId: string): Promise<{ message: string; workspace_id: string }> {
+  const requestUrl = `${BASE_URL}/workspaces/${workspaceId}`;
+
+  console.log(`[deleteWorkspace] Request URL: ${requestUrl}`);
+
+  try {
+    const response = await fetch(requestUrl, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      console.error(`[deleteWorkspace] Error ${response.status}: ${errorText}`);
+      throw new Error(`Failed to delete workspace: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`[deleteWorkspace] Success – workspace_id=${data.workspace_id}`);
+    return data;
+  } catch (error) {
+    console.error("Error deleting workspace:", error);
     throw error;
   }
 }

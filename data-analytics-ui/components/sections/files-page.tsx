@@ -8,7 +8,7 @@
  * No fake or sample data - all files come from backend workspace storage.
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   FileText,
   FileSpreadsheet,
@@ -41,6 +41,7 @@ import {
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { getFiles, setFiles as setFilesCache, invalidateForWorkspace } from "@/lib/files-cache"
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
@@ -148,37 +149,71 @@ export function FilesPage() {
   const [fileToDelete, setFileToDelete] = useState<WorkspaceFile | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Fetch workspace files from backend
-  useEffect(() => {
-    async function fetchFiles() {
-      if (!activeWorkspaceId) {
-        setFiles([])
+  const fetchFiles = useCallback(async (forceRefresh: boolean = false) => {
+    if (!activeWorkspaceId) {
+      setFiles([])
+      setLoading(false)
+      return
+    }
+
+    if (!forceRefresh) {
+      const cached = getFiles(activeWorkspaceId)
+      if (cached !== undefined) {
+        setFiles(cached)
         setLoading(false)
+        setError(null)
         return
-      }
-
-      setLoading(true)
-      setError(null)
-
-      try {
-        const response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files`)
-        if (!response.ok) {
-          throw new Error(`Failed to fetch workspace files: ${response.statusText}`)
-        }
-        const data: WorkspaceFilesResponse = await response.json()
-        setFiles(data.files)
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to fetch files"
-        setError(errorMessage)
-        setFiles([])
-        console.error("Error fetching workspace files:", err)
-      } finally {
-        setLoading(false)
       }
     }
 
-    fetchFiles()
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch workspace files: ${response.statusText}`)
+      }
+      const data: WorkspaceFilesResponse = await response.json()
+      
+      const fileMap = new Map<string, WorkspaceFile>()
+      for (const file of data.files) {
+        const existing = fileMap.get(file.name)
+        if (!existing || (file.updated_at && existing.updated_at && file.updated_at > existing.updated_at)) {
+          fileMap.set(file.name, file)
+        }
+      }
+      const deduplicatedFiles = Array.from(fileMap.values())
+      
+      setFilesCache(activeWorkspaceId, deduplicatedFiles)
+      setFiles(deduplicatedFiles)
+      setError(null)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch files"
+      setError(errorMessage)
+      setFiles([])
+      invalidateForWorkspace(activeWorkspaceId)
+      console.error("Error fetching workspace files:", err)
+    } finally {
+      setLoading(false)
+    }
   }, [activeWorkspaceId])
+
+  useEffect(() => {
+    fetchFiles()
+  }, [fetchFiles])
+
+  // Listen for refresh events from other components (e.g., after cleaning operations)
+  // Force refresh when files are modified
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchFiles(true) // Force refresh to get latest files
+    }
+    window.addEventListener("refreshFiles", handleRefresh)
+    return () => {
+      window.removeEventListener("refreshFiles", handleRefresh)
+    }
+  }, [fetchFiles])
 
   const filteredFiles = files.filter((file) => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
@@ -290,8 +325,9 @@ export function FilesPage() {
         throw new Error(`Failed to delete file: ${response.statusText}`)
       }
 
-      // Remove file from UI list without full refresh
-      setFiles((prev) => prev.filter((f) => f.id !== fileToDelete.id))
+      const updatedFiles = files.filter((f) => f.id !== fileToDelete.id)
+      setFiles(updatedFiles)
+      if (activeWorkspaceId) setFilesCache(activeWorkspaceId, updatedFiles)
       
       // Remove from selected files if it was selected
       setSelectedFiles((prev) => {
