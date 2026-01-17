@@ -124,6 +124,7 @@ const getFileTypeLabel = (type: string): string => {
  * Rules:
  * - User uploaded files (CSV, JSON) are deletable
  * - Generated outputs (overview snapshots, cleaning results) are deletable
+ * - Chat history (CONVERSATION) is deletable
  * - System/audit files (logs) are NOT deletable
  */
 const isFileDeletable = (file: WorkspaceFile): boolean => {
@@ -132,7 +133,7 @@ const isFileDeletable = (file: WorkspaceFile): boolean => {
   if (type === "LOG") {
     return false
   }
-  // All other files (CSV, JSON, OVERVIEW, CLEANING) are deletable
+  // All other files (CSV, JSON, OVERVIEW, CLEANING, CONVERSATION) are deletable
   return true
 }
 
@@ -182,12 +183,26 @@ export function FilesPage() {
       if (backendResponse?.ok) {
         const backendData: WorkspaceFilesResponse = await backendResponse.json()
         allFiles.push(...backendData.files)
+      } else if (backendResponse) {
+        console.warn("Backend files API failed:", backendResponse.status, backendResponse.statusText)
       }
 
       if (localResponse?.ok) {
         const localData: { files: WorkspaceFile[] } = await localResponse.json()
+        console.log(`[Files Page] Local files API returned ${localData.files.length} files for workspace ${activeWorkspaceId}:`, localData.files.map(f => f.name))
         allFiles.push(...localData.files)
+      } else if (localResponse) {
+        try {
+          const errorText = await localResponse.text()
+          console.warn(`[Files Page] Local files API failed (${localResponse.status}):`, errorText)
+        } catch {
+          console.warn(`[Files Page] Local files API failed (${localResponse.status}):`, localResponse.statusText)
+        }
+      } else {
+        console.warn("[Files Page] Local files API request failed (network error or no response)")
       }
+      
+      console.log(`[Files Page] Total files after merge: ${allFiles.length}`, allFiles.map(f => f.name))
 
       const fileMap = new Map<string, WorkspaceFile>()
       for (const file of allFiles) {
@@ -216,17 +231,20 @@ export function FilesPage() {
     fetchFiles()
   }, [fetchFiles])
 
-  // Listen for refresh events from other components (e.g., after cleaning operations)
+  // Listen for refresh events from other components (e.g., after cleaning operations, chat messages)
   // Force refresh when files are modified
   useEffect(() => {
     const handleRefresh = () => {
+      if (activeWorkspaceId) {
+        invalidateForWorkspace(activeWorkspaceId)
+      }
       fetchFiles(true) // Force refresh to get latest files
     }
     window.addEventListener("refreshFiles", handleRefresh)
     return () => {
       window.removeEventListener("refreshFiles", handleRefresh)
     }
-  }, [fetchFiles])
+  }, [fetchFiles, activeWorkspaceId])
 
   const filteredFiles = files.filter((file) => file.name.toLowerCase().includes(searchQuery.toLowerCase()))
 

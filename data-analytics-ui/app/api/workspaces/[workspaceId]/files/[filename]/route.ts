@@ -16,9 +16,11 @@ function getFilePath(workspaceId: string, filename: string): string {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { workspaceId: string; filename: string } },
+  context: { params: Promise<{ workspaceId: string; filename: string }> | { workspaceId: string; filename: string } },
 ) {
   try {
+    // Handle both Promise and direct params (Next.js 15+ vs older versions)
+    const params = await Promise.resolve(context.params)
     const { workspaceId, filename } = params
 
     if (!workspaceId || !filename) {

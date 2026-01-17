@@ -157,6 +157,9 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
           ...p,
           { id: crypto.randomUUID(), role: "assistant" as const, content: data.content },
         ])
+        
+        // Trigger files refresh so ai_chat.json appears in Files page
+        window.dispatchEvent(new CustomEvent("refreshFiles"))
       } catch (err: any) {
         clearTimeout(timeoutId)
         setMessages((p) => p.filter((m) => m.id !== "loading"))

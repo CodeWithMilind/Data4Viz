@@ -179,6 +179,10 @@ export async function POST(req: NextRequest) {
       console.error("Error details:", e)
     }
 
+    // Trigger files refresh event (client-side will listen for this)
+    // Note: This is a server-side API, so we can't directly dispatch events
+    // The client will refresh when navigating or the Files page will poll/refresh
+
     return NextResponse.json({ content: out.content ?? "" })
   } catch (e) {
     return NextResponse.json({ error: "Network error" }, { status: 200 })

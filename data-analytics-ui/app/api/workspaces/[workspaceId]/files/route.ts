@@ -19,21 +19,34 @@ function formatFileSize(bytes: number): string {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { workspaceId: string } },
+  context: { params: Promise<{ workspaceId: string }> | { workspaceId: string } },
 ) {
   try {
+    // Handle both Promise and direct params (Next.js 15+ vs older versions)
+    const params = await Promise.resolve(context.params)
     const { workspaceId } = params
 
     if (!workspaceId) {
+      console.error("[Files API] workspaceId is missing from params:", params)
       return NextResponse.json({ error: "workspaceId required" }, { status: 400 })
     }
 
     const workspaceDir = getWorkspaceDir(workspaceId)
+    console.log(`[Files API] Listing files for workspace: ${workspaceId}`)
+    console.log(`[Files API] Workspace dir: ${workspaceDir}`)
+    console.log(`[Files API] Directory exists: ${existsSync(workspaceDir)}`)
+    
     if (!existsSync(workspaceDir)) {
+      console.log(`[Files API] Workspace directory does not exist: ${workspaceDir}`)
       return NextResponse.json({ files: [] })
     }
 
     const files = await listWorkspaceFiles(workspaceId)
+    console.log(`[Files API] Found ${files.length} files:`, files)
+    
+    // Check if ai_chat.json exists
+    const chatFilePath = path.join(workspaceDir, "ai_chat.json")
+    console.log(`[Files API] ai_chat.json path: ${chatFilePath}, exists: ${existsSync(chatFilePath)}`)
     const filesIndex = await getFilesIndex(workspaceId)
 
     const fileList = await Promise.all(
@@ -50,7 +63,12 @@ export async function GET(
         }
 
         const indexEntry = filesIndex.find((e) => e.file === filename)
-        const type = indexEntry?.type || (filename.endsWith(".json") ? "JSON" : "UNKNOWN")
+        let type = indexEntry?.type || (filename.endsWith(".json") ? "JSON" : "UNKNOWN")
+        
+        // Ensure ai_chat.json is properly typed
+        if (filename === "ai_chat.json" && type !== "conversation") {
+          type = "conversation"
+        }
 
         return {
           id: `local-${filename}`,

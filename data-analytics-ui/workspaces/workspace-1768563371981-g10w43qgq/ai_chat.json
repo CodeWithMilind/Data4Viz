@@ -143,6 +143,18 @@
       "role": "assistant",
       "content": "I'm Data4Viz, a tailored AI agent, not Groq or ChatGPT. My primary focus is on guiding users through data analysis, visualization, and workflow. My training data is specific to data science, visualization, and business intelligence.\n\nWhile I'm based on natural language processing (NLP) technology, my interactions are more task-oriented and data-driven, rather than conversational or general knowledge-based like ChatGPT. Think of me as a data expert assistant, here to help you navigate your dataset and explore insights.",
       "timestamp": 1768682839149
+    },
+    {
+      "id": "1768683157054",
+      "role": "user",
+      "content": "good night",
+      "timestamp": 1768683157054
+    },
+    {
+      "id": "1768683157055",
+      "role": "assistant",
+      "content": "Good night! It was a productive session. You've made a note of the recommended plots and we've established a plan to move forward with cleaning and analysis.\n\nBefore we part ways, let's set a reminder for our next session when you're ready to start cleaning and exploring your dataset.\n\nGood night, and I look forward to our next conversation!",
+      "timestamp": 1768683157055
     }
   ]
 }
