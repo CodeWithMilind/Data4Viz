@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
+import {
+  getChatHistory,
+  appendChatMessage,
+  getFilesIndex,
+  getRelevantFiles,
+  type ChatMessage,
+} from "@/lib/workspace-files"
+import type { WorkspaceContext } from "@/lib/workspace-context"
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -30,11 +38,53 @@ async function callGroq(
   return { content }
 }
 
+function buildSystemPrompt(
+  context: WorkspaceContext | null,
+  filesIndex: any[],
+  relevantFiles: any[],
+): string {
+  let prompt = `You are Data4Viz AI Agent.`
+
+  if (context) {
+    prompt += `\n\nCurrent workspace state:\n`
+    prompt += `- Dataset uploaded: ${context.hasDataset ? "yes" : "no"}\n`
+    prompt += `- Dataset count: ${context.datasetCount}\n`
+    prompt += `- Dataset summary available: ${context.datasetSummaryAvailable ? "yes" : "no"}\n`
+    prompt += `- Data cleaned: ${context.isDataCleaned ? "yes" : "no"}\n`
+    prompt += `- Cleaning steps applied: ${context.cleaningStepsCount}\n`
+    prompt += `- Outliers handled: ${context.isOutlierHandled ? "yes" : "no"}\n`
+
+    prompt += `\nYour job:\n`
+    prompt += `- Guide the user step-by-step through their data analysis workflow\n`
+    prompt += `- Recommend the next logical action based on current state\n`
+    prompt += `- Be concise and proactive\n`
+    prompt += `- If user asks generic questions, gently steer them toward dataset actions\n`
+    prompt += `- Only explain "why" when explicitly asked\n`
+  }
+
+  prompt += `\n\nYou have access to the following workspace files:\n\nFILES:\n`
+  for (const entry of filesIndex) {
+    prompt += `- ${entry.file}: ${entry.summary}\n`
+  }
+
+  if (relevantFiles.length > 0) {
+    prompt += `\nRELEVANT FILE CONTENTS:\n`
+    for (const file of relevantFiles) {
+      prompt += `\n--- ${file.file} ---\n${file.content}\n`
+    }
+  }
+
+  prompt += `\nUse these files when answering questions. Reference specific files when relevant.`
+  return prompt
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { messages, provider, model, apiKey: bodyKey } = body as {
-      messages?: { role: string; content: string }[]
+    const { workspaceId, userMessage, workspaceContext, provider, model, apiKey: bodyKey } = body as {
+      workspaceId?: string
+      userMessage?: string
+      workspaceContext?: WorkspaceContext
       provider?: string
       model?: string
       apiKey?: string
@@ -43,8 +93,13 @@ export async function POST(req: NextRequest) {
     if (provider !== "groq") {
       return NextResponse.json({ error: "Only Groq is supported" }, { status: 400 })
     }
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json({ error: "messages required" }, { status: 400 })
+
+    if (!workspaceId) {
+      return NextResponse.json({ error: "workspaceId required" }, { status: 400 })
+    }
+
+    if (!userMessage || typeof userMessage !== "string") {
+      return NextResponse.json({ error: "userMessage required" }, { status: 400 })
     }
 
     const key = process.env.GROQ_API_KEY || bodyKey
@@ -53,6 +108,41 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedModel = isGroqModelSupported(model) ? model : GROQ_DEFAULT_MODEL
+
+    let chatHistory = { messages: [] }
+    let filesIndex: any[] = []
+    let relevantFiles: any[] = []
+
+    try {
+      chatHistory = await getChatHistory(workspaceId)
+    } catch (e) {
+      console.error("Failed to load chat history:", e)
+    }
+
+    try {
+      filesIndex = await getFilesIndex(workspaceId)
+    } catch (e) {
+      console.error("Failed to load files index:", e)
+    }
+
+    try {
+      relevantFiles = await getRelevantFiles(workspaceId, 5, 5000)
+    } catch (e) {
+      console.error("Failed to load relevant files:", e)
+    }
+
+    const systemPrompt = buildSystemPrompt(workspaceContext || null, filesIndex, relevantFiles)
+
+    const historyMessages = chatHistory.messages.slice(-10).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }))
+
+    const messages = [
+      { role: "system" as const, content: systemPrompt },
+      ...historyMessages,
+      { role: "user" as const, content: userMessage },
+    ]
 
     let out = await callGroq(key, resolvedModel, messages)
 
@@ -66,6 +156,28 @@ export async function POST(req: NextRequest) {
     if (out.error) {
       return NextResponse.json({ error: out.error }, { status: 200 })
     }
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: userMessage,
+      timestamp: Date.now(),
+    }
+
+    const assistantMsg: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: out.content ?? "",
+      timestamp: Date.now(),
+    }
+
+    try {
+      await appendChatMessage(workspaceId, userMsg)
+      await appendChatMessage(workspaceId, assistantMsg)
+    } catch (e) {
+      console.error("Failed to save chat messages:", e)
+    }
+
     return NextResponse.json({ content: out.content ?? "" })
   } catch (e) {
     return NextResponse.json({ error: "Network error" }, { status: 200 })

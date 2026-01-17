@@ -16,13 +16,14 @@ import { WorkspaceStatusBanner } from "@/components/workspace/workspace-status-b
 
 interface MainContentProps {
   activeNav: string
+  setActiveNav?: (nav: string) => void
 }
 
-export function MainContent({ activeNav }: MainContentProps) {
+export function MainContent({ activeNav, setActiveNav }: MainContentProps) {
   const renderContent = () => {
     switch (activeNav) {
       case "agent":
-        return <ChatArea />
+        return <ChatArea onNavigate={setActiveNav} currentPage={activeNav} />
       case "dataset":
         return <DatasetPage />
       case "overview":

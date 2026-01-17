@@ -1,0 +1,52 @@
+{
+  "messages": [
+    {
+      "id": "1768681265421",
+      "role": "user",
+      "content": "hello",
+      "timestamp": 1768681265421
+    },
+    {
+      "id": "1768681295959",
+      "role": "user",
+      "content": "hi",
+      "timestamp": 1768681295959
+    },
+    {
+      "id": "1768681563502",
+      "role": "user",
+      "content": "hi9",
+      "timestamp": 1768681563502
+    },
+    {
+      "id": "1768681620930",
+      "role": "user",
+      "content": "hello",
+      "timestamp": 1768681620930
+    },
+    {
+      "id": "1768681778898",
+      "role": "user",
+      "content": "hi",
+      "timestamp": 1768681778898
+    },
+    {
+      "id": "1768681778899",
+      "role": "assistant",
+      "content": "You seem to be saying hello a few times. I'm Data4Viz, your AI assistant for data analysis. Let's get started on your project!\n\nYou have 1 dataset uploaded, but it hasn't been cleaned yet. What would you like to do first?\n\nYou can ask about the dataset, initiate cleaning, or ask me something else.",
+      "timestamp": 1768681778898
+    },
+    {
+      "id": "1768681824015",
+      "role": "user",
+      "content": "what are totals cols in this dataset just enlist them",
+      "timestamp": 1768681824015
+    },
+    {
+      "id": "1768681824016",
+      "role": "assistant",
+      "content": "Let me check the dataset. **dataset.txt** ( files_index.json ) lists the following column names:\n\n1. Customer ID\n2. Order Date\n3. Product Name\n4. Quantity\n5. Price\n6. City\n7. Country\n\nThere are 7 columns in total. Would you like to know more about each column or proceed with cleaning?",
+      "timestamp": 1768681824015
+    }
+  ]
+}

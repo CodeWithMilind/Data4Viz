@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { Download } from "lucide-react"
+import { useState, useCallback, useEffect, useMemo } from "react"
+import { Download, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChatMessages } from "@/components/chat-messages"
 import { ChatInput } from "@/components/chat-input"
 import { useAIConfigStore } from "@/lib/ai-config-store"
+import { useWorkspace } from "@/contexts/workspace-context"
+import { computeWorkspaceContext, getRecommendation } from "@/lib/workspace-context"
 
 export interface Message {
   id: string
@@ -14,72 +16,186 @@ export interface Message {
   suggestions?: string[]
 }
 
-export function ChatArea() {
+interface ChatAreaProps {
+  onNavigate?: (page: string) => void
+  currentPage?: string
+}
+
+export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true)
 
   const { provider, model, apiKey } = useAIConfigStore()
+  const { currentWorkspace } = useWorkspace()
 
-  const canSend = provider === "groq" && !!apiKey && !isSending
+  const workspaceContext = useMemo(() => computeWorkspaceContext(currentWorkspace), [currentWorkspace])
+  const recommendation = useMemo(() => {
+    if (!workspaceContext) return null
+    const rec = getRecommendation(workspaceContext)
+    if (!rec) return null
+
+    if (currentPage === rec.page) {
+      return null
+    }
+
+    const recentMessages = messages.slice(-5)
+    const alreadySuggested = recentMessages.some(
+      (m) => m.role === "assistant" && m.content.toLowerCase().includes(rec.action.toLowerCase()),
+    )
+
+    if (alreadySuggested) {
+      return null
+    }
+
+    return rec
+  }, [workspaceContext, messages, currentPage])
+
+  useEffect(() => {
+    async function loadChatHistory() {
+      if (!currentWorkspace?.id) {
+        setIsLoadingHistory(false)
+        setMessages([])
+        return
+      }
+
+      try {
+        const res = await fetch(`/api/ai/chat/history?workspaceId=${currentWorkspace.id}`)
+        if (res.ok) {
+          const data = await res.json()
+          const loadedMessages: Message[] = (data.messages || [])
+            .filter((m: any) => m.content !== "...")
+            .map((m: any) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+            }))
+          setMessages(loadedMessages)
+        }
+      } catch {
+      } finally {
+        setIsLoadingHistory(false)
+        setMessages((prev) => prev.filter((m) => m.id !== "loading"))
+      }
+    }
+
+    loadChatHistory()
+  }, [currentWorkspace?.id])
+
+  useEffect(() => {
+    return () => {
+      setMessages((prev) => prev.filter((m) => m.id !== "loading"))
+      setIsSending(false)
+    }
+  }, [])
+
+  const canSend = provider === "groq" && !!apiKey && !isSending && !!currentWorkspace?.id
   const warning =
-    !apiKey && provider === "groq"
-      ? "Add your Groq API key in Settings to enable chat."
-      : provider !== "groq"
-        ? "Only Groq is supported. Set Groq in Settings."
-        : null
+    !currentWorkspace?.id
+      ? "Select a workspace to start chatting."
+      : !apiKey && provider === "groq"
+        ? "Add your Groq API key in Settings to enable chat."
+        : provider !== "groq"
+          ? "Only Groq is supported. Set Groq in Settings."
+          : null
 
   const runFetch = useCallback(
-    async (msgs: Message[]) => {
-      const forApi = msgs
-        .filter((m) => m.content !== "...")
-        .map((m) => ({ role: m.role, content: m.content }))
+    async (userMessage: string) => {
+      if (!currentWorkspace?.id) {
+        setError("No workspace selected")
+        return
+      }
+
       setIsSending(true)
       setError(null)
       setMessages((prev) => [...prev, { id: "loading", role: "assistant" as const, content: "..." }])
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 60000)
 
       try {
         const res = await fetch("/api/ai/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: forApi, provider, model, apiKey }),
+          body: JSON.stringify({
+            workspaceId: currentWorkspace.id,
+            userMessage,
+            workspaceContext,
+            provider,
+            model,
+            apiKey,
+          }),
+          signal: controller.signal,
         })
-        const data = await res.json()
+
+        clearTimeout(timeoutId)
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`)
+        }
+
+        let data
+        try {
+          data = await res.json()
+        } catch (parseError) {
+          setMessages((p) => p.filter((m) => m.id !== "loading"))
+          setError("Invalid response from server")
+          return
+        }
 
         setMessages((p) => p.filter((m) => m.id !== "loading"))
         if (data.error) {
           setError(data.error)
           return
         }
+        if (!data.content) {
+          setError("Empty response from AI")
+          return
+        }
         setMessages((p) => [
           ...p,
-          { id: crypto.randomUUID(), role: "assistant" as const, content: data.content || "" },
+          { id: crypto.randomUUID(), role: "assistant" as const, content: data.content },
         ])
-      } catch (_) {
+      } catch (err: any) {
+        clearTimeout(timeoutId)
         setMessages((p) => p.filter((m) => m.id !== "loading"))
-        setError("Network error")
+        if (err.name === "AbortError") {
+          setError("Request timed out. Please try again.")
+        } else {
+          setError("Network error. Please check your connection and try again.")
+        }
       } finally {
         setIsSending(false)
       }
     },
-    [provider, model, apiKey],
+    [provider, model, apiKey, currentWorkspace?.id, workspaceContext],
   )
 
   const handleSendMessage = (content: string) => {
     const userMsg: Message = { id: Date.now().toString(), role: "user", content }
-    const next = [...messages, userMsg]
-    setMessages(next)
-    runFetch(next)
+    setMessages((prev) => [...prev, userMsg])
+    runFetch(content)
   }
 
   const handleRetry = () => {
-    const base = messages.filter((m) => m.content !== "...")
-    if (base.length === 0) return
-    runFetch(base)
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === "user" && m.content !== "...")
+    if (!lastUserMessage) return
+    runFetch(lastUserMessage.content)
   }
 
   const handleSuggestionClick = (suggestion: string) => {
     handleSendMessage(suggestion)
+  }
+
+  if (isLoadingHistory) {
+    return (
+      <main className="flex-1 flex flex-col h-screen bg-background">
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">Loading chat history...</p>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -87,7 +203,9 @@ export function ChatArea() {
       <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Workspace:</span>
-          <span className="text-sm font-medium text-foreground">Sales Analysis Q4</span>
+          <span className="text-sm font-medium text-foreground">
+            {currentWorkspace?.name || "No workspace"}
+          </span>
         </div>
         <Button variant="outline" size="sm" className="gap-2 bg-transparent">
           <Download className="w-4 h-4" />
@@ -110,7 +228,23 @@ export function ChatArea() {
                 </Button>
               </div>
             )}
-            {!error && warning && (
+            {!error && recommendation && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-500/50 bg-blue-500/10 px-3 py-2 text-sm text-blue-700 dark:text-blue-400">
+                <span>{recommendation.message}</span>
+                {onNavigate && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onNavigate(recommendation.page)}
+                    className="gap-1.5"
+                  >
+                    {recommendation.action}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+            )}
+            {!error && !recommendation && warning && (
               <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
                 {warning}
               </div>

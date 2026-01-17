@@ -14,16 +14,8 @@ export default function Home() {
     setMounted(true)
   }, [])
 
-  if (!mounted) {
-    return (
-      <div className="flex h-screen bg-background">
-        <div className="flex-1 flex flex-col min-w-0" />
-      </div>
-    )
-  }
-
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background" suppressHydrationWarning>
       <Sidebar
         activeNav={activeNav}
         setActiveNav={setActiveNav}
@@ -36,7 +28,7 @@ export default function Home() {
           setSidebarOpen={setSidebarOpen}
           activeNav={activeNav}
         />
-        <MainContent activeNav={activeNav} />
+        <MainContent activeNav={activeNav} setActiveNav={setActiveNav} />
       </div>
     </div>
   )
