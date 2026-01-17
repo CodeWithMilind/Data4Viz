@@ -17,7 +17,6 @@ import logging
 from datetime import datetime
 from app.config import get_workspace_datasets_dir, get_workspace_logs_dir, get_workspace_files_dir
 from app.services.dataset_loader import list_workspace_datasets, list_workspace_files, load_dataset, save_dataset, dataset_exists
-from app.services.cleaning_logs import get_cleaning_logs
 
 logger = logging.getLogger(__name__)
 
@@ -234,52 +233,6 @@ async def upload_dataset_to_workspace(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to upload dataset: {str(e)}")
-
-
-class CleaningLogResponse(BaseModel):
-    """Cleaning log entry response."""
-    dataset_name: str
-    operation: str
-    action: str
-    rows_affected: int
-    parameters: Dict[str, Any]
-    timestamp: str
-
-
-class WorkspaceCleaningLogsResponse(BaseModel):
-    """Response model for workspace cleaning logs."""
-    workspace_id: str
-    logs: List[CleaningLogResponse]
-
-
-@router.get("/{workspace_id}/cleaning-logs", response_model=WorkspaceCleaningLogsResponse)
-async def get_workspace_cleaning_logs(workspace_id: str):
-    """
-    Get all cleaning logs for a workspace.
-    
-    Cleaning logs are stored per workspace and track:
-    - Dataset name
-    - Operation performed
-    - Parameters used
-    - Rows affected
-    - Timestamp
-    
-    Logs are returned in reverse chronological order (most recent first).
-    
-    Args:
-        workspace_id: Unique workspace identifier
-        
-    Returns:
-        List of cleaning log entries
-    """
-    try:
-        logs = get_cleaning_logs(workspace_id)
-        return WorkspaceCleaningLogsResponse(
-            workspace_id=workspace_id,
-            logs=logs
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve cleaning logs: {str(e)}")
 
 
 class SummaryRequest(BaseModel):

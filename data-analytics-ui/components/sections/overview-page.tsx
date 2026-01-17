@@ -36,7 +36,7 @@ import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, type OverviewResponse } from "@/lib/api/dataCleaningClient"
+import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, type OverviewResponse, getDatasetSchema, type SchemaResponse } from "@/lib/api/dataCleaningClient"
 import type { WorkspaceDataset } from "@/types/workspace"
 
 /**
@@ -111,6 +111,43 @@ export function OverviewPage() {
   const [isLoadingOverview, setIsLoadingOverview] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [overviewError, setOverviewError] = useState<string | null>(null)
+  
+  // Schema state - single source of truth for column types
+  const [schema, setSchema] = useState<SchemaResponse | null>(null)
+  const [isLoadingSchema, setIsLoadingSchema] = useState(false)
+  const [schemaError, setSchemaError] = useState<string | null>(null)
+
+  // Fetch schema from backend when dataset is available
+  useEffect(() => {
+    if (!activeWorkspaceId || !selectedDataset?.fileName) {
+      setSchema(null)
+      setSchemaError(null)
+      return
+    }
+
+    let cancelled = false
+    setIsLoadingSchema(true)
+    setSchemaError(null)
+
+    getDatasetSchema(activeWorkspaceId, selectedDataset.fileName, true)
+      .then((schemaData) => {
+        if (cancelled) return
+        setSchema(schemaData)
+        setSchemaError(null)
+        setIsLoadingSchema(false)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        const errorMessage = error instanceof Error ? error.message : "Failed to load schema"
+        setSchemaError(errorMessage)
+        setIsLoadingSchema(false)
+        console.error("Error fetching schema:", error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWorkspaceId, selectedDataset?.fileName])
 
   // Handle manual refresh (user-initiated)
   const handleRefreshOverview = async () => {
@@ -177,12 +214,16 @@ export function OverviewPage() {
     }
   }, [activeWorkspaceId, selectedDataset?.fileName, selectedColumn])
 
-  // Initialize selected column when overview data loads
+  // Initialize selected column when schema or overview data loads
   useEffect(() => {
-    if (overviewData && overviewData.columns.length > 0 && !selectedColumn) {
-      setSelectedColumn(overviewData.columns[0].name)
+    if (!selectedColumn) {
+      if (schema && schema.columns.length > 0) {
+        setSelectedColumn(schema.columns[0].name)
+      } else if (overviewData && overviewData.columns.length > 0) {
+        setSelectedColumn(overviewData.columns[0].name)
+      }
     }
-  }, [overviewData, selectedColumn])
+  }, [schema, overviewData, selectedColumn])
 
   // Mark overview as ready when data is loaded
   useEffect(() => {
@@ -298,16 +339,16 @@ export function OverviewPage() {
     }
   }
 
-  // Filter columns based on type filter (uses backend data only)
+  // Filter columns based on type filter (uses schema as source of truth)
   const filteredColumns = useMemo(() => {
-    if (!overviewData) return []
-    return overviewData.columns.filter((col) => {
+    if (!schema) return []
+    return schema.columns.filter((col) => {
       if (filterType === "all") return true
-      return col.inferred_type === filterType
+      return col.canonical_type === filterType
     })
-  }, [overviewData, filterType])
+  }, [schema, filterType])
 
-  // Helper function for type badge color
+  // Helper function for type badge color (uses canonical_type from schema)
   const getTypeBadgeColor = (type: string) => {
     switch (type) {
       case "numeric":
@@ -321,6 +362,13 @@ export function OverviewPage() {
       default:
         return "bg-muted text-muted-foreground"
     }
+  }
+  
+  // Get column type from schema (single source of truth)
+  const getColumnType = (columnName: string): string => {
+    if (!schema) return "unknown"
+    const column = schema.columns.find((col) => col.name === columnName)
+    return column?.canonical_type || "unknown"
   }
 
   // Get summary stats from backend data
@@ -727,10 +775,10 @@ dtypes: ${[
                       >
                         <span className="text-sm font-medium">{col.name}</span>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={`text-xs ${getTypeBadgeColor(col.inferred_type)}`}>
-                            {col.inferred_type}
+                          <Badge variant="outline" className={`text-xs ${getTypeBadgeColor(col.canonical_type)}`}>
+                            {col.canonical_type}
                           </Badge>
-                          {col.nullable && (
+                          {col.missing_count > 0 && (
                             <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
                               nullable
                             </Badge>
@@ -787,8 +835,8 @@ dtypes: ${[
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-foreground">Categorical Columns with Missing Values</h4>
                   <div className="space-y-3">
-                    {overviewData?.columns
-                      .filter((col) => col.inferred_type === "categorical" && col.missing_count > 0)
+                    {schema?.columns
+                      .filter((col) => col.canonical_type === "categorical" && col.missing_count > 0)
                       .sort((a, b) => b.missing_percentage - a.missing_percentage)
                       .slice(0, 10)
                       .map((col) => (
@@ -845,14 +893,26 @@ dtypes: ${[
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-muted-foreground">Column Information</h4>
-                      {overviewData.column_insights?.[selectedColumn] ? (
-                        <>
-                          <div className="text-3xl font-bold">
-                            {overviewData.column_insights[selectedColumn].unique}
-                          </div>
-                          <p className="text-sm text-muted-foreground">Unique values</p>
-                        </>
-                      ) : null}
+                      {schema && (() => {
+                        const column = schema.columns.find((col) => col.name === selectedColumn)
+                        const insights = overviewData?.column_insights?.[selectedColumn]
+                        return column ? (
+                          <>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className={`text-xs ${getTypeBadgeColor(column.canonical_type)}`}>
+                                {column.canonical_type}
+                              </Badge>
+                            </div>
+                            <div className="text-3xl font-bold">
+                              {insights?.unique ?? column.unique_count}
+                            </div>
+                            <p className="text-sm text-muted-foreground">Unique values</p>
+                            <div className="text-sm text-muted-foreground">
+                              Missing: {column.missing_count} ({column.missing_percentage}%)
+                            </div>
+                          </>
+                        ) : null
+                      })()}
 
                     </div>
                     <div className="space-y-3">

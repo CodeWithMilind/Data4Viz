@@ -29,7 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { previewCleaning, applyCleaning, getCleaningSummary, type CleaningSummaryResponse } from "@/lib/api/dataCleaningClient"
+import { previewCleaning, applyCleaning, getCleaningSummary, type CleaningSummaryResponse, getDatasetSchema, type SchemaResponse } from "@/lib/api/dataCleaningClient"
 import { cn } from "@/lib/utils"
 import type { CleaningRequest } from "@/types/dataCleaning"
 import { CleaningHistoryPanel } from "./data-cleaning/cleaning-history-panel"
@@ -80,6 +80,14 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   const [hasAttemptedSync, setHasAttemptedSync] = useState(false)
   
   /**
+   * Schema state - single source of truth for column metadata
+   * Fetched from backend API, no frontend inference
+   */
+  const [schema, setSchema] = useState<SchemaResponse | null>(null)
+  const [isLoadingSchema, setIsLoadingSchema] = useState(false)
+  const [schemaError, setSchemaError] = useState<string | null>(null)
+  
+  /**
    * REF TYPE: HTMLElement (not HTMLDivElement)
    * - Refs are attached to <section> elements which are HTMLElement
    * - HTMLElement is the correct base type for all HTML elements
@@ -100,6 +108,8 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
       setCleaningSummary(null)
       setSummaryError(null)
       setHasAttemptedSync(false)
+      setSchema(null)
+      setSchemaError(null)
     }
   }, [activeWorkspaceId])
 
@@ -215,6 +225,38 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
       cancelled = true
     }
   }, [activeWorkspaceId, selectedDatasetId, workspaceDataset, syncAndFetchSummary])
+  
+  // Fetch schema when dataset is selected (single source of truth for column types)
+  useEffect(() => {
+    if (!activeWorkspaceId || !selectedDatasetId) {
+      setSchema(null)
+      setSchemaError(null)
+      return
+    }
+
+    let cancelled = false
+    setIsLoadingSchema(true)
+    setSchemaError(null)
+
+    getDatasetSchema(activeWorkspaceId, selectedDatasetId, true)
+      .then((schemaData) => {
+        if (cancelled) return
+        setSchema(schemaData)
+        setSchemaError(null)
+        setIsLoadingSchema(false)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        const errorMessage = error instanceof Error ? error.message : "Failed to load schema"
+        setSchemaError(errorMessage)
+        setIsLoadingSchema(false)
+        console.error("Error fetching schema:", error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWorkspaceId, selectedDatasetId])
 
   // Scroll sync
   useEffect(() => {
@@ -522,15 +564,19 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                 >
                   <ColumnQualitySummary
                     datasetId={selectedDatasetId}
-                    columns={cleaningSummary.columns.map((col) => ({
-                      name: col.name,
-                      dataType: col.type,
-                      missingPercentage: col.missing_pct,
-                      duplicateContribution: col.duplicates_pct,
-                      typeConsistency: col.health_score >= 80 ? "consistent" : col.health_score >= 60 ? "warning" : "inconsistent",
-                      outlierCount: col.outliers ?? 0,
-                      healthScore: col.health_score,
-                    }))}
+                    columns={schema?.columns.map((col) => {
+                      // Find corresponding cleaning summary column for health metrics
+                      const summaryCol = cleaningSummary?.columns.find((sc) => sc.name === col.name)
+                      return {
+                        name: col.name,
+                        dataType: col.canonical_type, // Use canonical_type from schema
+                        missingPercentage: col.missing_percentage,
+                        duplicateContribution: summaryCol?.duplicates_pct || 0,
+                        typeConsistency: summaryCol?.health_score ? (summaryCol.health_score >= 80 ? "consistent" : summaryCol.health_score >= 60 ? "warning" : "inconsistent") : "consistent",
+                        outlierCount: summaryCol?.outliers ?? 0,
+                        healthScore: summaryCol?.health_score ?? 100,
+                      }
+                    }) || []}
                     onColumnClick={handleColumnClick}
                   />
                 </section>
@@ -544,17 +590,11 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                   className="space-y-4"
                 >
                   <MissingValuesCard
-                    datasetId={selectedDatasetId}
-                    columns={cleaningSummary?.columns
-                      .filter((col) => col.missing_pct > 0)
-                      .map((col) => ({
-                        name: col.name,
-                        dataType: col.type,
-                        missingCount: Math.round((cleaningSummary.rows * col.missing_pct) / 100),
-                        missingPercentage: col.missing_pct,
-                      })) || []}
-                    onPreview={handlePreview}
-                    onApply={handleApply}
+                    datasetId={selectedDatasetId || ""}
+                    workspaceId={activeWorkspaceId || ""}
+                    schema={schema}
+                    isLoadingSchema={isLoadingSchema}
+                    schemaError={schemaError}
                   />
                 </section>
 
@@ -626,7 +666,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                   }}
                   className="space-y-4"
                 >
-                  <CleaningHistoryPanel />
+                  <CleaningHistoryPanel datasetId={selectedDatasetId} />
                 </section>
               </>
             )}

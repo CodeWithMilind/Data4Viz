@@ -11,6 +11,53 @@
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// Schema types
+export interface ColumnSchema {
+  name: string;
+  canonical_type: "numeric" | "categorical" | "datetime" | "boolean";
+  pandas_dtype: string;
+  total_rows: number;
+  missing_count: number;
+  missing_percentage: number;
+  unique_count: number;
+  numeric_stats?: {
+    min?: number | null;
+    max?: number | null;
+    mean?: number | null;
+    median?: number | null;
+    std?: number | null;
+    q25?: number | null;
+    q75?: number | null;
+  };
+}
+
+export interface SchemaResponse {
+  workspace_id: string;
+  dataset_id: string;
+  total_rows: number;
+  total_columns: number;
+  columns: ColumnSchema[];
+  computed_at: string;
+  using_current: boolean;
+}
+
+export interface MissingValueCleanRequest {
+  column: string;
+  strategy: "drop" | "fill_mean" | "fill_median" | "fill_mode" | "fill_constant";
+  constant_value?: any;
+  preview: boolean;
+}
+
+export interface MissingValueCleanResponse {
+  workspace_id: string;
+  dataset_id: string;
+  column: string;
+  strategy: string;
+  affected_rows: number;
+  preview: boolean;
+  schema: SchemaResponse | null;
+}
+
 export interface DatasetInfo {
   id: string;
   rows: number;
@@ -430,4 +477,88 @@ export async function refreshDatasetOverview(
   );
 
   return data;
+}
+
+/**
+ * Get dataset schema from backend
+ * 
+ * Schema is the single source of truth for column metadata.
+ * 
+ * @param workspaceId Workspace identifier
+ * @param datasetId Dataset filename
+ * @param useCurrent If true, use current_df (modified); if false, use raw_df (original)
+ * @returns Schema with column metadata
+ * @throws Error if API call fails
+ */
+export async function getDatasetSchema(
+  workspaceId: string,
+  datasetId: string,
+  useCurrent: boolean = true
+): Promise<SchemaResponse> {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/dataset/${encodeURIComponent(datasetId)}/schema?workspace_id=${encodeURIComponent(workspaceId)}&use_current=${useCurrent}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch dataset schema: ${response.statusText}`);
+    }
+
+    const data: SchemaResponse = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching dataset schema:", error);
+    throw error;
+  }
+}
+
+/**
+ * Clean missing values in a dataset column
+ * 
+ * @param workspaceId Workspace identifier
+ * @param datasetId Dataset filename
+ * @param request Cleaning request with column, strategy, and preview flag
+ * @returns Schema response (extracted from cleaning response)
+ * @throws Error if API call fails or validation fails
+ */
+export async function cleanMissingValues(
+  workspaceId: string,
+  datasetId: string,
+  request: MissingValueCleanRequest
+): Promise<SchemaResponse> {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/dataset/${encodeURIComponent(datasetId)}/clean/missing?workspace_id=${encodeURIComponent(workspaceId)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(errorData.detail || `Failed to clean missing values: ${response.statusText}`);
+    }
+
+    const data: MissingValueCleanResponse = await response.json();
+    
+    // Extract and return schema from response
+    if (!data.schema) {
+      throw new Error("Schema not returned from cleaning operation");
+    }
+    
+    return data.schema;
+  } catch (error) {
+    console.error("Error cleaning missing values:", error);
+    throw error;
+  }
 }

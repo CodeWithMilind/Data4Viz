@@ -6,6 +6,8 @@ from app.api.cleaning import router as cleaning_router
 from app.api.datasets import router as datasets_router
 from app.api.workspaces import router as workspaces_router
 from app.api.overview import router as overview_router
+from app.api.schema import router as schema_router
+from app.api.ai_context import router as ai_context_router
 
 from app.config import ALLOWED_ORIGINS
 
@@ -30,6 +32,8 @@ app.include_router(workspaces_router)
 app.include_router(cleaning_router)
 app.include_router(datasets_router)  # Legacy endpoint for backward compatibility
 app.include_router(overview_router, prefix="/api")
+app.include_router(schema_router)  # Schema endpoint
+app.include_router(ai_context_router)  # AI context endpoint
 
 
 

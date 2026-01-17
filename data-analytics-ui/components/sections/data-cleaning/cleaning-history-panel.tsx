@@ -3,8 +3,8 @@
 /**
  * Cleaning History Panel
  *
- * IMPORTANT: Workspace is the single source of truth.
- * Fetches cleaning logs from workspace storage via backend API.
+ * IMPORTANT: Logs are stored per dataset (not per workspace).
+ * Fetches operation logs from dataset-level endpoint.
  * No mock data - shows empty state until backend provides data.
  */
 
@@ -30,31 +30,36 @@ import { useWorkspace } from "@/contexts/workspace-context"
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
-interface CleaningLog {
-  dataset_name: string
-  operation: string
-  action: string
-  rows_affected: number
-  parameters: Record<string, any>
+interface OperationLog {
+  operation_type: string
+  column: string | null
+  column_type: string | null
+  strategy: string | null
+  affected_rows: number
   timestamp: string
 }
 
-interface WorkspaceCleaningLogsResponse {
+interface DatasetLogsResponse {
   workspace_id: string
-  logs: CleaningLog[]
+  dataset_id: string
+  logs: OperationLog[]
 }
 
-export function CleaningHistoryPanel() {
+interface CleaningHistoryPanelProps {
+  datasetId: string | null
+}
+
+export function CleaningHistoryPanel({ datasetId }: CleaningHistoryPanelProps) {
   const { activeWorkspaceId } = useWorkspace()
-  const [logs, setLogs] = useState<CleaningLog[]>([])
+  const [logs, setLogs] = useState<OperationLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
 
-  // Fetch cleaning logs from workspace
+  // Fetch operation logs from dataset-level endpoint
   useEffect(() => {
     async function fetchLogs() {
-      if (!activeWorkspaceId) {
+      if (!activeWorkspaceId || !datasetId) {
         setLogs([])
         setLoading(false)
         return
@@ -64,24 +69,26 @@ export function CleaningHistoryPanel() {
       setError(null)
 
       try {
-        const response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/cleaning-logs`)
+        const response = await fetch(
+          `${BASE_URL}/dataset/${encodeURIComponent(datasetId)}/logs?workspace_id=${encodeURIComponent(activeWorkspaceId)}`
+        )
         if (!response.ok) {
-          throw new Error(`Failed to fetch cleaning logs: ${response.statusText}`)
+          throw new Error(`Failed to fetch operation logs: ${response.statusText}`)
         }
-        const data: WorkspaceCleaningLogsResponse = await response.json()
+        const data: DatasetLogsResponse = await response.json()
         setLogs(data.logs)
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to fetch cleaning logs"
+        const errorMessage = err instanceof Error ? err.message : "Failed to fetch operation logs"
         setError(errorMessage)
         setLogs([])
-        console.error("Error fetching cleaning logs:", err)
+        console.error("Error fetching operation logs:", err)
       } finally {
         setLoading(false)
       }
     }
 
     fetchLogs()
-  }, [activeWorkspaceId])
+  }, [activeWorkspaceId, datasetId])
 
   const handleUndo = (actionId: string) => {
     // Undo functionality not yet implemented
@@ -103,20 +110,27 @@ export function CleaningHistoryPanel() {
     }
   }
 
-  const getActionBadgeVariant = (actionType: string) => {
-    if (actionType.includes("remove") || actionType.includes("drop")) return "destructive"
-    if (actionType.includes("fill") || actionType.includes("convert")) return "default"
+  const getActionBadgeVariant = (strategy: string) => {
+    if (strategy.includes("remove") || strategy.includes("drop")) return "destructive"
+    if (strategy.includes("fill") || strategy.includes("convert")) return "default"
     return "secondary"
   }
 
-  const getOperationDescription = (log: CleaningLog): string => {
+  const getOperationDescription = (log: OperationLog): string => {
     const operationMap: Record<string, string> = {
       missing_values: "Handle Missing Values",
       duplicates: "Remove Duplicates",
       invalid_format: "Fix Invalid Formats",
       outliers: "Handle Outliers",
     }
-    return operationMap[log.operation] || log.operation
+    return operationMap[log.operation_type] || log.operation_type
+  }
+  
+  const getActionLabel = (log: OperationLog): string => {
+    if (log.strategy) {
+      return log.strategy.replace(/_/g, " ").replace(/fill /g, "fill with ")
+    }
+    return log.operation_type
   }
 
   if (loading) {
@@ -139,7 +153,7 @@ export function CleaningHistoryPanel() {
     )
   }
 
-  if (!activeWorkspaceId) {
+  if (!activeWorkspaceId || !datasetId) {
     return (
       <Card>
         <CardHeader>
@@ -152,7 +166,7 @@ export function CleaningHistoryPanel() {
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
             <Database className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>No workspace selected</p>
+            <p>No dataset selected</p>
           </div>
         </CardContent>
       </Card>
@@ -211,8 +225,8 @@ export function CleaningHistoryPanel() {
                 <TableRow>
                   <TableHead>Timestamp</TableHead>
                   <TableHead>Operation</TableHead>
-                  <TableHead>Dataset</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead>Column</TableHead>
+                  <TableHead>Strategy</TableHead>
                   <TableHead>Rows Affected</TableHead>
                 </TableRow>
               </TableHeader>
@@ -227,17 +241,25 @@ export function CleaningHistoryPanel() {
                     </TableCell>
                     <TableCell className="font-medium">{getOperationDescription(log)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {log.dataset_name}
-                      </Badge>
+                      {log.column ? (
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {log.column}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getActionBadgeVariant(log.action)} className="text-xs">
-                        {log.action.replace(/_/g, " ")}
-                      </Badge>
+                      {log.strategy ? (
+                        <Badge variant={getActionBadgeVariant(log.strategy)} className="text-xs">
+                          {getActionLabel(log)}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground">{log.rows_affected} rows</span>
+                      <span className="text-sm text-muted-foreground">{log.affected_rows} rows</span>
                     </TableCell>
                   </TableRow>
                 ))}
