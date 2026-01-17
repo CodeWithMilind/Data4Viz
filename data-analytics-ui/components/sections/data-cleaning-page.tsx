@@ -36,7 +36,8 @@ import { CleaningHistoryPanel } from "./data-cleaning/cleaning-history-panel"
 import { ColumnQualitySummary } from "./data-cleaning/column-quality-summary"
 import { DuplicatesCard } from "./data-cleaning/duplicates-card"
 import { InvalidFormatsCard } from "./data-cleaning/invalid-formats-card"
-import { MissingValuesCard } from "./data-cleaning/missing-values-card"
+import { MissingValuesCard, type MissingValuesPreviewData } from "./data-cleaning/missing-values-card"
+import { PreviewPanel } from "./data-cleaning/preview-panel"
 
 const navItems = [
   { id: "quality", label: "Column Quality", icon: CheckCircle2 },
@@ -86,6 +87,11 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   const [schema, setSchema] = useState<SchemaResponse | null>(null)
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
+  
+  /**
+   * Preview state - stores preview data from cleaning operations
+   */
+  const [previewData, setPreviewData] = useState<MissingValuesPreviewData | null>(null)
   
   /**
    * REF TYPE: HTMLElement (not HTMLDivElement)
@@ -595,6 +601,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                     schema={schema}
                     isLoadingSchema={isLoadingSchema}
                     schemaError={schemaError}
+                    onPreviewDataChange={setPreviewData}
                   />
                 </section>
 
@@ -656,6 +663,17 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
                     onPreview={handlePreview}
                     onApply={handleApply}
                   />
+                </section>
+
+                {/* Preview Section */}
+                <section
+                  id="preview"
+                  ref={(el: HTMLElement | null) => {
+                    sectionRefs.current["preview"] = el
+                  }}
+                  className="space-y-4"
+                >
+                  <PreviewPanel previewData={previewData} />
                 </section>
 
                 {/* Cleaning History Section */}

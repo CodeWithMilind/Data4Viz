@@ -20,6 +20,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import { cleanMissingValues, type SchemaResponse, type MissingValueCleanRequest } from "@/lib/api/dataCleaningClient"
 
+// Export preview data type for use in Preview panel
+export interface MissingValuesPreviewData {
+  column: string
+  rows: Record<string, any>[]
+  columns: string[]
+  affectedRows: number
+}
+
 interface MissingValuesCardProps {
   datasetId: string
   workspaceId: string
@@ -27,6 +35,7 @@ interface MissingValuesCardProps {
   isLoadingSchema: boolean
   schemaError: string | null
   selectedColumns?: string[]
+  onPreviewDataChange?: (data: MissingValuesPreviewData | null) => void
 }
 
 export function MissingValuesCard({
@@ -36,11 +45,13 @@ export function MissingValuesCard({
   isLoadingSchema,
   schemaError,
   selectedColumns = [],
+  onPreviewDataChange,
 }: MissingValuesCardProps) {
   const [selectedActions, setSelectedActions] = useState<Record<string, { action: string; customValue: string }>>({})
   const [previewedColumns, setPreviewedColumns] = useState<Set<string>>(new Set())
   const [applyErrors, setApplyErrors] = useState<Record<string, string>>({})
   const [isApplying, setIsApplying] = useState<Record<string, boolean>>({})
+  const [previewData, setPreviewData] = useState<Record<string, { rows: Record<string, any>[]; columns: string[]; affectedRows: number }>>({})
 
   // Get columns with missing values from schema
   const columnsWithMissing = schema?.columns.filter((col) => col.missing_count > 0) || []
@@ -104,15 +115,24 @@ export function MissingValuesCard({
       const response = await cleanMissingValues(workspaceId, datasetId, request)
       // Refresh schema after successful apply
       if (response.schema) {
-        // Schema will be refreshed by parent component's useEffect
-        window.location.reload() // Simple refresh - could be improved with state management
+        // Clear preview data after successful apply
+        setPreviewData((prev) => {
+          const next = { ...prev }
+          delete next[columnName]
+          return next
+        })
+        setPreviewedColumns((prev) => {
+          const next = new Set(prev)
+          next.delete(columnName)
+          return next
+        })
+        // Clear preview in parent component
+        if (onPreviewDataChange) {
+          onPreviewDataChange(null)
+        }
+        // Trigger schema refresh by reloading page (could be improved with state management)
+        window.location.reload()
       }
-      // Clear preview state after successful apply
-      setPreviewedColumns((prev) => {
-        const next = new Set(prev)
-        next.delete(columnName)
-        return next
-      })
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to apply missing values fix"
       setApplyErrors((prev) => ({ ...prev, [columnName]: errorMessage }))
@@ -152,11 +172,35 @@ export function MissingValuesCard({
     setPreviewedColumns((prev) => new Set(prev).add(columnName))
 
     try {
-      await cleanMissingValues(workspaceId, datasetId, request)
+      const response = await cleanMissingValues(workspaceId, datasetId, request)
+      // Store preview data
+      if (response.preview_rows && response.preview_columns) {
+        const previewDataEntry = {
+          rows: response.preview_rows!,
+          columns: response.preview_columns!,
+          affectedRows: response.affected_rows,
+        }
+        setPreviewData((prev) => ({
+          ...prev,
+          [columnName]: previewDataEntry,
+        }))
+        // Notify parent component about preview data
+        if (onPreviewDataChange) {
+          onPreviewDataChange({
+            column: columnName,
+            ...previewDataEntry,
+          })
+        }
+      }
     } catch (error) {
       setPreviewedColumns((prev) => {
         const next = new Set(prev)
         next.delete(columnName)
+        return next
+      })
+      setPreviewData((prev) => {
+        const next = { ...prev }
+        delete next[columnName]
         return next
       })
       console.error("Failed to preview missing values fix:", error)
@@ -165,11 +209,12 @@ export function MissingValuesCard({
 
   // Get available strategies based on canonical_type
   const getAvailableStrategies = (canonicalType: string) => {
-    const allStrategies = ["drop", "mode", "custom"]
+    // Numeric columns: drop, mean, median, constant (NO fill_mode)
     if (canonicalType === "numeric") {
-      return ["drop", "mean", "median", "mode", "custom"]
+      return ["drop", "mean", "median", "custom"]
     }
-    return allStrategies
+    // Categorical columns: drop, mode, constant
+    return ["drop", "mode", "custom"]
   }
 
   const canApply = (columnName: string) => {

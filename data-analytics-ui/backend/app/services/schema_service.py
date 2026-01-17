@@ -9,12 +9,15 @@ IMPORTANT: Schema is the single source of truth for column metadata.
 
 import pandas as pd
 import numpy as np
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Tuple
 from datetime import datetime
 import logging
+import json
+from pathlib import Path
 
-from app.services.dataset_loader import load_dataset, dataset_exists
+from app.services.dataset_loader import load_dataset, dataset_exists, save_dataset
 from app.services.operation_logs import append_operation_log
+from app.config import get_workspace_files_dir
 
 logger = logging.getLogger(__name__)
 
@@ -296,6 +299,133 @@ def clear_cache(workspace_id: Optional[str] = None, dataset_id: Optional[str] = 
             logger.info(f"Cleared cache for dataset '{dataset_id}' in workspace '{workspace_id}'")
 
 
+def get_cleaned_dataset_filename(dataset_id: str) -> str:
+    """
+    Get the filename for the cleaned dataset.
+    
+    Format: dataset_name_data_cleaned.csv
+    Example: movie.csv -> movie_data_cleaned.csv
+    
+    Args:
+        dataset_id: Original dataset filename
+        
+    Returns:
+        Cleaned dataset filename
+    """
+    dataset_name = Path(dataset_id).stem
+    return f"{dataset_name}_data_cleaned.csv"
+
+
+def get_cleaning_summary_filename(dataset_id: str) -> str:
+    """
+    Get the filename for the cleaning summary metadata JSON.
+    
+    Format: dataset_name_data_cleaning_summary.json
+    Example: movie.csv -> movie_data_cleaning_summary.json
+    
+    Args:
+        dataset_id: Original dataset filename
+        
+    Returns:
+        Cleaning summary filename
+    """
+    dataset_name = Path(dataset_id).stem
+    return f"{dataset_name}_data_cleaning_summary.json"
+
+
+def save_cleaned_dataset(
+    workspace_id: str,
+    dataset_id: str,
+    df: pd.DataFrame
+) -> str:
+    """
+    Save the cleaned dataset to a single file (overwrites if exists).
+    
+    This maintains ONE cleaned dataset file per workspace + dataset.
+    The file is always overwritten with the latest cleaned state.
+    
+    Args:
+        workspace_id: Workspace identifier
+        dataset_id: Original dataset filename
+        df: Cleaned DataFrame to save
+        
+    Returns:
+        Filename of the saved cleaned dataset
+    """
+    cleaned_filename = get_cleaned_dataset_filename(dataset_id)
+    saved_filename = save_dataset(
+        df=df,
+        dataset_id=cleaned_filename,
+        workspace_id=workspace_id,
+        create_new_file=False  # Overwrite same file
+    )
+    logger.info(f"Saved cleaned dataset '{saved_filename}' for dataset '{dataset_id}' in workspace '{workspace_id}'")
+    return saved_filename
+
+
+def append_cleaning_metadata(
+    workspace_id: str,
+    dataset_id: str,
+    operation_type: str,
+    column: Optional[str],
+    strategy: str,
+    affected_rows: int
+) -> None:
+    """
+    Append a cleaning operation to the cumulative metadata JSON file.
+    
+    This maintains ONE metadata JSON file per dataset that accumulates
+    all cleaning operations in chronological order.
+    
+    Args:
+        workspace_id: Workspace identifier
+        dataset_id: Original dataset filename
+        operation_type: Type of operation (e.g., "missing_values", "duplicates")
+        column: Column name (if applicable)
+        strategy: Strategy used
+        affected_rows: Number of rows affected
+    """
+    files_dir = get_workspace_files_dir(workspace_id)
+    summary_filename = get_cleaning_summary_filename(dataset_id)
+    summary_path = files_dir / summary_filename
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Load existing metadata
+    metadata = {
+        "workspace_id": workspace_id,
+        "dataset_id": dataset_id,
+        "operations": []
+    }
+    if summary_path.exists():
+        try:
+            with open(summary_path, 'r', encoding='utf-8') as f:
+                existing = json.load(f)
+                if isinstance(existing, dict) and "operations" in existing:
+                    metadata = existing
+        except Exception as e:
+            logger.warning(f"Failed to load existing cleaning metadata from {summary_path}: {e}. Starting fresh.")
+    
+    # Append new operation
+    operation_entry = {
+        "operation_type": operation_type,
+        "column": column,
+        "strategy": strategy,
+        "affected_rows": affected_rows,
+        "timestamp": datetime.now().isoformat()
+    }
+    metadata["operations"].append(operation_entry)
+    metadata["last_updated"] = datetime.now().isoformat()
+    
+    # Save back to file
+    try:
+        with open(summary_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        logger.info(f"Appended cleaning metadata for dataset '{dataset_id}' in workspace '{workspace_id}'")
+    except Exception as e:
+        logger.error(f"Failed to write cleaning metadata to {summary_path}: {e}")
+        raise
+
+
 def clean_missing_values(
     workspace_id: str,
     dataset_id: str,
@@ -415,13 +545,34 @@ def clean_missing_values(
             df_cleaned[column] = df_cleaned[column].fillna(constant_value)
             affected_rows = original_missing_count
         
-        # Only update current_df and log if not in preview mode
+        # Only update current_df, save files, and log if not in preview mode
         if not preview:
             # Update current_df in cache
             if not update_current_df(workspace_id, dataset_id, df_cleaned):
                 return None, 0, "Failed to update current_df in cache"
             
-            # Log the operation
+            # Save cleaned dataset to file (overwrite same file)
+            try:
+                save_cleaned_dataset(workspace_id, dataset_id, df_cleaned)
+            except Exception as e:
+                logger.error(f"Failed to save cleaned dataset for '{dataset_id}': {e}")
+                return None, 0, f"Failed to save cleaned dataset: {str(e)}"
+            
+            # Append to cumulative metadata JSON
+            try:
+                append_cleaning_metadata(
+                    workspace_id=workspace_id,
+                    dataset_id=dataset_id,
+                    operation_type="missing_values",
+                    column=column,
+                    strategy=strategy,
+                    affected_rows=affected_rows
+                )
+            except Exception as e:
+                logger.warning(f"Failed to save cleaning metadata for dataset '{dataset_id}': {e}")
+                # Don't fail the operation if metadata save fails
+            
+            # Log the operation (for logs endpoint)
             try:
                 append_operation_log(
                     workspace_id=workspace_id,

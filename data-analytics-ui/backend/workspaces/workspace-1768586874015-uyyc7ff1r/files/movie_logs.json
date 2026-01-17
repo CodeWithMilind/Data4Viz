@@ -1,0 +1,10 @@
+[
+  {
+    "operation_type": "missing_values",
+    "column": "Title",
+    "column_type": "categorical",
+    "strategy": "fill_mode",
+    "affected_rows": 9,
+    "timestamp": "2026-01-17T21:23:52.846933"
+  }
+]

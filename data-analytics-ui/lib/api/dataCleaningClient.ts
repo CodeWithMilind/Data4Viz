@@ -56,6 +56,8 @@ export interface MissingValueCleanResponse {
   affected_rows: number;
   preview: boolean;
   schema: SchemaResponse | null;
+  preview_rows?: Record<string, any>[] | null;  // Only included when preview=true
+  preview_columns?: string[] | null;  // Only included when preview=true
 }
 
 export interface DatasetInfo {
@@ -524,14 +526,14 @@ export async function getDatasetSchema(
  * @param workspaceId Workspace identifier
  * @param datasetId Dataset filename
  * @param request Cleaning request with column, strategy, and preview flag
- * @returns Schema response (extracted from cleaning response)
+ * @returns Full response with schema (when preview=false) or preview data (when preview=true)
  * @throws Error if API call fails or validation fails
  */
 export async function cleanMissingValues(
   workspaceId: string,
   datasetId: string,
   request: MissingValueCleanRequest
-): Promise<SchemaResponse> {
+): Promise<MissingValueCleanResponse> {
   try {
     const response = await fetch(
       `${BASE_URL}/dataset/${encodeURIComponent(datasetId)}/clean/missing?workspace_id=${encodeURIComponent(workspaceId)}`,
@@ -550,13 +552,7 @@ export async function cleanMissingValues(
     }
 
     const data: MissingValueCleanResponse = await response.json();
-    
-    // Extract and return schema from response
-    if (!data.schema) {
-      throw new Error("Schema not returned from cleaning operation");
-    }
-    
-    return data.schema;
+    return data;
   } catch (error) {
     console.error("Error cleaning missing values:", error);
     throw error;

@@ -217,6 +217,8 @@ class MissingValueCleanResponse(BaseModel):
     affected_rows: int
     preview: bool
     schema: Optional[SchemaResponse] = None  # Only included when preview=false
+    preview_rows: Optional[List[Dict[str, Any]]] = None  # Only included when preview=true
+    preview_columns: Optional[List[str]] = None  # Only included when preview=true
 
 
 @router.post("/{dataset_id}/clean/missing", response_model=MissingValueCleanResponse)
@@ -273,9 +275,25 @@ async def clean_missing_values_endpoint(
                 detail="Failed to clean missing values"
             )
         
-        # Only recalculate schema if not in preview mode
+        # Handle preview vs apply mode
         updated_schema = None
-        if not request.preview:
+        preview_rows = None
+        preview_columns = None
+        
+        if request.preview:
+            # Preview mode: return preview data (no schema)
+            # Get first N rows for preview (max 10 rows)
+            preview_row_count = min(10, len(cleaned_df))
+            preview_rows = cleaned_df.head(preview_row_count).to_dict(orient="records")
+            preview_columns = list(cleaned_df.columns)
+            
+            logger.info(
+                f"Previewed missing value cleaning: column='{request.column}', "
+                f"strategy='{request.strategy}', affected_rows={affected_rows} "
+                f"for dataset '{dataset_id}' in workspace '{workspace_id}'"
+            )
+        else:
+            # Apply mode: recalculate schema and return it
             updated_schema = compute_schema(workspace_id, dataset_id, use_current=True)
             
             if updated_schema is None:
@@ -289,12 +307,6 @@ async def clean_missing_values_endpoint(
                 f"strategy='{request.strategy}', affected_rows={affected_rows} "
                 f"for dataset '{dataset_id}' in workspace '{workspace_id}'"
             )
-        else:
-            logger.info(
-                f"Previewed missing value cleaning: column='{request.column}', "
-                f"strategy='{request.strategy}', affected_rows={affected_rows} "
-                f"for dataset '{dataset_id}' in workspace '{workspace_id}'"
-            )
         
         return MissingValueCleanResponse(
             workspace_id=workspace_id,
@@ -303,7 +315,9 @@ async def clean_missing_values_endpoint(
             strategy=request.strategy,
             affected_rows=affected_rows,
             preview=request.preview,
-            schema=SchemaResponse(**updated_schema) if updated_schema else None
+            schema=SchemaResponse(**updated_schema) if updated_schema else None,
+            preview_rows=preview_rows,
+            preview_columns=preview_columns
         )
         
     except HTTPException:
