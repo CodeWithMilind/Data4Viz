@@ -59,3 +59,39 @@ def get_workspace_logs_dir(workspace_id: str) -> Path:
     logs_dir = get_workspace_dir(workspace_id) / "logs"
     logs_dir.mkdir(exist_ok=True)
     return logs_dir
+
+
+def get_workspace_files_dir(workspace_id: str) -> Path:
+    """
+    Get the files directory for a workspace.
+    
+    This directory contains all workspace files including:
+    - Original datasets (CSV)
+    - Overview snapshots (JSON)
+    - Logs (LOG)
+    - Other derived artifacts (JSON)
+    """
+    files_dir = get_workspace_dir(workspace_id) / "files"
+    files_dir.mkdir(exist_ok=True)
+    return files_dir
+
+
+def get_overview_file_path(workspace_id: str, dataset_id: str) -> Path:
+    """
+    Get the path to the overview JSON file for a dataset.
+    
+    Format: dataset_name_overview.json
+    Example: netflix.csv -> netflix_overview.json
+    
+    Args:
+        workspace_id: Workspace identifier
+        dataset_id: Dataset filename (e.g., "netflix.csv")
+        
+    Returns:
+        Path to overview JSON file
+    """
+    files_dir = get_workspace_files_dir(workspace_id)
+    # Remove .csv extension and add _overview.json
+    dataset_name = Path(dataset_id).stem
+    overview_filename = f"{dataset_name}_overview.json"
+    return files_dir / overview_filename

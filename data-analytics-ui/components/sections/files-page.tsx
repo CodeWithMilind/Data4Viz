@@ -47,32 +47,59 @@ interface WorkspaceFilesResponse {
 }
 
 const getFileIcon = (type: string) => {
-  switch (type) {
-    case "csv":
+  switch (type.toUpperCase()) {
+    case "CSV":
       return FileSpreadsheet
-    case "json":
+    case "JSON":
+    case "OVERVIEW":
+    case "CLEANING":
       return FileCode
-    case "png":
+    case "LOG":
+      return FileText
+    case "PNG":
+    case "JPG":
+    case "JPEG":
       return FileImage
-    case "py":
-      return FileCode
     default:
       return FileText
   }
 }
 
 const getFileColor = (type: string) => {
-  switch (type) {
-    case "csv":
+  switch (type.toUpperCase()) {
+    case "CSV":
       return "text-green-600"
-    case "json":
+    case "JSON":
       return "text-amber-600"
-    case "png":
-      return "text-purple-600"
-    case "py":
+    case "OVERVIEW":
       return "text-blue-600"
+    case "CLEANING":
+      return "text-orange-600"
+    case "LOG":
+      return "text-gray-600"
+    case "PNG":
+    case "JPG":
+    case "JPEG":
+      return "text-purple-600"
     default:
       return "text-muted-foreground"
+  }
+}
+
+const getFileTypeLabel = (type: string): string => {
+  switch (type.toUpperCase()) {
+    case "CSV":
+      return "CSV Dataset"
+    case "OVERVIEW":
+      return "Overview Snapshot"
+    case "CLEANING":
+      return "Cleaning Result"
+    case "JSON":
+      return "JSON Data"
+    case "LOG":
+      return "Log File"
+    default:
+      return type.toUpperCase()
   }
 }
 
@@ -296,7 +323,7 @@ export function FilesPage() {
                   </div>
                   <div className="col-span-3 flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="truncate">
-                      {file.name.includes("_cleaned_") ? "Data Cleaning" : "Original Dataset"}
+                      {getFileTypeLabel(file.type)}
                     </span>
                   </div>
                   <div className="col-span-2 flex items-center justify-between">
@@ -362,7 +389,10 @@ export function FilesPage() {
                   </div>
                   <h3 className="font-medium text-sm text-foreground truncate mb-1">{file.name}</h3>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{file.size}</span>
+                    <span className="px-1.5 py-0.5 rounded bg-muted text-xs">
+                      {getFileTypeLabel(file.type)}
+                    </span>
+                    <span>{formatFileSize(file.size)}</span>
                     <span>•</span>
                     <span>{file.createdAt.split(" ")[0]}</span>
                   </div>

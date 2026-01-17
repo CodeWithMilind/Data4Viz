@@ -4,16 +4,21 @@ Dataset Overview API.
 IMPORTANT:
 - Uses the SAME dataset loader as Data Cleaning
 - Workspace is the single source of truth
-- GET endpoint with QUERY PARAMS (no request body)
+- Overview results are persisted as JSON files in workspace
+- GET endpoint reads from file if exists, computes only if missing
+- POST endpoint forces recomputation and saves result
 """
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import pandas as pd
+import json
 import logging
+from pathlib import Path
 
 from app.services.dataset_loader import load_dataset, dataset_exists
+from app.config import get_overview_file_path
 
 logger = logging.getLogger(__name__)
 
@@ -75,22 +80,15 @@ def infer_column_type(df: pd.DataFrame, col: str) -> str:
 
 
 # ----------------------------
-# Endpoint
+# Helpers - Overview Computation
 # ----------------------------
 
-@router.get("", response_model=OverviewResponse)
-async def get_overview(
-    workspace_id: str = Query(...),
-    dataset_id: str = Query(...)
-):
-    if not dataset_exists(dataset_id, workspace_id):
-        raise HTTPException(
-            status_code=404,
-            detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
-        )
-
-    df = load_dataset(dataset_id, workspace_id)
-
+def compute_overview(df: pd.DataFrame) -> OverviewResponse:
+    """
+    Compute overview statistics for a dataset.
+    
+    This is the core computation logic that can be reused.
+    """
     total_rows = len(df)
     total_columns = len(df.columns)
     duplicate_row_count = min(int(df.duplicated().sum()), total_rows)
@@ -139,3 +137,135 @@ async def get_overview(
         columns=columns_meta,
         column_insights=column_insights,
     )
+
+
+def save_overview_to_file(workspace_id: str, dataset_id: str, overview: OverviewResponse) -> None:
+    """
+    Save overview result to workspace file.
+    
+    Format: dataset_name_overview.json
+    """
+    overview_path = get_overview_file_path(workspace_id, dataset_id)
+    overview_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(overview_path, "w") as f:
+        json.dump(overview.model_dump(), f, indent=2)
+    
+    logger.info(f"[save_overview_to_file] Saved overview to {overview_path}")
+
+
+def load_overview_from_file(workspace_id: str, dataset_id: str) -> Optional[OverviewResponse]:
+    """
+    Load overview from workspace file if it exists.
+    
+    Returns:
+        OverviewResponse if file exists, None otherwise
+    """
+    overview_path = get_overview_file_path(workspace_id, dataset_id)
+    
+    if not overview_path.exists():
+        return None
+    
+    try:
+        with open(overview_path, "r") as f:
+            data = json.load(f)
+        return OverviewResponse(**data)
+    except Exception as e:
+        logger.warning(f"[load_overview_from_file] Failed to load overview from {overview_path}: {e}")
+        return None
+
+
+# ----------------------------
+# Endpoints
+# ----------------------------
+
+@router.get("", response_model=OverviewResponse)
+async def get_overview(
+    workspace_id: str = Query(...),
+    dataset_id: str = Query(...),
+    refresh: bool = Query(False, description="Force recomputation")
+):
+    """
+    Get dataset overview.
+    
+    WORKSPACE-CENTRIC: Reads from saved file if exists, computes only if missing or refresh=True.
+    
+    Args:
+        workspace_id: Workspace identifier
+        dataset_id: Dataset filename
+        refresh: If True, force recomputation and save new result
+        
+    Returns:
+        Overview statistics
+    """
+    if not dataset_exists(dataset_id, workspace_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
+        )
+
+    # Try to load from file first (unless refresh requested)
+    if not refresh:
+        cached_overview = load_overview_from_file(workspace_id, dataset_id)
+        if cached_overview:
+            logger.info(f"[get_overview] Returning cached overview for {dataset_id}")
+            return cached_overview
+
+    # Compute overview (either missing or refresh requested)
+    logger.info(f"[get_overview] Computing overview for {dataset_id} (refresh={refresh})")
+    df = load_dataset(dataset_id, workspace_id)
+    overview = compute_overview(df)
+    
+    # Save to file for future use
+    save_overview_to_file(workspace_id, dataset_id, overview)
+    
+    return overview
+
+
+@router.get("/file", response_model=OverviewResponse)
+async def get_overview_from_file(
+    workspace_id: str = Query(...),
+    dataset_id: str = Query(...)
+):
+    """
+    Read overview directly from workspace file (no computation).
+    
+    This is the preferred endpoint for frontend - reads cached overview.
+    Returns 404 if file doesn't exist (frontend should then call GET /overview).
+    """
+    overview = load_overview_from_file(workspace_id, dataset_id)
+    
+    if not overview:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Overview file not found for dataset '{dataset_id}' in workspace '{workspace_id}'. Call GET /overview to compute."
+        )
+    
+    logger.info(f"[get_overview_from_file] Returning overview from file for {dataset_id}")
+    return overview
+
+
+@router.post("/refresh", response_model=OverviewResponse)
+async def refresh_overview(
+    workspace_id: str = Query(...),
+    dataset_id: str = Query(...)
+):
+    """
+    Force refresh/recompute overview and save to file.
+    
+    This endpoint is called when user explicitly requests a refresh.
+    """
+    if not dataset_exists(dataset_id, workspace_id):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
+        )
+
+    logger.info(f"[refresh_overview] Forcing recomputation for {dataset_id}")
+    df = load_dataset(dataset_id, workspace_id)
+    overview = compute_overview(df)
+    
+    # Save to file
+    save_overview_to_file(workspace_id, dataset_id, overview)
+    
+    return overview

@@ -310,24 +310,70 @@ export interface OverviewResponse {
 
 
 /**
- * Fetch dataset overview from backend
+ * Fetch dataset overview from workspace file (cached).
  * 
- * IMPORTANT: Backend is the single source of truth for all overview statistics.
- * Frontend only renders the returned data - no calculations or inferences.
+ * WORKSPACE-CENTRIC: Reads from saved JSON file in workspace.
+ * No computation - instant response if file exists.
  * 
  * @param workspaceId Workspace identifier (required)
  * @param datasetId Dataset filename (required)
+ * @returns Overview summary with all statistics
+ * @throws Error if file doesn't exist or API call fails
+ */
+export async function getDatasetOverviewFromFile(
+  workspaceId: string,
+  datasetId: string
+): Promise<OverviewResponse> {
+  const requestUrl =
+    `${BASE_URL}/api/overview/file?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
+
+  console.log(`[getDatasetOverviewFromFile] Request URL: ${requestUrl}`);
+
+  const response = await fetch(requestUrl, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      // File doesn't exist - this is expected on first load
+      throw new Error("OVERVIEW_FILE_NOT_FOUND");
+    }
+    const errorText = await response.text().catch(() => response.statusText);
+    console.error(
+      `[getDatasetOverviewFromFile] Error ${response.status}: ${errorText}`
+    );
+    throw new Error(`Failed to fetch dataset overview: ${errorText}`);
+  }
+
+  const data: OverviewResponse = await response.json();
+  console.log(
+    `[getDatasetOverviewFromFile] Success – rows=${data.total_rows}, columns=${data.total_columns}`
+  );
+
+  return data;
+}
+
+/**
+ * Compute and fetch dataset overview (forces recomputation).
+ * 
+ * WORKSPACE-CENTRIC: Computes overview and saves to workspace file.
+ * Use this only when file doesn't exist or user explicitly requests refresh.
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetId Dataset filename (required)
+ * @param refresh If true, force recomputation even if file exists
  * @returns Overview summary with all statistics
  * @throws Error if API call fails
  */
 export async function getDatasetOverview(
   workspaceId: string,
-  datasetId: string
+  datasetId: string,
+  refresh: boolean = false
 ): Promise<OverviewResponse> {
   const requestUrl =
-    `${BASE_URL}/api/overview?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
+    `${BASE_URL}/api/overview?workspace_id=${workspaceId}&dataset_id=${datasetId}&refresh=${refresh}`;
 
-  console.log(`[getDatasetOverview] Request URL: ${requestUrl}`);
+  console.log(`[getDatasetOverview] Request URL: ${requestUrl}, refresh=${refresh}`);
 
   const response = await fetch(requestUrl, {
     method: "GET",
@@ -344,6 +390,43 @@ export async function getDatasetOverview(
   const data: OverviewResponse = await response.json();
   console.log(
     `[getDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
+  );
+
+  return data;
+}
+
+/**
+ * Force refresh/recompute overview and save to workspace file.
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetId Dataset filename (required)
+ * @returns Overview summary with all statistics
+ * @throws Error if API call fails
+ */
+export async function refreshDatasetOverview(
+  workspaceId: string,
+  datasetId: string
+): Promise<OverviewResponse> {
+  const requestUrl =
+    `${BASE_URL}/api/overview/refresh?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
+
+  console.log(`[refreshDatasetOverview] Request URL: ${requestUrl}`);
+
+  const response = await fetch(requestUrl, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    console.error(
+      `[refreshDatasetOverview] Error ${response.status}: ${errorText}`
+    );
+    throw new Error(`Failed to refresh dataset overview: ${errorText}`);
+  }
+
+  const data: OverviewResponse = await response.json();
+  console.log(
+    `[refreshDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
   );
 
   return data;

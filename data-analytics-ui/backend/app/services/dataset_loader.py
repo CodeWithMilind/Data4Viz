@@ -9,7 +9,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
-from app.config import DATA_DIR, get_workspace_datasets_dir
+from app.config import DATA_DIR, get_workspace_datasets_dir, get_workspace_files_dir, get_workspace_logs_dir
 
 
 def load_dataset(dataset_id: str, workspace_id: Optional[str] = None) -> pd.DataFrame:
@@ -177,35 +177,89 @@ def list_workspace_datasets(workspace_id: str) -> list[dict]:
 
 def list_workspace_files(workspace_id: str) -> list[dict]:
     """
-    List all files in a workspace (datasets + other files).
+    List ALL files in a workspace.
     
-    This includes original datasets, cleaned datasets, and any other files
-    that may be stored in the workspace.
+    Includes:
+    - Original datasets (CSV) from datasets/ directory
+    - Overview snapshots (JSON) from files/ directory
+    - Logs (LOG) from files/ directory
+    - Other derived artifacts (JSON) from files/ directory
 
     Args:
         workspace_id: Workspace identifier
 
     Returns:
-        List of file metadata dictionaries
+        List of file metadata dictionaries with type information
     """
-    datasets_dir = get_workspace_datasets_dir(workspace_id)
     files = []
+    
+    # List datasets (CSV files)
+    datasets_dir = get_workspace_datasets_dir(workspace_id)
+    if datasets_dir.exists():
+        for file_path in datasets_dir.iterdir():
+            if file_path.is_file() and file_path.suffix.lower() == ".csv":
+                try:
+                    stat = file_path.stat()
+                    files.append({
+                        "id": file_path.name,
+                        "name": file_path.name,
+                        "size": stat.st_size,
+                        "type": "CSV",
+                        "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                        "updated_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    })
+                except Exception:
+                    continue
+    
+    # List files (JSON, LOG, etc.)
+    files_dir = get_workspace_files_dir(workspace_id)
+    if files_dir.exists():
+        for file_path in files_dir.iterdir():
+            if file_path.is_file():
+                try:
+                    stat = file_path.stat()
+                    suffix = file_path.suffix.lower()
+                    
+                    # Determine file type
+                    if suffix == ".json":
+                        if "_overview.json" in file_path.name:
+                            file_type = "OVERVIEW"
+                        elif "_cleaning.json" in file_path.name:
+                            file_type = "CLEANING"
+                        else:
+                            file_type = "JSON"
+                    elif suffix == ".log":
+                        file_type = "LOG"
+                    else:
+                        file_type = suffix[1:].upper() if suffix else "UNKNOWN"
+                    
+                    files.append({
+                        "id": file_path.name,
+                        "name": file_path.name,
+                        "size": stat.st_size,
+                        "type": file_type,
+                        "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                        "updated_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    })
+                except Exception:
+                    continue
+    
+    # List logs (if separate)
+    logs_dir = get_workspace_logs_dir(workspace_id)
+    if logs_dir.exists():
+        for file_path in logs_dir.iterdir():
+            if file_path.is_file():
+                try:
+                    stat = file_path.stat()
+                    files.append({
+                        "id": file_path.name,
+                        "name": file_path.name,
+                        "size": stat.st_size,
+                        "type": "LOG",
+                        "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                        "updated_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    })
+                except Exception:
+                    continue
 
-    if not datasets_dir.exists():
-        return files
-
-    for file_path in datasets_dir.iterdir():
-        if file_path.is_file():
-            try:
-                stat = file_path.stat()
-                files.append({
-                    "id": file_path.name,
-                    "name": file_path.name,
-                    "size": stat.st_size,
-                    "type": file_path.suffix[1:] if file_path.suffix else "unknown",
-                    "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
-                })
-            except Exception:
-                continue
-
-    return sorted(files, key=lambda x: x["created_at"], reverse=True)
+    return sorted(files, key=lambda x: x["updated_at"], reverse=True)

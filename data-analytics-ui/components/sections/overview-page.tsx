@@ -36,7 +36,7 @@ import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { getDatasetOverview, type OverviewResponse } from "@/lib/api/dataCleaningClient"
+import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, type OverviewResponse } from "@/lib/api/dataCleaningClient"
 import type { WorkspaceDataset } from "@/types/workspace"
 
 /**
@@ -106,10 +106,30 @@ export function OverviewPage() {
   const [showMissing, setShowMissing] = useState(true)
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
 
-  // Backend overview data state
+  // Backend overview data state (read-only snapshot from workspace file)
   const [overviewData, setOverviewData] = useState<OverviewResponse | null>(null)
   const [isLoadingOverview, setIsLoadingOverview] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [overviewError, setOverviewError] = useState<string | null>(null)
+
+  // Handle manual refresh (user-initiated)
+  const handleRefreshOverview = async () => {
+    if (!activeWorkspaceId || !selectedDataset?.fileName) return
+
+    setIsRefreshing(true)
+    setOverviewError(null)
+
+    try {
+      const data = await refreshDatasetOverview(activeWorkspaceId, selectedDataset.fileName)
+      setOverviewData(data)
+      setOverviewError(null)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to refresh overview"
+      setOverviewError(errorMessage)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   // Get dataset from workspace
   const selectedDataset = useMemo(() => {
@@ -475,11 +495,27 @@ export function OverviewPage() {
                     <CardTitle className="text-base">
                       Dataset Preview{" "}
                       {useRange
-                        ? `(Rows ${rowRange.start + 1}-${rowRange.end} of ${selectedDataset.rowCount.toLocaleString()})`
-                        : `(First ${rowRange.count} of ${selectedDataset.rowCount.toLocaleString()} Rows)`}
+                        ? `(Rows ${rowRange.start + 1}-${rowRange.end} of ${overviewData?.total_rows.toLocaleString() || selectedDataset.rowCount.toLocaleString()})`
+                        : `(First ${rowRange.count} of ${overviewData?.total_rows.toLocaleString() || selectedDataset.rowCount.toLocaleString()} Rows)`}
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={handleRefreshOverview}
+                      disabled={isRefreshing || !selectedDataset}
+                    >
+                      {isRefreshing ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          Refreshing...
+                        </>
+                      ) : (
+                        "Refresh Overview"
+                      )}
+                    </Button>
                     <Button
                       variant={useRange ? "default" : "outline"}
                       size="sm"
