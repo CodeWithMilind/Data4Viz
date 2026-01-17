@@ -34,9 +34,14 @@ function getFilePath(workspaceId: string, filename: string): string {
 }
 
 async function ensureWorkspaceDir(workspaceId: string): Promise<void> {
-  const dir = getWorkspaceDir(workspaceId)
-  if (!existsSync(dir)) {
-    await fs.mkdir(dir, { recursive: true })
+  try {
+    const dir = getWorkspaceDir(workspaceId)
+    if (!existsSync(dir)) {
+      await fs.mkdir(dir, { recursive: true })
+    }
+  } catch (error) {
+    console.error(`Failed to ensure workspace directory for ${workspaceId}:`, error)
+    throw error
   }
 }
 
@@ -59,18 +64,20 @@ export async function writeWorkspaceFile<T>(
   data: T,
   skipIndexUpdate: boolean = false,
 ): Promise<void> {
+  await ensureWorkspaceDir(workspaceId)
+  const filePath = getFilePath(workspaceId, filename)
   try {
-    await ensureWorkspaceDir(workspaceId)
-    const filePath = getFilePath(workspaceId, filename)
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8")
-    if (!skipIndexUpdate && filename !== "files_index.json") {
-      updateFilesIndex(workspaceId, filename).catch((e) => {
-        console.error("Failed to update files index:", e)
-      })
-    }
-  } catch (error) {
-    console.error(`Failed to write workspace file ${filename}:`, error)
+  } catch (error: any) {
+    console.error(`Failed to write workspace file ${filename}:`, error?.message || error)
+    console.error(`File path: ${filePath}`)
+    console.error(`Workspace ID: ${workspaceId}`)
     throw error
+  }
+  if (!skipIndexUpdate && filename !== "files_index.json") {
+    updateFilesIndex(workspaceId, filename).catch((e) => {
+      console.error("Failed to update files index:", e)
+    })
   }
 }
 
@@ -161,14 +168,18 @@ export async function appendChatMessage(
   workspaceId: string,
   message: ChatMessage,
 ): Promise<void> {
-  try {
-    const history = await getChatHistory(workspaceId)
-    history.messages.push(message)
-    await writeWorkspaceFile(workspaceId, "ai_chat.json", history, false)
-  } catch (error) {
-    console.error("Failed to append chat message:", error)
-    throw error
-  }
+  const history = await getChatHistory(workspaceId)
+  history.messages.push(message)
+  await writeWorkspaceFile(workspaceId, "ai_chat.json", history, false)
+}
+
+export async function appendChatMessages(
+  workspaceId: string,
+  messages: ChatMessage[],
+): Promise<void> {
+  const history = await getChatHistory(workspaceId)
+  history.messages.push(...messages)
+  await writeWorkspaceFile(workspaceId, "ai_chat.json", history, false)
 }
 
 export async function getRelevantFiles(

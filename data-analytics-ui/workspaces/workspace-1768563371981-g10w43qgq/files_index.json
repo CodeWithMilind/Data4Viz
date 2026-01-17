@@ -1,0 +1,12 @@
+[
+  {
+    "file": "ai_chat.json",
+    "type": "conversation",
+    "summary": "Chat history with user"
+  },
+  {
+    "file": "files_index.json",
+    "type": "data",
+    "summary": "Index of workspace files"
+  }
+]

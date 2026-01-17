@@ -109,6 +109,8 @@ const getFileTypeLabel = (type: string): string => {
       return "Cleaning Result"
     case "JSON":
       return "JSON Data"
+    case "CONVERSATION":
+      return "AI Chat History"
     case "LOG":
       return "Log File"
     default:
@@ -170,14 +172,25 @@ export function FilesPage() {
     setError(null)
 
     try {
-      const response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files`)
-      if (!response.ok) {
-        throw new Error(`Failed to fetch workspace files: ${response.statusText}`)
+      const [backendResponse, localResponse] = await Promise.all([
+        fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files`).catch(() => null),
+        fetch(`/api/workspaces/${activeWorkspaceId}/files`).catch(() => null),
+      ])
+
+      const allFiles: WorkspaceFile[] = []
+
+      if (backendResponse?.ok) {
+        const backendData: WorkspaceFilesResponse = await backendResponse.json()
+        allFiles.push(...backendData.files)
       }
-      const data: WorkspaceFilesResponse = await response.json()
-      
+
+      if (localResponse?.ok) {
+        const localData: { files: WorkspaceFile[] } = await localResponse.json()
+        allFiles.push(...localData.files)
+      }
+
       const fileMap = new Map<string, WorkspaceFile>()
-      for (const file of data.files) {
+      for (const file of allFiles) {
         const existing = fileMap.get(file.name)
         if (!existing || (file.updated_at && existing.updated_at && file.updated_at > existing.updated_at)) {
           fileMap.set(file.name, file)
@@ -244,17 +257,23 @@ export function FilesPage() {
   const handleDownload = async (file: WorkspaceFile, e?: React.MouseEvent) => {
     e?.stopPropagation()
     
-    if (!activeWorkspaceId || !file.id) {
+    if (!activeWorkspaceId) {
       toast({
         title: "Error",
-        description: "Cannot download file: missing workspace or file ID",
+        description: "Cannot download file: missing workspace",
         variant: "destructive",
       })
       return
     }
 
     try {
-      const response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files/${file.id}/download`)
+      let response: Response
+
+      if (file.id?.startsWith("local-")) {
+        response = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${file.name}`)
+      } else {
+        response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files/${file.id}/download`)
+      }
       
       if (!response.ok) {
         if (response.status === 404) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
 import {
   getChatHistory,
-  appendChatMessage,
+  appendChatMessages,
   getFilesIndex,
   getRelevantFiles,
   type ChatMessage,
@@ -158,24 +158,25 @@ export async function POST(req: NextRequest) {
     }
 
     const userMsg: ChatMessage = {
-      id: Date.now().toString(),
+      id: `${Date.now()}`,
       role: "user",
       content: userMessage,
       timestamp: Date.now(),
     }
 
     const assistantMsg: ChatMessage = {
-      id: (Date.now() + 1).toString(),
+      id: `${Date.now() + 1}`,
       role: "assistant",
       content: out.content ?? "",
-      timestamp: Date.now(),
+      timestamp: Date.now() + 1,
     }
 
     try {
-      await appendChatMessage(workspaceId, userMsg)
-      await appendChatMessage(workspaceId, assistantMsg)
-    } catch (e) {
-      console.error("Failed to save chat messages:", e)
+      await appendChatMessages(workspaceId, [userMsg, assistantMsg])
+    } catch (e: any) {
+      console.error("Failed to save chat messages to file:", e?.message || e)
+      console.error("WorkspaceId:", workspaceId)
+      console.error("Error details:", e)
     }
 
     return NextResponse.json({ content: out.content ?? "" })
