@@ -4,7 +4,6 @@ import { ChatArea } from "@/components/chat-area"
 import { DatasetPage } from "@/components/sections/dataset-page"
 import { OverviewPage } from "@/components/sections/overview-page"
 import { DataCleaningPage } from "@/components/sections/data-cleaning-page"
-import { FeatureEngineeringPage } from "@/components/sections/feature-engineering-page"
 import { OutlierHandlingPage } from "@/components/sections/outlier-handling-page"
 import { DataVisualizationPage } from "@/components/sections/data-visualization-page"
 import { InsightsPage } from "@/components/sections/insights-page"
@@ -30,8 +29,6 @@ export function MainContent({ activeNav }: MainContentProps) {
         return <OverviewPage />
       case "cleaning":
         return <DataCleaningPage />
-      case "feature":
-        return <FeatureEngineeringPage />
       case "outlier":
         return <OutlierHandlingPage />
       case "visualization":

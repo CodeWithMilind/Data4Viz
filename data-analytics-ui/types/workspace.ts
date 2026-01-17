@@ -5,7 +5,7 @@
  * - Dataset reference and metadata
  * - Analysis state (progress flags)
  * - User notes
- * - Applied steps (cleaning, features)
+ * - Applied steps (cleaning)
  * 
  * All workspace data is stored locally (IndexedDB/localStorage)
  * and can be exported/imported as .d4v files.
@@ -30,7 +30,6 @@ export interface WorkspaceState {
   datasetAttached: boolean
   overviewReady: boolean
   cleaningStarted: boolean
-  featuresCreated: boolean
 }
 
 /**
@@ -64,7 +63,6 @@ export interface Workspace {
   notes: string
   steps: {
     cleaningSteps: Step[]
-    featureSteps: Step[]
   }
   version: "1.0"
 }

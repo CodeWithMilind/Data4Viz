@@ -41,10 +41,8 @@ interface WorkspaceContextType {
   // Workspace state updates
   setOverviewReady: (ready: boolean) => Promise<void>
   setCleaningStarted: (started: boolean) => Promise<void>
-  setFeaturesCreated: (created: boolean) => Promise<void>
   updateNotes: (notes: string) => Promise<void>
   addCleaningStep: (step: { type: string; name: string; description?: string; config?: Record<string, any> }) => Promise<void>
-  addFeatureStep: (step: { type: string; name: string; description?: string; config?: Record<string, any> }) => Promise<void>
 
   // Export/Import
   exportCurrentWorkspace: () => Promise<void>
@@ -350,25 +348,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     [currentWorkspace, listWorkspaces]
   )
 
-  const setFeaturesCreated = useCallback(
-    async (created: boolean) => {
-      if (!currentWorkspace) return
-
-      const updatedWorkspace: Workspace = {
-        ...currentWorkspace,
-        state: {
-          ...currentWorkspace.state,
-          featuresCreated: created,
-        },
-      }
-
-      setCurrentWorkspace(updatedWorkspace)
-      await workspaceStore.saveWorkspace(updatedWorkspace)
-      await listWorkspaces()
-    },
-    [currentWorkspace, listWorkspaces]
-  )
-
   // Update notes
   const updateNotes = useCallback(
     async (notes: string) => {
@@ -402,31 +381,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         steps: {
           ...currentWorkspace.steps,
           cleaningSteps: [...currentWorkspace.steps.cleaningSteps, newStep],
-        },
-      }
-
-      setCurrentWorkspace(updatedWorkspace)
-      await workspaceStore.saveWorkspace(updatedWorkspace)
-      await listWorkspaces()
-    },
-    [currentWorkspace, listWorkspaces]
-  )
-
-  const addFeatureStep = useCallback(
-    async (step: { type: string; name: string; description?: string; config?: Record<string, any> }) => {
-      if (!currentWorkspace) return
-
-      const newStep = {
-        id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        ...step,
-        appliedAt: Date.now(),
-      }
-
-      const updatedWorkspace: Workspace = {
-        ...currentWorkspace,
-        steps: {
-          ...currentWorkspace.steps,
-          featureSteps: [...currentWorkspace.steps.featureSteps, newStep],
         },
       }
 
@@ -549,10 +503,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         getDataset,
         setOverviewReady,
         setCleaningStarted,
-        setFeaturesCreated,
         updateNotes,
         addCleaningStep,
-        addFeatureStep,
         exportCurrentWorkspace,
         importWorkspaceFromFile,
       }}

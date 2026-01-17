@@ -84,12 +84,10 @@ class WorkspaceStore {
         datasetAttached: false,
         overviewReady: false,
         cleaningStarted: false,
-        featuresCreated: false,
       },
       notes: "",
       steps: {
         cleaningSteps: [],
-        featureSteps: [],
       },
       version: "1.0",
     }

@@ -18,7 +18,7 @@ interface LogEntry {
   column: string
   detail: string
   status: "Applied" | "Previewed" | "Failed" | "Reverted"
-  category: "cleaning" | "feature" | "outlier" | "visualization" | "ai"
+  category: "cleaning" | "outlier" | "visualization" | "ai"
 }
 
 const initialLogs: LogEntry[] = [
@@ -64,16 +64,6 @@ const initialLogs: LogEntry[] = [
   },
   {
     id: 5,
-    timestamp: "10:25 AM",
-    date: "Jan 16, 2026",
-    action: "Feature Creation",
-    column: "Age_Group",
-    detail: "Created binned age categories (Young, Middle, Senior)",
-    status: "Applied",
-    category: "feature",
-  },
-  {
-    id: 6,
     timestamp: "10:20 AM",
     date: "Jan 16, 2026",
     action: "AI Analysis",
@@ -126,7 +116,6 @@ const initialLogs: LogEntry[] = [
 
 const categoryLabels: Record<string, string> = {
   cleaning: "Data Cleaning",
-  feature: "Feature Engineering",
   outlier: "Outlier Handling",
   visualization: "Visualization",
   ai: "AI Agent",
@@ -134,7 +123,6 @@ const categoryLabels: Record<string, string> = {
 
 const categoryColors: Record<string, string> = {
   cleaning: "bg-blue-500/10 text-blue-600",
-  feature: "bg-purple-500/10 text-purple-600",
   outlier: "bg-orange-500/10 text-orange-600",
   visualization: "bg-green-500/10 text-green-600",
   ai: "bg-primary/10 text-primary",
@@ -301,7 +289,6 @@ export function LogsPage() {
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="cleaning">Data Cleaning</SelectItem>
-              <SelectItem value="feature">Feature Engineering</SelectItem>
               <SelectItem value="outlier">Outlier Handling</SelectItem>
               <SelectItem value="visualization">Visualization</SelectItem>
               <SelectItem value="ai">AI Agent</SelectItem>

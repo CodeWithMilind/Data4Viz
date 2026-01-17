@@ -50,17 +50,8 @@ export function computeWorkspaceStatus(workspace: Workspace | null): WorkspaceSt
     }
   }
 
-  // Cleaning started but features not created
-  if (state.cleaningStarted && !state.featuresCreated) {
-    return {
-      statusLabel: "Feature Engineering Available",
-      statusColor: "green",
-      recommendedNextAction: "Create features to enhance your dataset",
-    }
-  }
-
-  // All steps completed
-  if (state.featuresCreated) {
+  // Cleaning started – analysis complete
+  if (state.cleaningStarted) {
     return {
       statusLabel: "Analysis Complete",
       statusColor: "green",

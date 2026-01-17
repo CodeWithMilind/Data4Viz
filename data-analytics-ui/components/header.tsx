@@ -17,7 +17,6 @@ const navLabels: Record<string, string> = {
   overview: "Overview",
   cleaning: "Data Cleaning",
   outlier: "Outlier Handling",
-  feature: "Feature Engineering",
   agent: "AI Agent",
   notebook: "Jupyter Notebook",
   files: "Files",
