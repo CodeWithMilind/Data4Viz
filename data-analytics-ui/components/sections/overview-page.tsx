@@ -91,6 +91,9 @@ export function OverviewPage() {
   const [previewExpanded, setPreviewExpanded] = useState(true)
   const [rowsShown, setRowsShown] = useState("20")
   const [customRowCount, setCustomRowCount] = useState("")
+  const [useRange, setUseRange] = useState(false)
+  const [fromRow, setFromRow] = useState("1")
+  const [toRow, setToRow] = useState("20")
   const [structureExpanded, setStructureExpanded] = useState(false)
   const [insightsExpanded, setInsightsExpanded] = useState(false)
   const [selectedColumn, setSelectedColumn] = useState("")
@@ -197,7 +200,7 @@ export function OverviewPage() {
   }, [overviewData, selectedColumn, actualValueCountLimit])
 
 
-  // Calculate preview row count (cap at 200)
+  // Calculate preview row count (cap at 200) - used when not in range mode
   const previewRowCount = useMemo(() => {
     if (rowsShown === "custom") {
       const custom = Number.parseInt(customRowCount) || 0
@@ -206,13 +209,31 @@ export function OverviewPage() {
     return Math.min(Number.parseInt(rowsShown) || 20, 200)
   }, [rowsShown, customRowCount])
 
+  // Calculate row range for preview
+  const rowRange = useMemo(() => {
+    if (!selectedDataset) return { start: 0, end: 0, count: 0 }
+    
+    const totalRows = selectedDataset.rowCount || selectedDataset.data?.length || 0
+    
+    if (useRange) {
+      const from = Math.max(1, Number.parseInt(fromRow) || 1)
+      const to = Math.min(totalRows, Number.parseInt(toRow) || totalRows)
+      const start = Math.min(from, to) - 1 // Convert to 0-based index
+      const end = Math.max(from, to)
+      const count = end - start
+      return { start, end, count: Math.min(count, 200) } // Cap at 200 rows
+    } else {
+      return { start: 0, end: previewRowCount, count: previewRowCount }
+    }
+  }, [useRange, fromRow, toRow, previewRowCount, selectedDataset])
+
   // Get preview rows from dataset (read-only, capped at 200)
   const previewRows = useMemo(() => {
     if (!selectedDataset || !selectedDataset.data || selectedDataset.data.length === 0) {
       return []
     }
-    return selectedDataset.data.slice(0, previewRowCount)
-  }, [selectedDataset, previewRowCount])
+    return selectedDataset.data.slice(rowRange.start, rowRange.end)
+  }, [selectedDataset, rowRange])
 
   // Handle loading state for large datasets (performance safety)
   useEffect(() => {
@@ -226,7 +247,7 @@ export function OverviewPage() {
     } else {
       setIsLoadingPreview(false)
     }
-  }, [selectedDataset, previewRowCount])
+  }, [selectedDataset, rowRange])
 
   // Get headers from backend overview data (or fallback to dataset)
   const datasetHeaders = useMemo(() => {
@@ -452,32 +473,80 @@ export function OverviewPage() {
                       </Button>
                     </CollapsibleTrigger>
                     <CardTitle className="text-base">
-                      Dataset Preview (First {previewRowCount} of {selectedDataset.rowCount.toLocaleString()} Rows)
+                      Dataset Preview{" "}
+                      {useRange
+                        ? `(Rows ${rowRange.start + 1}-${rowRange.end} of ${selectedDataset.rowCount.toLocaleString()})`
+                        : `(First ${rowRange.count} of ${selectedDataset.rowCount.toLocaleString()} Rows)`}
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Rows shown:</span>
-                    <Select value={rowsShown} onValueChange={handleRowCountChange}>
-                      <SelectTrigger className="w-24 h-8 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="40">40</SelectItem>
-                        <SelectItem value="custom">Custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {rowsShown === "custom" && (
-                      <Input
-                        type="number"
-                        min="1"
-                        max="200"
-                        value={customRowCount}
-                        onChange={(e) => handleCustomRowCountChange(e.target.value)}
-                        placeholder="1-200"
-                        className="w-20 h-8 text-sm"
-                      />
+                    <Button
+                      variant={useRange ? "default" : "outline"}
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={() => setUseRange(!useRange)}
+                    >
+                      {useRange ? "Range" : "First N"}
+                    </Button>
+                    {useRange ? (
+                      <>
+                        <span className="text-sm text-muted-foreground">From:</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          max={selectedDataset.rowCount}
+                          value={fromRow}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            if (val === "" || (!isNaN(Number(val)) && Number(val) >= 1 && Number(val) <= selectedDataset.rowCount)) {
+                              setFromRow(val)
+                            }
+                          }}
+                          placeholder="1"
+                          className="w-20 h-8 text-sm"
+                        />
+                        <span className="text-sm text-muted-foreground">To:</span>
+                        <Input
+                          type="number"
+                          min="1"
+                          max={selectedDataset.rowCount}
+                          value={toRow}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            if (val === "" || (!isNaN(Number(val)) && Number(val) >= 1 && Number(val) <= selectedDataset.rowCount)) {
+                              setToRow(val)
+                            }
+                          }}
+                          placeholder={selectedDataset.rowCount.toString()}
+                          className="w-20 h-8 text-sm"
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm text-muted-foreground">Rows shown:</span>
+                        <Select value={rowsShown} onValueChange={handleRowCountChange}>
+                          <SelectTrigger className="w-24 h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="40">40</SelectItem>
+                            <SelectItem value="custom">Custom</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {rowsShown === "custom" && (
+                          <Input
+                            type="number"
+                            min="1"
+                            max="200"
+                            value={customRowCount}
+                            onChange={(e) => handleCustomRowCountChange(e.target.value)}
+                            placeholder="1-200"
+                            className="w-20 h-8 text-sm"
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -522,7 +591,7 @@ export function OverviewPage() {
                                 <tr key={idx} className="border-t border-border hover:bg-muted/30 transition-colors">
                                   {/* Row number cell - sticky on left during horizontal scroll */}
                                   <td className="px-3 py-2 text-muted-foreground border-r border-border bg-background sticky left-0 z-10 min-w-[60px]">
-                                    {idx + 1}
+                                    {rowRange.start + idx + 1}
                                   </td>
                                   {/* Data cells - scroll horizontally */}
                                   {datasetHeaders.map((header) => (
