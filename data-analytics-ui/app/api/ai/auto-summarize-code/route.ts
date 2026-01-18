@@ -85,12 +85,13 @@ function inferColumnType(sampleValues: any[]): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { workspaceId, datasetId, provider, model, apiKey: bodyKey } = body as {
+    const { workspaceId, datasetId, provider, model, apiKey: bodyKey, dataExposurePercentage } = body as {
       workspaceId?: string
       datasetId?: string
       provider?: string
       model?: string
       apiKey?: string
+      dataExposurePercentage?: number
     }
 
     // Validation
@@ -182,14 +183,89 @@ export async function POST(req: NextRequest) {
       sample_rows: sampleRows, // Up to 10 sample rows (max 10 per requirements)
     }, null, 2)
 
-    // Build AI prompt (V2 - STRICT format from requirements)
-    const systemPrompt = `You are a senior data scientist.
+    // Get data exposure percentage (default: 100% for code generation)
+    const exposurePercent = dataExposurePercentage !== undefined && dataExposurePercentage !== null
+      ? Math.max(1, Math.min(100, Math.floor(dataExposurePercentage)))
+      : 100
+
+    // Build AI prompt (V4 - STRICT rules: must load from file, never recreate)
+    const systemPrompt = `You are an AI agent that generates Python code inside Data4Viz.
+
+The dataset is persisted by the system and must be accessed via file loading.
+You are NOT allowed to recreate, mock, or inline dataset values.
+
+--------------------------------------------------
+ABSOLUTE DATA ACCESS RULES (HARD ENFORCEMENT)
+--------------------------------------------------
+
+1. You MUST load the dataset using pandas file I/O.
+   ✅ Allowed:
+      - pd.read_csv(<dataset_path>)
+      - pd.read_parquet(<dataset_path>)
+      - pd.read_excel(<dataset_path>)
+
+2. You MUST NOT define datasets manually.
+   ❌ Forbidden patterns:
+      - pd.DataFrame({...})
+      - lists of dictionaries
+      - arrays of values
+      - hardcoded rows or columns
+      - "sample data" or "example data"
+
+3. You MUST assume the system provides:
+   - dataset_path (string)
+   - data_exposure_percentage (integer)
+
 Return ONLY valid Python code.
 Do NOT include explanations.
 Do NOT include markdown.
 Do NOT wrap output in code fences.`
 
+    // Determine dataset path (use datasetId as filename)
+    // The actual path will be resolved at runtime, but we provide a variable name
+    const datasetPathVar = datasetId.endsWith('.csv') ? datasetId : `${datasetId}.csv`
+
     const userPrompt = `Generate a SAFE, GENERIC, and INSIGHT-ORIENTED Python script for exploratory data analysis.
+
+--------------------------------------------------
+SYSTEM VARIABLES (INJECTED BY BACKEND)
+--------------------------------------------------
+
+# These variables are provided by the system - use them directly:
+dataset_path = "${datasetPathVar}"
+data_exposure_percentage = ${exposurePercent}
+
+# Your code MUST start with:
+# import pandas as pd
+# df = pd.read_csv(dataset_path)
+
+--------------------------------------------------
+DATA EXPOSURE POLICY
+--------------------------------------------------
+
+- data_exposure_percentage controls HOW MUCH DATA IS AVAILABLE,
+  not HOW DATA IS LOADED.
+
+Rules:
+- Always load the dataset from dataset_path.
+- If data_exposure_percentage < 100:
+  → Assume the file is already pre-filtered by the backend.
+- NEVER apply your own sampling or slicing unless explicitly asked.
+
+--------------------------------------------------
+PYTHON CODE GENERATION RULES
+--------------------------------------------------
+
+✔ Generate executable Python code only  
+✔ Start by loading data via pandas I/O  
+✔ Operate on the loaded DataFrame  
+✔ Perform analysis, EDA, or visualization as requested  
+
+❌ Do NOT:
+- Recreate the dataset
+- Guess values
+- Inline arrays
+- Explain in natural language
 
 MANDATORY RULES:
 - DO NOT assume or invent column names
@@ -208,8 +284,10 @@ SCRIPT STRUCTURE:
    - matplotlib
    - seaborn (optional)
 
-2. Load dataset:
-   - Use pandas to load 'dataset.csv'
+2. Load dataset (REQUIRED):
+   - Use: df = pd.read_csv(dataset_path)
+   - The dataset_path variable is provided by the system
+   - DO NOT define or recreate the dataset manually
 
 3. Initial inspection:
    - df.head()
@@ -245,10 +323,11 @@ SCRIPT STRUCTURE:
 8. AutoViz preparation (COMMENT ONLY):
    - Add commented code showing how AutoViz *could* be run
    - Do NOT import or execute AutoViz
+   - Use dataset_path variable (not hardcoded paths)
    - Example:
      # from autoviz.AutoViz_Class import AutoViz_Class
      # AV = AutoViz_Class()
-     # AV.AutoViz('dataset.csv')
+     # AV.AutoViz(dataset_path)
 
 STRICTLY FORBIDDEN:
 - Hardcoded column names
@@ -256,8 +335,29 @@ STRICTLY FORBIDDEN:
 - LabelEncoder
 - Assumed business meaning
 - File writes or execution
+- Creating sample data
+- Mock data structures
+- pd.DataFrame({...}) or manual dataset creation
+- Lists of dictionaries as data
 
-Dataset context:
+--------------------------------------------------
+OUTPUT FORMAT
+--------------------------------------------------
+
+- Output ONLY Python code
+- No explanations before or after
+- No natural language outside code blocks
+
+--------------------------------------------------
+FAILURE CONDITION
+--------------------------------------------------
+
+If you attempt to define the dataset manually instead of using read_csv,
+the response is invalid and must be regenerated.
+
+You are generating code for a controlled, production-style environment.
+
+Dataset context (for reference only - use dataset_path to load):
 ${datasetContextJson}`
 
     const messages = [

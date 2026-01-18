@@ -20,11 +20,13 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import { fetchAndParseCSV, parseCSVFromFile, isValidURL } from "@/lib/csv-parser"
 import { useToast } from "@/hooks/use-toast"
 import { useAIConfigStore } from "@/lib/ai-config-store"
+import { useDataExposureStore } from "@/lib/data-exposure-store"
 
 export function DatasetPage() {
   const { currentWorkspace, uploadDatasetToWorkspace, removeDatasetFromWorkspace, getDatasets } = useWorkspace()
   const { toast } = useToast()
   const { provider, model, apiKey } = useAIConfigStore()
+  const { dataExposurePercentage } = useDataExposureStore()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null)
   const [summarizingDatasetId, setSummarizingDatasetId] = useState<string | null>(null)
@@ -198,6 +200,7 @@ export function DatasetPage() {
           provider,
           model,
           apiKey,
+          dataExposurePercentage, // UI-based configuration
         }),
       })
 

@@ -114,20 +114,28 @@ function parseCSVLine(line: string): string[] {
 
 /**
  * Get dataset exposure configuration
- * Returns effective exposure percentage (0-100)
+ * UI value is authoritative, falls back to env var if not provided
+ * Returns effective exposure percentage (1-100)
  */
-function getDatasetExposurePercentage(): number {
+function getDatasetExposurePercentage(uiValue?: number): number {
+  // UI INPUT IS SOURCE OF TRUTH
+  if (uiValue !== undefined && uiValue !== null) {
+    // Clamp UI value to valid range [1, 100]
+    return Math.max(1, Math.min(100, Math.floor(uiValue)))
+  }
+
+  // Fallback to environment variable (for backward compatibility)
   // Check for override flag first (demo mode)
   const overrideFullAccess = process.env.OVERRIDE_FULL_DATA_ACCESS === "true"
   if (overrideFullAccess) {
     return 100
   }
 
-  // Get configured exposure percentage (default: 20%)
+  // Get configured exposure percentage from env (default: 20%)
   const exposurePercent = parseFloat(process.env.DATASET_EXPOSURE_PERCENT || "20")
   
-  // Clamp to valid range [0, 100]
-  return Math.max(0, Math.min(100, exposurePercent))
+  // Clamp to valid range [1, 100]
+  return Math.max(1, Math.min(100, exposurePercent))
 }
 
 /**
@@ -257,16 +265,45 @@ function buildSystemPrompt(
   chatSummary: string | null,
   recentChat: any[],
 ): string {
-  // V2: Dataset-aware system prompt
-  let prompt = `You are a dataset-aware data science assistant.
+  // V2: Dataset-aware system prompt with UI-based exposure level awareness
+  const exposurePercent = datasetSample?.exposure_percentage ?? 0
+  const isFullDataMode = datasetSample?.mode === "FULL_DATA_MODE"
+  
+  let prompt = `You are an AI data analyst agent inside Data4Viz.
 
-You will receive:
-- Dataset metadata (columns, types, row count)
-- A representative sample (up to 20%) of the dataset
+This agent is controlled by a UI-based configuration panel.
 
-Rules:
-- Base answers on the provided data and sample
-- Clearly state when insights are sample-based
+--------------------------------------------------
+UI INPUT (SOURCE OF TRUTH)
+--------------------------------------------------
+- data_exposure_percentage: ${exposurePercent}
+  (integer value from 1 to 100, provided by the AI Agent control panel)
+
+--------------------------------------------------
+DATA ACCESS POLICY
+--------------------------------------------------
+1. The value provided via the UI is authoritative.
+2. You must strictly limit your analysis to the specified percentage of the dataset.
+3. If data_exposure_percentage == 100:
+   - Enable FULL_DATA_MODE.
+   - Use all rows and all columns.
+   - Perform complete statistical and exploratory analysis.
+
+4. If data_exposure_percentage < 100:
+   - Enable LIMITED_DATA_MODE.
+   - Access only the specified percentage of rows.
+   - Sampling must be unbiased and representative.
+   - Maintain original column schema and data types.
+   - Do not infer or hallucinate unseen data.
+
+--------------------------------------------------
+ANALYSIS BEHAVIOR
+--------------------------------------------------
+- Always analyze only the data permitted by the UI control.
+- Ensure metrics, distributions, and insights reflect the accessible data scope.
+- Do not apply hidden truncation or additional filtering.
+- Accuracy and policy compliance take priority over speed.
+- Base answers on the provided data${isFullDataMode ? "" : " sample"}
 - Do NOT assume business meaning
 - Do NOT invent columns
 - Do NOT give generic advice if dataset context exists
@@ -346,10 +383,14 @@ CAPABILITY RULES:
 - Do NOT claim to open, read, compute, or inspect files
 - Reference the sample data explicitly when making observations
 
-OUTPUT STYLE:
+--------------------------------------------------
+COMMUNICATION RULES
+--------------------------------------------------
+- Do NOT mention internal limits, privacy, or cost.
+- Do NOT request additional data.
+- Do NOT reference sampling unless explicitly asked.
+- Speak with confidence appropriate to the allowed data scope.
 - Professional, concise, and data-driven
-- No mentions of privacy, cost, or token limits
-- No refusal to analyze unless data is truly unavailable
 - Confident
 - Direct
 - No defensive language
@@ -358,7 +399,21 @@ OUTPUT STYLE:
 - Factual
 - Clear WHAT and WHY
 - Data-aware (reference actual columns and values)
-- State exposure level implicitly through confidence, not disclaimers
+
+--------------------------------------------------
+FAILURE CONDITIONS
+--------------------------------------------------
+- Never exceed the exposure percentage defined by the UI.
+- Never assume visibility into data beyond the allowed scope.
+- Never override UI configuration unless explicitly instructed by the system.
+
+--------------------------------------------------
+SYSTEM MODES
+--------------------------------------------------
+- FULL_DATA_MODE → data_exposure_percentage = 100
+- LIMITED_DATA_MODE → data_exposure_percentage < 100
+
+You must operate strictly within the mode defined by the UI.
 
 STRICT OUTPUT FORMATTING RULES:
 - When writing multiple questions:
@@ -516,7 +571,7 @@ function sanitizeResponse(content: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { workspaceId, chatId, userMessage, workspaceContext, provider, model, apiKey: bodyKey } = body as {
+    const { workspaceId, chatId, userMessage, workspaceContext, provider, model, apiKey: bodyKey, dataExposurePercentage } = body as {
       workspaceId?: string
       chatId?: string
       userMessage?: string
@@ -524,6 +579,7 @@ export async function POST(req: NextRequest) {
       provider?: string
       model?: string
       apiKey?: string
+      dataExposurePercentage?: number
     }
 
     if (provider !== "groq") {
@@ -628,8 +684,8 @@ export async function POST(req: NextRequest) {
         }
 
         if (datasetFileName && datasetIntelligence) {
-          // Get configured exposure percentage
-          const exposurePercentage = getDatasetExposurePercentage()
+          // Get configured exposure percentage from UI (authoritative) or env fallback
+          const exposurePercentage = getDatasetExposurePercentage(dataExposurePercentage)
           datasetSample = await sampleDatasetRows(
             workspaceId!,
             datasetFileName,
@@ -640,7 +696,7 @@ export async function POST(req: NextRequest) {
           if (!datasetSample) {
             console.warn("[chat] Dataset sampling failed, using metadata-only mode")
           } else {
-            console.log(`[chat] Dataset exposure: ${exposurePercentage}% (${datasetSample.mode}), sampled ${datasetSample.sample_rows.length} rows`)
+            console.log(`[chat] Dataset exposure: ${exposurePercentage}% (${datasetSample.mode}, UI: ${dataExposurePercentage ?? 'not provided'}), sampled ${datasetSample.sample_rows.length} rows`)
           }
         }
       } catch (e) {

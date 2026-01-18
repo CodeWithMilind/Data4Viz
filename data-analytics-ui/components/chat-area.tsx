@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useCallback, useEffect, useMemo } from "react"
-import { Download, ArrowRight, Plus, MessageSquare, Edit2, Trash2, MoreVertical, Sparkles } from "lucide-react"
+import { Download, ArrowRight, Plus, MessageSquare, Edit2, Trash2, MoreVertical, Sparkles, Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChatMessages } from "@/components/chat-messages"
 import { ChatInput } from "@/components/chat-input"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Slider } from "@/components/ui/slider"
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAIConfigStore } from "@/lib/ai-config-store"
+import { useDataExposureStore } from "@/lib/data-exposure-store"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { computeWorkspaceContext, getRecommendation } from "@/lib/workspace-context"
 import { cn } from "@/lib/utils"
@@ -68,6 +70,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
   const [isAutoSummarizing, setIsAutoSummarizing] = useState(false)
 
   const { provider, model, apiKey } = useAIConfigStore()
+  const { dataExposurePercentage, setDataExposurePercentage } = useDataExposureStore()
   const { currentWorkspace } = useWorkspace()
   const { toast } = useToast()
 
@@ -200,6 +203,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
             provider,
             model,
             apiKey,
+            dataExposurePercentage, // UI-based configuration (source of truth)
           }),
           signal: controller.signal,
         })
@@ -398,6 +402,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
           provider,
           model,
           apiKey,
+          dataExposurePercentage, // UI-based configuration
         }),
       })
 
@@ -489,6 +494,40 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
             <Sparkles className="w-4 h-4" />
             {isAutoSummarizing ? "Summarizing..." : "Auto Summarize Dataset"}
           </Button>
+        </div>
+
+        {/* AI Agent Control Panel - Data Exposure */}
+        <div className="p-4 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-2 mb-3">
+            <Database className="w-4 h-4 text-primary" />
+            <Label className="text-sm font-medium text-foreground">Data Exposure</Label>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Dataset Access</span>
+              <span className="text-xs font-medium text-foreground">
+                {dataExposurePercentage}%
+                {dataExposurePercentage === 100 && (
+                  <span className="ml-1 text-xs text-green-600 dark:text-green-400">(Full)</span>
+                )}
+              </span>
+            </div>
+            <Slider
+              value={[dataExposurePercentage]}
+              onValueChange={(value) => setDataExposurePercentage(value[0])}
+              min={1}
+              max={100}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Limited</span>
+              <span>Full Access</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Controls how much of your dataset the AI agent can analyze. Higher values provide more comprehensive insights.
+            </p>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {chats.length === 0 ? (
