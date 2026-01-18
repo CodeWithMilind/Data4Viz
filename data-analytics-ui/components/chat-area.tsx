@@ -363,47 +363,98 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
       return
     }
 
+    // Get the first dataset from workspace (source of truth)
+    const firstDataset = currentWorkspace.datasets?.[0]
+    if (!firstDataset || !firstDataset.fileName) {
+      toast({
+        title: "Error",
+        description: "No dataset file found in workspace",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const datasetId = firstDataset.fileName
+
+    console.log("[handleAutoSummarize] Starting code generation...", {
+      workspaceId: currentWorkspace.id,
+      datasetId,
+      provider,
+      model,
+      hasApiKey: !!apiKey,
+    })
+
     setIsAutoSummarizing(true)
+
     try {
-      const res = await fetch("/api/ai/auto-summarize", {
+      // Call isolated code generation endpoint
+      console.log("[handleAutoSummarize] Calling API...")
+      const res = await fetch("/api/ai/auto-summarize-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workspaceId: currentWorkspace.id,
+          datasetId,
           provider,
           model,
           apiKey,
         }),
       })
 
-      if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to auto summarize" }))
-        throw new Error(error.error || "Failed to auto summarize")
+      console.log("[handleAutoSummarize] API response status:", res.status)
+
+      const data = await res.json().catch(() => ({ success: false, error: "Failed to parse response" }))
+      console.log("[handleAutoSummarize] API response data:", data)
+
+      // Check for success flag (non-blocking error handling)
+      if (!res.ok || !data.success) {
+        const errorMessage = data.error || `HTTP ${res.status}: Failed to generate code`
+        console.error("[handleAutoSummarize] API error:", errorMessage)
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+        return // Early return - no throw, no navigation
       }
 
-      const data = await res.json()
+      console.log("[handleAutoSummarize] Success! Code generated")
+
+      // Store generated code in localStorage (workspace-specific key)
+      const storageKey = `ai-generated-code-${currentWorkspace.id}`
+      if (data.code) {
+        localStorage.setItem(storageKey, data.code)
+        // Dispatch event to notify Jupyter page
+        window.dispatchEvent(new CustomEvent("aiCodeGenerated", { 
+          detail: { workspaceId: currentWorkspace.id, code: data.code } 
+        }))
+      }
+
       toast({
         title: "Success",
-        description: "Dataset summary generated! Check Files section for the notebook.",
+        description: "AI-generated Python analysis code created! Check Jupyter Notebook section.",
       })
-
-      // Refresh files
-      window.dispatchEvent(new CustomEvent("refreshFiles"))
       
-      // Optionally navigate to files or notebook page
+      // Navigate to notebook page
       if (onNavigate) {
+        console.log("[handleAutoSummarize] Navigating to notebook page")
         onNavigate("notebook")
       }
     } catch (err: any) {
+      // Catch any unexpected errors (network, parsing, etc.)
+      // NEVER throw - always handle gracefully
+      console.error("[handleAutoSummarize] Unexpected error:", err)
       toast({
         title: "Error",
-        description: err.message || "Failed to auto summarize dataset",
+        description: err.message || "Failed to generate code",
         variant: "destructive",
       })
     } finally {
+      // LOOP SAFETY: Always resolve loading state (non-blocking guarantee)
+      console.log("[handleAutoSummarize] Setting isAutoSummarizing to false")
       setIsAutoSummarizing(false)
     }
-  }, [currentWorkspace?.id, workspaceContext?.hasDataset, provider, model, apiKey, toast, onNavigate])
+  }, [currentWorkspace, workspaceContext?.hasDataset, provider, model, apiKey, toast, onNavigate])
 
   if (isLoadingChats) {
     return (

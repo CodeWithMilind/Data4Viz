@@ -141,6 +141,17 @@ export async function listWorkspaceFiles(workspaceId: string): Promise<string[]>
       }
     }
     
+    // List notebook files
+    const notebooksDir = path.join(dir, "notebooks")
+    if (existsSync(notebooksDir)) {
+      const notebookFiles = await fs.readdir(notebooksDir)
+      for (const file of notebookFiles) {
+        if (file.endsWith(".ipynb") && !file.startsWith(".")) {
+          files.push(`notebooks/${file}`)
+        }
+      }
+    }
+    
     return files
   } catch {
     return []

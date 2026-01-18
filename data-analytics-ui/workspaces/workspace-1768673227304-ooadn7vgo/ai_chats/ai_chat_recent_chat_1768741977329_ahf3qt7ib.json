@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "what is python autoviz lib"
+    },
+    {
+      "role": "assistant",
+      "content": "A question not directly related to the dataset at hand, but I can provide a brief answer.\n\nAutoViz is not a Python library per se, but rather a feature of `automate` library which uses pandas DataFrame and matplotlib/seaborn to automate visualization process based on the given data in DataFrames."
+    }
+  ]
+}

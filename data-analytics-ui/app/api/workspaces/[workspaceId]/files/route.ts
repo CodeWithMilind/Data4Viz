@@ -63,11 +63,16 @@ export async function GET(
         }
 
         const indexEntry = filesIndex.find((e) => e.file === filename)
-        let type = indexEntry?.type || (filename.endsWith(".json") ? "JSON" : "UNKNOWN")
+        let type = indexEntry?.type || (filename.endsWith(".json") ? "JSON" : filename.endsWith(".ipynb") ? "NOTEBOOK" : "UNKNOWN")
         
         // Ensure chat files are properly typed
         if (filename.includes("ai_chat") && type !== "conversation") {
           type = "conversation"
+        }
+        
+        // Ensure notebook files are properly typed
+        if (filename.endsWith(".ipynb") && type !== "NOTEBOOK") {
+          type = "NOTEBOOK"
         }
 
         return {

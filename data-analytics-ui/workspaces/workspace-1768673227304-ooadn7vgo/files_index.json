@@ -1,0 +1,22 @@
+[
+  {
+    "file": "ai_chats/index.json",
+    "type": "conversation",
+    "summary": "Contains: chats"
+  },
+  {
+    "file": "files_index.json",
+    "type": "data",
+    "summary": "Index of workspace files"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768741977329_ahf3qt7ib.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768741977329_ahf3qt7ib.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  }
+]

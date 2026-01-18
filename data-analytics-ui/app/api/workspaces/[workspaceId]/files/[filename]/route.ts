@@ -11,6 +11,8 @@ function getWorkspaceDir(workspaceId: string): string {
 }
 
 function getFilePath(workspaceId: string, filename: string): string {
+  // Handle subdirectories (notebooks/, files/, datasets/, etc.)
+  // Path is relative to workspace root
   return path.join(getWorkspaceDir(workspaceId), filename)
 }
 
@@ -35,10 +37,17 @@ export async function GET(
     const content = await fs.readFile(filePath, "utf-8")
     const stats = await fs.stat(filePath)
 
+    // Determine content type based on file extension
+    const contentType = filename.endsWith(".ipynb")
+      ? "application/x-ipynb+json"
+      : filename.endsWith(".json")
+        ? "application/json"
+        : "application/octet-stream"
+
     return new NextResponse(content, {
       headers: {
-        "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Type": contentType,
+        "Content-Disposition": `attachment; filename="${filename.split("/").pop()}"`,
         "Content-Length": stats.size.toString(),
       },
     })

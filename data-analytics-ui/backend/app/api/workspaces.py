@@ -114,10 +114,11 @@ async def download_workspace_file(workspace_id: str, file_id: str):
     - datasets/ directory (CSV files)
     - files/ directory (JSON, overview snapshots, etc.)
     - logs/ directory (LOG files)
+    - notebooks/ directory (Jupyter notebook files)
     
     Args:
         workspace_id: Unique workspace identifier
-        file_id: Filename to download
+        file_id: Filename to download (can include subdirectory prefix like "notebooks/auto_summarize.ipynb")
         
     Returns:
         File content with appropriate content type
@@ -127,12 +128,19 @@ async def download_workspace_file(workspace_id: str, file_id: str):
         datasets_dir = get_workspace_datasets_dir(workspace_id)
         files_dir = get_workspace_files_dir(workspace_id)
         logs_dir = get_workspace_logs_dir(workspace_id)
+        workspace_dir = get_workspace_dir(workspace_id)
         
         file_path = None
         
-        # Handle files/ prefix
+        # Handle subdirectory prefixes (notebooks/, files/, etc.)
         actual_file_id = file_id
-        if file_id.startswith("files/"):
+        if file_id.startswith("notebooks/"):
+            actual_file_id = file_id.replace("notebooks/", "", 1)
+            notebooks_dir = workspace_dir / "notebooks"
+            potential_path = notebooks_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        elif file_id.startswith("files/"):
             actual_file_id = file_id.replace("files/", "", 1)
             potential_path = files_dir / actual_file_id
             if potential_path.exists() and potential_path.is_file():
@@ -156,6 +164,13 @@ async def download_workspace_file(workspace_id: str, file_id: str):
             if potential_path.exists() and potential_path.is_file():
                 file_path = potential_path
         
+        # Try notebooks directory (without prefix)
+        if not file_path:
+            notebooks_dir = workspace_dir / "notebooks"
+            potential_path = notebooks_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        
         if not file_path:
             raise HTTPException(
                 status_code=404,
@@ -164,7 +179,12 @@ async def download_workspace_file(workspace_id: str, file_id: str):
         
         # Determine content type based on file extension
         suffix = file_path.suffix.lower()
-        if suffix == ".csv":
+        if suffix == ".ipynb":
+            # For Jupyter notebook files, read as JSON with proper content type
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            media_type = "application/x-ipynb+json"
+        elif suffix == ".csv":
             # For CSV files, read with pandas to ensure proper formatting
             df = pd.read_csv(file_path)
             output = io.StringIO()

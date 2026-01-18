@@ -66,6 +66,7 @@ const getFileIcon = (type: string) => {
     case "JSON":
     case "OVERVIEW":
     case "CLEANING":
+    case "NOTEBOOK":
       return FileCode
     case "LOG":
       return FileText
@@ -287,10 +288,16 @@ export function FilesPage() {
     try {
       let response: Response
 
+      // Use file.name which includes subdirectory prefix (e.g., "notebooks/auto_summarize.ipynb")
+      // This ensures consistent path resolution for all file types
+      const filePath = file.name || file.id?.replace("local-", "") || ""
+      
       if (file.id?.startsWith("local-")) {
-        response = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${file.name}`)
+        // Local files: use Next.js API route which handles subdirectories
+        response = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${filePath}`)
       } else {
-        response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files/${file.id}/download`)
+        // Backend files: use backend download endpoint which handles subdirectories
+        response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files/${filePath}/download`)
       }
       
       if (!response.ok) {
@@ -305,7 +312,9 @@ export function FilesPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = file.name || "download"
+      // Extract just the filename (remove subdirectory prefix if present)
+      const downloadName = file.name?.split("/").pop() || file.name || "download"
+      a.download = downloadName
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)

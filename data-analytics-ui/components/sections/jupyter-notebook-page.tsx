@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Play, Plus, Trash2, ChevronDown, ChevronRight, Copy, Download, FileCode, Loader2 } from "lucide-react"
+import { ChevronDown, ChevronRight, Copy, Download, FileCode, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useWorkspace } from "@/contexts/workspace-context"
@@ -53,8 +53,9 @@ export function JupyterNotebookPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCell, setSelectedCell] = useState<string | null>(null)
   const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set())
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null)
 
-  // Load available notebooks
+  // Load available notebooks from notebooks/ subdirectory
   useEffect(() => {
     if (!activeWorkspaceId) {
       setLoading(false)
@@ -62,6 +63,8 @@ export function JupyterNotebookPage() {
     }
 
     const loadNotebooks = async () => {
+      console.log("[JupyterPage] Loading notebooks for workspace:", activeWorkspaceId)
+      setLoading(true)
       try {
         // Try backend first
         const backendRes = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files`).catch(() => null)
@@ -71,37 +74,108 @@ export function JupyterNotebookPage() {
         if (backendRes?.ok) {
           const data = await backendRes.json()
           allFiles.push(...(data.files || []))
+          console.log("[JupyterPage] Backend files:", data.files?.length || 0)
         }
         if (localRes?.ok) {
           const data = await localRes.json()
           allFiles.push(...(data.files || []))
+          console.log("[JupyterPage] Local files:", data.files?.length || 0)
         }
 
+        // Filter for notebooks in notebooks/ subdirectory or root .ipynb files
         const notebookFiles = allFiles
-          .filter((f) => f.name.endsWith(".ipynb"))
-          .map((f) => f.name)
+          .filter((f) => {
+            const name = f.name || f
+            return name.endsWith(".ipynb") && (name.startsWith("notebooks/") || !name.includes("/"))
+          })
+          .map((f) => f.name || f)
 
+        console.log("[JupyterPage] Found notebooks:", notebookFiles)
         setNotebooks(notebookFiles)
 
-        // Auto-select auto_summary.ipynb if available
-        if (notebookFiles.includes("files/auto_summary.ipynb")) {
-          setSelectedNotebook("files/auto_summary.ipynb")
-        } else if (notebookFiles.includes("auto_summary.ipynb")) {
-          setSelectedNotebook("auto_summary.ipynb")
+        // Auto-select auto_summarize.ipynb if available (prioritize AI-generated notebook)
+        if (notebookFiles.includes("notebooks/auto_summarize.ipynb")) {
+          console.log("[JupyterPage] Auto-selecting auto_summarize.ipynb")
+          setSelectedNotebook("notebooks/auto_summarize.ipynb")
+          // Notebook will auto-load via the useEffect hook
         } else if (notebookFiles.length > 0) {
+          console.log("[JupyterPage] Auto-selecting first notebook:", notebookFiles[0])
           setSelectedNotebook(notebookFiles[0])
+          // Notebook will auto-load via the useEffect hook
+        } else {
+          console.log("[JupyterPage] No notebooks found")
+          setSelectedNotebook(null)
+          setCells([])
         }
       } catch (err) {
-        console.error("Failed to load notebooks:", err)
+        console.error("[JupyterPage] Failed to load notebooks:", err)
       } finally {
         setLoading(false)
       }
     }
 
     loadNotebooks()
+    
+    // Listen for file refresh events
+    const handleRefresh = () => {
+      console.log("[JupyterPage] Refresh event received, reloading notebooks...")
+      loadNotebooks()
+    }
+    window.addEventListener("refreshFiles", handleRefresh)
+    
+    // Also listen for visibility change to refresh when page becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        console.log("[JupyterPage] Page became visible, refreshing notebooks...")
+        loadNotebooks()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    
+    return () => {
+      window.removeEventListener("refreshFiles", handleRefresh)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
+  }, [activeWorkspaceId])
+  
+  // Force refresh when component mounts or workspace changes
+  useEffect(() => {
+    console.log("[JupyterPage] Component mounted/workspace changed, triggering refresh")
+    // Trigger refresh by dispatching event
+    window.dispatchEvent(new CustomEvent("refreshFiles"))
   }, [activeWorkspaceId])
 
-  // Load selected notebook
+  // Load generated code from localStorage and listen for new code events
+  useEffect(() => {
+    if (!activeWorkspaceId) {
+      setGeneratedCode(null)
+      return
+    }
+
+    // Load from localStorage
+    const storageKey = `ai-generated-code-${activeWorkspaceId}`
+    const storedCode = localStorage.getItem(storageKey)
+    if (storedCode) {
+      setGeneratedCode(storedCode)
+    }
+
+    // Listen for new code generation events
+    const handleCodeGenerated = (event: CustomEvent) => {
+      if (event.detail?.workspaceId === activeWorkspaceId && event.detail?.code) {
+        setGeneratedCode(event.detail.code)
+        // Also update localStorage
+        localStorage.setItem(storageKey, event.detail.code)
+      }
+    }
+
+    window.addEventListener("aiCodeGenerated", handleCodeGenerated as EventListener)
+    
+    return () => {
+      window.removeEventListener("aiCodeGenerated", handleCodeGenerated as EventListener)
+    }
+  }, [activeWorkspaceId])
+
+  // Load selected notebook (auto-load when selected)
   useEffect(() => {
     if (!activeWorkspaceId || !selectedNotebook) {
       setCells([])
@@ -109,43 +183,67 @@ export function JupyterNotebookPage() {
     }
 
     const loadNotebook = async () => {
+      console.log("[JupyterPage] Loading notebook:", selectedNotebook)
       setLoading(true)
-      try {
-        // Try backend first
-        let notebookContent: Notebook | null = null
-
         try {
-          const backendRes = await fetch(
-            `${BASE_URL}/workspaces/${activeWorkspaceId}/files/${selectedNotebook}/download`
-          )
-          if (backendRes.ok) {
-            notebookContent = await backendRes.json()
+          // Try backend first
+          let notebookContent: Notebook | null = null
+
+          try {
+            const backendRes = await fetch(
+              `${BASE_URL}/workspaces/${activeWorkspaceId}/files/${selectedNotebook}/download`
+            )
+            if (backendRes.ok) {
+              notebookContent = await backendRes.json()
+            }
+          } catch {
+            // Try local API
+            const localRes = await fetch(
+              `/api/workspaces/${activeWorkspaceId}/files/${selectedNotebook}`
+            )
+            if (localRes.ok) {
+              const contentType = localRes.headers.get("content-type")
+              if (contentType?.includes("application/json")) {
+                notebookContent = await localRes.json()
+              } else {
+                const text = await localRes.text()
+                notebookContent = JSON.parse(text)
+              }
+            }
           }
-        } catch {
-          // Try local API
-          const localRes = await fetch(
-            `/api/workspaces/${activeWorkspaceId}/files/${selectedNotebook}`
-          )
-          if (localRes.ok) {
-            notebookContent = await localRes.json()
+
+          if (!notebookContent) {
+            // Try reading from workspace files directly
+            const workspaceRes = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${selectedNotebook}`)
+            if (workspaceRes.ok) {
+              const text = await workspaceRes.text()
+              notebookContent = JSON.parse(text)
+            }
           }
-        }
 
         if (!notebookContent) {
-          // Try reading from workspace files directly
-          const workspaceRes = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${selectedNotebook}`)
-          if (workspaceRes.ok) {
-            const text = await workspaceRes.text()
-            notebookContent = JSON.parse(text)
-          }
-        }
-
-        if (!notebookContent) {
+          console.error("[JupyterPage] Failed to load notebook:", selectedNotebook)
+          // Show inline error, don't block the page (graceful failure)
           toast({
             title: "Error",
-            description: "Failed to load notebook",
+            description: `Failed to load notebook: ${selectedNotebook}`,
             variant: "destructive",
           })
+          setCells([])
+          setLoading(false)
+          return
+        }
+
+        // Validate notebook structure
+        if (!notebookContent.cells || !Array.isArray(notebookContent.cells)) {
+          console.error("[JupyterPage] Invalid notebook structure")
+          toast({
+            title: "Error",
+            description: "Invalid notebook format",
+            variant: "destructive",
+          })
+          setCells([])
+          setLoading(false)
           return
         }
 
@@ -232,22 +330,38 @@ export function JupyterNotebookPage() {
     if (!activeWorkspaceId || !selectedNotebook) return
 
     try {
-      const res = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${selectedNotebook}`)
-      if (!res.ok) throw new Error("Failed to download")
+      // Use consistent path resolution (same as files page)
+      // Try local API first, then backend
+      let res = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${selectedNotebook}`).catch(() => null)
+      
+      if (!res || !res.ok) {
+        // Fallback to backend
+        res = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files/${selectedNotebook}/download`)
+        if (!res.ok) {
+          throw new Error(`Failed to download: ${res.statusText}`)
+        }
+      }
 
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
+      // Extract just the filename (remove subdirectory prefix)
       a.download = selectedNotebook.split("/").pop() || "notebook.ipynb"
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
+      
+      toast({
+        title: "Success",
+        description: "Notebook downloaded",
+      })
     } catch (err) {
+      console.error("[JupyterPage] Download error:", err)
       toast({
         title: "Error",
-        description: "Failed to download notebook",
+        description: err instanceof Error ? err.message : "Failed to download notebook",
         variant: "destructive",
       })
     }
@@ -263,12 +377,22 @@ export function JupyterNotebookPage() {
     )
   }
 
+  const copyCodeToClipboard = () => {
+    if (generatedCode) {
+      navigator.clipboard.writeText(generatedCode)
+      toast({
+        title: "Copied",
+        description: "Python code copied to clipboard",
+      })
+    }
+  }
+
   return (
     <main className="flex-1 flex flex-col bg-background overflow-hidden">
       {/* Header */}
       <header className="h-14 border-b border-border flex items-center justify-between px-6 bg-card">
         <div className="flex items-center gap-4">
-          <h1 className="font-semibold text-foreground">Jupyter Notebook</h1>
+          <h1 className="font-semibold text-foreground">AI-generated Python Notebook</h1>
           {notebooks.length > 0 ? (
             <Select value={selectedNotebook || ""} onValueChange={setSelectedNotebook}>
               <SelectTrigger className="w-64">
@@ -297,23 +421,65 @@ export function JupyterNotebookPage() {
             disabled={!selectedNotebook}
           >
             <Download className="w-4 h-4" />
-            Export
+            Download
           </Button>
         </div>
       </header>
 
+      {/* AI-Generated Python Code Section */}
+      {generatedCode && (
+        <div className="border-b border-border bg-card">
+          <div className="px-6 py-3 bg-blue-500/10 border-b border-blue-500/20">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                <strong>AI-generated Python Analysis Code</strong> - Copy and run this code locally in Jupyter or VS Code
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={copyCodeToClipboard}
+              >
+                <Copy className="w-4 h-4" />
+                Copy Code
+              </Button>
+            </div>
+          </div>
+          <div className="p-6">
+            <pre className="bg-muted/50 p-4 rounded-lg overflow-x-auto border border-border">
+              <code className="text-sm font-mono text-foreground whitespace-pre">{generatedCode}</code>
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* Read-only Banner for Notebooks */}
+      {selectedNotebook && !generatedCode && (
+        <div className="px-6 py-3 bg-blue-500/10 border-b border-blue-500/20">
+          <p className="text-sm text-blue-700 dark:text-blue-400">
+            <strong>Note:</strong> This notebook is AI-generated. Download to run locally in your Jupyter environment.
+          </p>
+        </div>
+      )}
+
       {/* Notebook Cells */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {cells.length === 0 ? (
+        {cells.length === 0 && !loading && !generatedCode ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <FileCode className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
                 {notebooks.length === 0
-                  ? "No notebooks found. Use 'Auto Summarize Dataset' to generate one."
-                  : "Select a notebook to view"}
+                  ? "No notebooks found. Click 'Auto Summarize Dataset' in Chat to generate AI-powered Python analysis code."
+                  : selectedNotebook
+                    ? "Loading notebook..."
+                    : "Select a notebook to view"}
               </p>
             </div>
+          </div>
+        ) : loading && cells.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
           cells.map((cell, index) => (
