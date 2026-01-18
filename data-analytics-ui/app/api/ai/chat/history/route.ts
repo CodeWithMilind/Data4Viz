@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "workspaceId required" }, { status: 400 })
     }
 
+    // Return full history for UI display (not used by AI)
     const history = await getChatHistory(workspaceId)
     return NextResponse.json(history)
   } catch (e) {

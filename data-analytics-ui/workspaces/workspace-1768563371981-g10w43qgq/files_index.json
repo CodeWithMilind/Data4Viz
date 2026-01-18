@@ -8,5 +8,10 @@
     "file": "files_index.json",
     "type": "data",
     "summary": "Index of workspace files"
+  },
+  {
+    "file": "ai_chat_recent.json",
+    "type": "data",
+    "summary": "Recent chat messages (working memory)"
   }
 ]

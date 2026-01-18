@@ -136,7 +136,13 @@ function inferFileType(filename: string): string {
 
 async function generateFileSummary(workspaceId: string, filename: string): Promise<string> {
   if (filename === "ai_chat.json") {
-    return "Chat history with user"
+    return "Full chat history with user (append-only)"
+  }
+  if (filename === "ai_chat_recent.json") {
+    return "Recent chat messages (working memory)"
+  }
+  if (filename === "ai_chat_summary.json") {
+    return "Long-term chat summary"
   }
   if (filename === "files_index.json") {
     return "Index of workspace files"
@@ -161,7 +167,19 @@ async function generateFileSummary(workspaceId: string, filename: string): Promi
 
 export async function getChatHistory(workspaceId: string): Promise<ChatHistory> {
   const history = await readWorkspaceFile<ChatHistory>(workspaceId, "ai_chat.json")
-  return history || { messages: [] }
+  const result = history || { messages: [] }
+  
+  // Ensure recent chat is initialized if history exists
+  if (result.messages.length > 0) {
+    const recentExists = await readWorkspaceFile<RecentChat>(workspaceId, "ai_chat_recent.json")
+    if (!recentExists) {
+      await rebuildRecentChat(workspaceId, RECENT_CHAT_MAX_MESSAGES).catch((e) => {
+        console.error("Failed to initialize recent chat:", e)
+      })
+    }
+  }
+  
+  return result
 }
 
 export async function appendChatMessage(
@@ -180,6 +198,106 @@ export async function appendChatMessages(
   const history = await getChatHistory(workspaceId)
   history.messages.push(...messages)
   await writeWorkspaceFile(workspaceId, "ai_chat.json", history, false)
+  
+  // Rebuild recent chat after appending
+  await rebuildRecentChat(workspaceId, 15)
+}
+
+export interface RecentChatMessage {
+  role: "user" | "assistant"
+  content: string
+}
+
+export interface RecentChat {
+  messages: RecentChatMessage[]
+}
+
+export interface ChatSummary {
+  summary: string
+  messageCount: number
+  lastUpdated: number
+}
+
+const RECENT_CHAT_MAX_MESSAGES = 15
+const SUMMARY_THRESHOLD = 100
+
+export async function rebuildRecentChat(
+  workspaceId: string,
+  maxMessages: number = RECENT_CHAT_MAX_MESSAGES,
+): Promise<void> {
+  try {
+    // Read directly to avoid recursion
+    const history = await readWorkspaceFile<ChatHistory>(workspaceId, "ai_chat.json")
+    const messages = history?.messages || []
+    
+    const recentMessages: RecentChatMessage[] = messages
+      .slice(-maxMessages)
+      .map((m) => ({
+        role: m.role,
+        content: m.content,
+      }))
+
+    const recentChat: RecentChat = {
+      messages: recentMessages,
+    }
+
+    await writeWorkspaceFile(workspaceId, "ai_chat_recent.json", recentChat, false)
+    
+    // Check if summary needs to be generated
+    if (messages.length >= SUMMARY_THRESHOLD) {
+      await generateChatSummary(workspaceId).catch((e) => {
+        console.error("Failed to generate chat summary:", e)
+      })
+    }
+  } catch (error) {
+    console.error("Failed to rebuild recent chat:", error)
+    throw error
+  }
+}
+
+export async function getRecentChat(workspaceId: string): Promise<RecentChat> {
+  const recent = await readWorkspaceFile<RecentChat>(workspaceId, "ai_chat_recent.json")
+  return recent || { messages: [] }
+}
+
+export async function getChatSummary(workspaceId: string): Promise<ChatSummary | null> {
+  return await readWorkspaceFile<ChatSummary>(workspaceId, "ai_chat_summary.json")
+}
+
+async function generateChatSummary(workspaceId: string): Promise<void> {
+  try {
+    // Read directly to avoid recursion
+    const history = await readWorkspaceFile<ChatHistory>(workspaceId, "ai_chat.json")
+    const messages = history?.messages || []
+    const messageCount = messages.length
+    
+    // Generate a simple summary based on early messages
+    const earlyMessages = messages.slice(0, Math.min(20, messageCount))
+    const topics: string[] = []
+    const datasets: string[] = []
+    
+    for (const msg of earlyMessages) {
+      const content = msg.content.toLowerCase()
+      if (content.includes("dataset") || content.includes("data")) {
+        const match = content.match(/(?:dataset|data|file)[\s:]+([^\s,\.]+)/i)
+        if (match) datasets.push(match[1])
+      }
+      if (content.includes("clean") || content.includes("outlier") || content.includes("visual")) {
+        if (!topics.includes("data analysis")) topics.push("data analysis")
+      }
+    }
+    
+    const summary: ChatSummary = {
+      summary: `User has been working on ${datasets.length > 0 ? datasets.join(", ") : "data analysis"}. ${topics.length > 0 ? `Topics discussed: ${topics.join(", ")}.` : ""} Total messages: ${messageCount}.`,
+      messageCount,
+      lastUpdated: Date.now(),
+    }
+    
+    await writeWorkspaceFile(workspaceId, "ai_chat_summary.json", summary, false)
+  } catch (error) {
+    console.error("Failed to generate chat summary:", error)
+    throw error
+  }
 }
 
 export async function getRelevantFiles(
@@ -191,7 +309,13 @@ export async function getRelevantFiles(
   const relevant: { file: string; content: string; summary: string }[] = []
 
   for (const entry of index) {
-    if (entry.file === "ai_chat.json" || entry.file === "files_index.json") {
+    // AI must NEVER read ai_chat.json, ai_chat_recent.json, or ai_chat_summary.json
+    if (
+      entry.file === "ai_chat.json" ||
+      entry.file === "ai_chat_recent.json" ||
+      entry.file === "ai_chat_summary.json" ||
+      entry.file === "files_index.json"
+    ) {
       continue
     }
     if (relevant.length >= maxFiles) break

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
 import {
-  getChatHistory,
   appendChatMessages,
+  getRecentChat,
+  getChatSummary,
   getFilesIndex,
   getRelevantFiles,
   type ChatMessage,
@@ -40,6 +41,8 @@ async function callGroq(
 
 function buildSystemPrompt(
   context: WorkspaceContext | null,
+  chatSummary: string | null,
+  recentChat: any[],
   filesIndex: any[],
   relevantFiles: any[],
 ): string {
@@ -62,15 +65,30 @@ function buildSystemPrompt(
     prompt += `- Only explain "why" when explicitly asked\n`
   }
 
+  if (chatSummary) {
+    prompt += `\n\nCHAT SUMMARY:\n${chatSummary}\n`
+  }
+
+  if (recentChat.length > 0) {
+    prompt += `\n\nRECENT CHAT:\n`
+    for (const msg of recentChat) {
+      prompt += `${msg.role === "user" ? "USER" : "ASSISTANT"}: ${msg.content}\n`
+    }
+  }
+
   prompt += `\n\nYou have access to the following workspace files:\n\nFILES:\n`
   for (const entry of filesIndex) {
-    prompt += `- ${entry.file}: ${entry.summary}\n`
+    if (entry.file !== "ai_chat.json" && entry.file !== "ai_chat_recent.json" && entry.file !== "ai_chat_summary.json") {
+      prompt += `- ${entry.file}: ${entry.summary}\n`
+    }
   }
 
   if (relevantFiles.length > 0) {
     prompt += `\nRELEVANT FILE CONTENTS:\n`
     for (const file of relevantFiles) {
-      prompt += `\n--- ${file.file} ---\n${file.content}\n`
+      if (file.file !== "ai_chat.json" && file.file !== "ai_chat_recent.json" && file.file !== "ai_chat_summary.json") {
+        prompt += `\n--- ${file.file} ---\n${file.content}\n`
+      }
     }
   }
 
@@ -109,14 +127,23 @@ export async function POST(req: NextRequest) {
 
     const resolvedModel = isGroqModelSupported(model) ? model : GROQ_DEFAULT_MODEL
 
-    let chatHistory = { messages: [] }
+    let recentChat = { messages: [] }
+    let chatSummary: string | null = null
     let filesIndex: any[] = []
     let relevantFiles: any[] = []
 
     try {
-      chatHistory = await getChatHistory(workspaceId)
+      const recent = await getRecentChat(workspaceId)
+      recentChat = recent
     } catch (e) {
-      console.error("Failed to load chat history:", e)
+      console.error("Failed to load recent chat:", e)
+    }
+
+    try {
+      const summary = await getChatSummary(workspaceId)
+      chatSummary = summary?.summary || null
+    } catch (e) {
+      console.error("Failed to load chat summary:", e)
     }
 
     try {
@@ -131,16 +158,16 @@ export async function POST(req: NextRequest) {
       console.error("Failed to load relevant files:", e)
     }
 
-    const systemPrompt = buildSystemPrompt(workspaceContext || null, filesIndex, relevantFiles)
-
-    const historyMessages = chatHistory.messages.slice(-10).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }))
+    const systemPrompt = buildSystemPrompt(
+      workspaceContext || null,
+      chatSummary,
+      recentChat.messages,
+      filesIndex,
+      relevantFiles,
+    )
 
     const messages = [
       { role: "system" as const, content: systemPrompt },
-      ...historyMessages,
       { role: "user" as const, content: userMessage },
     ]
 

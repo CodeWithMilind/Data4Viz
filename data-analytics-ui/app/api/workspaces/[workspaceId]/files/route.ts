@@ -65,8 +65,8 @@ export async function GET(
         const indexEntry = filesIndex.find((e) => e.file === filename)
         let type = indexEntry?.type || (filename.endsWith(".json") ? "JSON" : "UNKNOWN")
         
-        // Ensure ai_chat.json is properly typed
-        if (filename === "ai_chat.json" && type !== "conversation") {
+        // Ensure chat files are properly typed
+        if ((filename === "ai_chat.json" || filename === "ai_chat_recent.json" || filename === "ai_chat_summary.json") && type !== "conversation") {
           type = "conversation"
         }
 
