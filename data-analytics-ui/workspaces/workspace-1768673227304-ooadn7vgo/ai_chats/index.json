@@ -1,11 +1,10 @@
 {
   "chats": [
     {
-      "chatId": "chat_1768741977329_ahf3qt7ib",
-      "title": "data science",
-      "description": "we will explore python",
-      "createdAt": 1768741977329,
-      "updatedAt": 1768742000399,
+      "chatId": "chat_1768742326365_ezo9thnr2",
+      "title": "eda",
+      "createdAt": 1768742326365,
+      "updatedAt": 1768742334461,
       "isDeleted": false
     }
   ]

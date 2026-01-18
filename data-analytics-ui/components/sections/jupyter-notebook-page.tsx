@@ -432,7 +432,7 @@ export function JupyterNotebookPage() {
           <div className="px-6 py-3 bg-blue-500/10 border-b border-blue-500/20">
             <div className="flex items-center justify-between">
               <p className="text-sm text-blue-700 dark:text-blue-400">
-                <strong>AI-generated Python Analysis Code</strong> - Copy and run this code locally in Jupyter or VS Code
+                <strong>AI-generated Python Analysis Code</strong> - Copy and run this code locally in Jupyter or VS Code.
               </p>
               <Button
                 variant="outline"

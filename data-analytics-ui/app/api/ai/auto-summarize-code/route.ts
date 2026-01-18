@@ -5,7 +5,14 @@ import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
 import { resolveApiKey, callGroq, isDecommissionError } from "@/lib/ai/getAiClient"
 
 /**
- * ISOLATED Auto Summarize Code Generation
+ * ISOLATED Auto Summarize Code Generation (V2)
+ * 
+ * V2 FEATURES:
+ * - More intelligent, insight-oriented Python EDA script
+ * - Smart reasoning without automation
+ * - Dynamic column detection (no hardcoding)
+ * - Safe visualization limits
+ * - Insight guidance and AutoViz preparation
  * 
  * STRICT ISOLATION:
  * - NO file writes
@@ -166,32 +173,89 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // Build dataset context JSON for AI
+    // Build dataset context JSON for AI (without calling other tools)
     const datasetContextJson = JSON.stringify({
       dataset_name: datasetId,
+      workspace_id: workspaceId, // User/project context
       rows: totalRows,
       columns: columns.map(col => ({ name: col.name, type: col.type })),
-      sample_rows: sampleRows.slice(0, 5), // First 5 rows only
-      dataset_file_path: datasetPath, // Read-only path reference
+      sample_rows: sampleRows, // Up to 10 sample rows (max 10 per requirements)
     }, null, 2)
 
-    // Build AI prompt (MANDATORY format from requirements)
+    // Build AI prompt (V2 - STRICT format from requirements)
     const systemPrompt = `You are a senior data scientist.
 Return ONLY valid Python code.
 Do NOT include explanations.
 Do NOT include markdown.
-Do NOT wrap in code fences.`
+Do NOT wrap output in code fences.`
 
-    const userPrompt = `Generate a complete Python script for exploratory data analysis.
+    const userPrompt = `Generate a SAFE, GENERIC, and INSIGHT-ORIENTED Python script for exploratory data analysis.
 
-Rules:
-- Start with imports
-- Load dataset using pandas
-- Show basic inspection (head, info, describe)
-- Handle common data types correctly
-- Include meaningful visualizations
-- Add comments explaining each step
-- End with suggested insights to look for as Python comments
+MANDATORY RULES:
+- DO NOT assume or invent column names
+- DO NOT hardcode any column list
+- ALL column usage MUST be derived dynamically from df.columns
+- ALWAYS check column existence before using
+- NEVER assume a target variable
+- NEVER assume an ID column
+- NEVER encode categorical variables
+- NEVER mutate the dataset aggressively
+
+SCRIPT STRUCTURE:
+
+1. Imports:
+   - pandas
+   - matplotlib
+   - seaborn (optional)
+
+2. Load dataset:
+   - Use pandas to load 'dataset.csv'
+
+3. Initial inspection:
+   - df.head()
+   - df.info()
+   - df.describe(include="all")
+
+4. Column categorization:
+   - Identify categorical columns dynamically
+   - Identify numeric columns dynamically
+   - Identify datetime-like columns if possible
+
+5. Visual exploration (SAFE LIMITS):
+   - For up to 3 categorical columns:
+       * bar plots of value counts
+   - For numeric columns:
+       * histogram distributions
+       * scatter plot between first two numeric columns (only if >=2)
+   - For datetime columns:
+       * simple trend plot if paired with a numeric column
+   - Skip plots if insufficient columns exist
+
+6. Lightweight statistics (NO ML):
+   - Correlation matrix for numeric columns (if >=3)
+   - Print top correlations (no heatmap if too many columns)
+
+7. Insight guidance (IMPORTANT):
+   - Add Python comments suggesting:
+       * what patterns to look for
+       * what anomalies may indicate
+       * what follow-up analysis user can perform
+   - Keep insights GENERIC (do not name specific columns)
+
+8. AutoViz preparation (COMMENT ONLY):
+   - Add commented code showing how AutoViz *could* be run
+   - Do NOT import or execute AutoViz
+   - Example:
+     # from autoviz.AutoViz_Class import AutoViz_Class
+     # AV = AutoViz_Class()
+     # AV.AutoViz('dataset.csv')
+
+STRICTLY FORBIDDEN:
+- Hardcoded column names
+- Dataset-specific logic
+- LabelEncoder
+- Assumed business meaning
+- File writes or execution
 
 Dataset context:
 ${datasetContextJson}`

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Database, Upload, FileSpreadsheet, Table, Link2, Loader2, AlertCircle, Trash2 } from "lucide-react"
+import { Database, Upload, FileSpreadsheet, Table, Link2, Loader2, AlertCircle, Trash2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,12 +19,15 @@ import {
 import { useWorkspace } from "@/contexts/workspace-context"
 import { fetchAndParseCSV, parseCSVFromFile, isValidURL } from "@/lib/csv-parser"
 import { useToast } from "@/hooks/use-toast"
+import { useAIConfigStore } from "@/lib/ai-config-store"
 
 export function DatasetPage() {
   const { currentWorkspace, uploadDatasetToWorkspace, removeDatasetFromWorkspace, getDatasets } = useWorkspace()
   const { toast } = useToast()
+  const { provider, model, apiKey } = useAIConfigStore()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null)
+  const [summarizingDatasetId, setSummarizingDatasetId] = useState<string | null>(null)
   
   // URL loading state
   const [csvUrl, setCsvUrl] = useState("")
@@ -174,6 +177,70 @@ export function DatasetPage() {
     }
   }
 
+  const handleAutoSummarize = async (datasetId: string, datasetName: string) => {
+    if (!currentWorkspace) {
+      toast({
+        title: "Error",
+        description: "Please create or select a workspace first",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSummarizingDatasetId(datasetId)
+    try {
+      const res = await fetch("/api/ai/auto-summarize-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: currentWorkspace.id,
+          datasetId: datasetName,
+          provider,
+          model,
+          apiKey,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!data.success) {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to generate summary code",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Store code in localStorage and dispatch event for JupyterNotebookPage
+      const storageKey = `ai-generated-code-${currentWorkspace.id}`
+      localStorage.setItem(storageKey, data.code)
+      
+      // Dispatch event for JupyterNotebookPage to listen
+      window.dispatchEvent(
+        new CustomEvent("aiCodeGenerated", {
+          detail: {
+            workspaceId: currentWorkspace.id,
+            code: data.code,
+          },
+        })
+      )
+
+      toast({
+        title: "Success",
+        description: "Python EDA code generated! Check the Jupyter section to view and copy.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Network error. Please check your connection and try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setSummarizingDatasetId(null)
+    }
+  }
+
   return (
     <main className="flex-1 flex flex-col h-screen bg-background overflow-auto">
       <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card shrink-0">
@@ -309,18 +376,40 @@ export function DatasetPage() {
                           </div>
                           <CardTitle className="text-sm font-medium truncate">{dataset.name}</CardTitle>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            setDatasetToDelete(dataset.id)
-                            setDeleteDialogOpen(true)
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Remove
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => handleAutoSummarize(dataset.id, dataset.name)}
+                            disabled={summarizingDatasetId === dataset.id || !currentWorkspace}
+                            title={!currentWorkspace ? "Please create or select a workspace first" : "Generate AI-written Python EDA code for this dataset"}
+                          >
+                            {summarizingDatasetId === dataset.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4" />
+                                Auto Summarize Dataset
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              setDatasetToDelete(dataset.id)
+                              setDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
