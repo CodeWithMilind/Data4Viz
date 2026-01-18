@@ -8,6 +8,7 @@
  * Falls back to localStorage if IndexedDB is unavailable.
  */
 
+import { create } from "zustand"
 import type { Workspace } from "@/types/workspace"
 
 const DB_NAME = "data4viz_workspaces"
@@ -250,3 +251,17 @@ class WorkspaceStore {
 
 // Singleton instance
 export const workspaceStore = new WorkspaceStore()
+
+/**
+ * Zustand store for workspace state
+ * Provides reactive hook interface for components
+ */
+interface WorkspaceState {
+  currentWorkspace: Workspace | null
+  setCurrentWorkspace: (workspace: Workspace | null) => void
+}
+
+export const useWorkspace = create<WorkspaceState>((set) => ({
+  currentWorkspace: null,
+  setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }),
+}))
