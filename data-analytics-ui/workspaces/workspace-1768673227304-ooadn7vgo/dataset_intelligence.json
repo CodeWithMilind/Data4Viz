@@ -1,0 +1,74 @@
+{
+  "file_name": "data.csv",
+  "rows": 30,
+  "columns": 10,
+  "schema": [
+    {
+      "name": "employee_id",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "age",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "gender",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "department",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "experience_years",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "weekly_work_hours",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "remote_days",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "performance_score",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "monthly_salary",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "satisfaction_level",
+      "type": "numeric",
+      "missing": 0
+    }
+  ],
+  "numeric_summary": {},
+  "categorical_summary": {
+    "gender": [
+      "Male",
+      "Female"
+    ],
+    "department": [
+      "Tech",
+      "HR",
+      "Finance",
+      "Sales"
+    ]
+  },
+  "data_quality": {
+    "missing_columns": 0,
+    "duplicate_rows": 0
+  }
+}

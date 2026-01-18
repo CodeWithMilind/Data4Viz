@@ -14,6 +14,7 @@ import {
 } from "@/lib/workspace-files"
 import type { WorkspaceContext } from "@/lib/workspace-context"
 import { getDatasetOverviewFromFile, type OverviewResponse } from "@/lib/api/dataCleaningClient"
+import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
 import { promises as fs } from "fs"
 import path from "path"
 import { existsSync } from "fs"
@@ -80,6 +81,159 @@ function buildDatasetContext(snapshot: DatasetIntelligenceSnapshot | null): stri
   return JSON.stringify(snapshot, null, 2)
 }
 
+/**
+ * Parse CSV line handling quoted fields (reused from auto-summarize-code)
+ */
+function parseCSVLine(line: string): string[] {
+  const values: string[] = []
+  let current = ""
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const nextChar = line[i + 1]
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (char === "," && !inQuotes) {
+      values.push(current.trim())
+      current = ""
+    } else {
+      current += char
+    }
+  }
+
+  values.push(current.trim())
+  return values
+}
+
+/**
+ * Get dataset exposure configuration
+ * Returns effective exposure percentage (0-100)
+ */
+function getDatasetExposurePercentage(): number {
+  // Check for override flag first (demo mode)
+  const overrideFullAccess = process.env.OVERRIDE_FULL_DATA_ACCESS === "true"
+  if (overrideFullAccess) {
+    return 100
+  }
+
+  // Get configured exposure percentage (default: 20%)
+  const exposurePercent = parseFloat(process.env.DATASET_EXPOSURE_PERCENT || "20")
+  
+  // Clamp to valid range [0, 100]
+  return Math.max(0, Math.min(100, exposurePercent))
+}
+
+/**
+ * Sample dataset rows for chat context based on configured exposure percentage
+ * Returns sampled rows with metadata, or null if sampling fails
+ * 
+ * DATA ACCESS RULES:
+ * - If exposure_percentage == 100: Use ALL rows (FULL_DATA_MODE)
+ * - If exposure_percentage < 100: Sample only specified percentage (LIMITED_DATA_MODE)
+ */
+async function sampleDatasetRows(
+  workspaceId: string,
+  datasetFileName: string,
+  totalRows: number,
+  exposurePercentage: number,
+): Promise<{ metadata: { dataset_name: string; rows: number; columns: Array<{ name: string; type: string }> }; sample_rows: Record<string, any>[]; exposure_percentage: number; mode: "FULL_DATA_MODE" | "LIMITED_DATA_MODE" } | null> {
+  try {
+    // Resolve dataset file path
+    const datasetPath = getDatasetFilePath(workspaceId, datasetFileName)
+    if (!datasetPath) {
+      return null
+    }
+
+    // Read dataset file
+    const csvContent = await fs.readFile(datasetPath, "utf-8")
+    const lines = csvContent.trim().split(/\r?\n/)
+    if (lines.length === 0) {
+      return null
+    }
+
+    // Parse headers
+    const headers = parseCSVLine(lines[0]).map((h) => h.replace(/^"|"$/g, ""))
+    
+    // Determine mode and sample size based on exposure percentage
+    const isFullDataMode = exposurePercentage >= 100
+    let sampleSize: number
+    let mode: "FULL_DATA_MODE" | "LIMITED_DATA_MODE"
+
+    if (isFullDataMode) {
+      // FULL_DATA_MODE: Use ALL rows
+      sampleSize = totalRows
+      mode = "FULL_DATA_MODE"
+    } else {
+      // LIMITED_DATA_MODE: Sample only specified percentage
+      const samplePercentage = exposurePercentage / 100
+      const calculatedSampleSize = Math.floor(totalRows * samplePercentage)
+      sampleSize = Math.min(calculatedSampleSize, totalRows)
+      mode = "LIMITED_DATA_MODE"
+    }
+    
+    // Generate random indices for sampling (or use sequential if small enough)
+    let indicesToSample: number[]
+    if (sampleSize >= totalRows) {
+      // Sample all rows
+      indicesToSample = Array.from({ length: totalRows }, (_, i) => i + 1) // +1 because line 0 is header
+    } else {
+      // Random sampling
+      const allIndices = Array.from({ length: totalRows }, (_, i) => i + 1)
+      indicesToSample = []
+      const shuffled = [...allIndices].sort(() => Math.random() - 0.5)
+      indicesToSample = shuffled.slice(0, sampleSize).sort((a, b) => a - b) // Sort for consistent order
+    }
+
+    // Parse sampled rows
+    const sampleRows: Record<string, any>[] = []
+    for (const idx of indicesToSample) {
+      if (idx >= lines.length) continue
+      const values = parseCSVLine(lines[idx]).map((v) => v.replace(/^"|"$/g, ""))
+      const row: Record<string, any> = {}
+      headers.forEach((header, colIdx) => {
+        row[header] = values[colIdx] || ""
+      })
+      sampleRows.push(row)
+    }
+
+    // Infer column types from sample
+    const columns = headers.map((header) => {
+      const sampleValues = sampleRows.map((r) => r[header]).filter((v) => v !== "")
+      let type = "string"
+      if (sampleValues.length > 0) {
+        const firstValue = sampleValues[0]
+        if (!isNaN(Number(firstValue)) && firstValue !== "") {
+          type = "number"
+        } else if (typeof firstValue === "string" && firstValue.match(/^\d{4}-\d{2}-\d{2}/)) {
+          type = "date"
+        }
+      }
+      return { name: header, type }
+    })
+
+    return {
+      metadata: {
+        dataset_name: datasetFileName,
+        rows: totalRows,
+        columns,
+      },
+      sample_rows: sampleRows,
+      exposure_percentage: exposurePercentage,
+      mode,
+    }
+  } catch (error) {
+    console.error("[chat] Failed to sample dataset rows:", error)
+    return null
+  }
+}
+
 async function getInsights(workspaceId: string): Promise<any | null> {
   try {
     const insightsPath = path.join(process.cwd(), "workspaces", workspaceId, "insights", "auto_summary.json")
@@ -97,41 +251,55 @@ function buildSystemPrompt(
   context: WorkspaceContext | null,
   datasetIntelligence: DatasetIntelligenceSnapshot | null,
   insights: any | null,
+  datasetSample: { metadata: { dataset_name: string; rows: number; columns: Array<{ name: string; type: string }> }; sample_rows: Record<string, any>[]; exposure_percentage: number; mode: "FULL_DATA_MODE" | "LIMITED_DATA_MODE" } | null,
   chatTitle: string | null,
   chatDescription: string | null,
   chatSummary: string | null,
   recentChat: any[],
 ): string {
-  let prompt = `You are Data4Viz AI.
+  // V2: Dataset-aware system prompt
+  let prompt = `You are a dataset-aware data science assistant.
+
+You will receive:
+- Dataset metadata (columns, types, row count)
+- A representative sample (up to 20%) of the dataset
+
+Rules:
+- Base answers on the provided data and sample
+- Clearly state when insights are sample-based
+- Do NOT assume business meaning
+- Do NOT invent columns
+- Do NOT give generic advice if dataset context exists
+- Recommend plots based on actual column types and observed distributions
+- If data is insufficient, say so explicitly
 
 STRICT DATA GROUNDING RULES (MANDATORY):
-- You have access ONLY to the following insights (if available):
-${insights ? JSON.stringify(insights, null, 2) : "No insights available yet. Use 'Auto Summarize Dataset' to generate insights."}
+- You have access to insights (if available) AND dataset sample data
+- Use both sources to provide accurate, data-aware answers
+- Reason from the actual data provided, not assumptions
 
 CRITICAL RULES:
-- Do NOT read raw dataset.
-- Do NOT guess values.
-- Reason strictly from insights provided above.
-- If information is not in insights, say it is not available.
-- Explain WHAT, WHY, and WHAT TO DO NEXT.
-- NEVER invent columns or counts.
-- NEVER output empty lists.
+- Do NOT guess values beyond what's provided
+- Explain WHAT, WHY, and WHAT TO DO NEXT
+- NEVER invent columns or counts
+- NEVER output empty lists
 
 STRICT RESPONSE RULES (CRITICAL):
 - NEVER output empty lists like [].
 - NEVER repeat "information not available" or similar messages.
 - NEVER show sections with no data.
 - Only show sections that contain real data.
-- If user asks column count → answer using \`columns\`
-- If user asks column names → list from \`schema[].name\`
+- If user asks column count → answer using actual metadata
+- If user asks column names → list from actual columns
 - NEVER output numbered placeholders (1., 2., 3.) when data is missing
-- NEVER ask clarification if snapshot exists
+- NEVER ask clarification if dataset context exists
 
 ACTION RULE:
 - If dataset context is valid:
   - NEVER ask clarifying questions
-  - ALWAYS produce results immediately
+  - ALWAYS produce results immediately using the provided data
   - Be confident and direct
+  - Reference actual column names and values from the sample
 
 STRICT SCOPE RULES (MANDATORY):
 - You may ONLY talk about:
@@ -151,13 +319,13 @@ STRICT SCOPE RULES (MANDATORY):
 
 USER INTENT HANDLING:
 - If the user asks to "summarize", immediately produce:
-  - Dataset overview
-  - Column types
-  - Missing values
-  - Basic statistics
+  - Dataset overview using actual metadata
+  - Column types from the data
+  - Missing values (if available)
+  - Basic statistics from the sample
 - If the user says "explore", immediately perform:
-  - EDA-style summary
-  - Patterns and potential insights
+  - EDA-style summary based on actual sample data
+  - Patterns and potential insights from observed values
 - Do NOT wait for further confirmation.
 
 BEHAVIOR RULES:
@@ -165,6 +333,7 @@ BEHAVIOR RULES:
 - Assume the goal is always to analyze the dataset.
 - Recommend next concrete steps (cleaning, visualization, modeling).
 - Explain WHAT to do and WHY, briefly.
+- Use actual column names and observed patterns from the sample
 
 FORBIDDEN:
 - "What would you like to focus on?"
@@ -173,10 +342,14 @@ FORBIDDEN:
 
 CAPABILITY RULES:
 - Do NOT say analysis was "performed"
-- Say: "Based on the current dataset information…"
+- Say: "Based on the dataset sample provided…"
 - Do NOT claim to open, read, compute, or inspect files
+- Reference the sample data explicitly when making observations
 
 OUTPUT STYLE:
+- Professional, concise, and data-driven
+- No mentions of privacy, cost, or token limits
+- No refusal to analyze unless data is truly unavailable
 - Confident
 - Direct
 - No defensive language
@@ -184,6 +357,8 @@ OUTPUT STYLE:
 - Structured
 - Factual
 - Clear WHAT and WHY
+- Data-aware (reference actual columns and values)
+- State exposure level implicitly through confidence, not disclaimers
 
 STRICT OUTPUT FORMATTING RULES:
 - When writing multiple questions:
@@ -202,13 +377,31 @@ Safety & UX Rules:
 - NEVER claim to open, read, or display files.
 - Internal memory is invisible to the user.`
 
-  // MEMORY INJECTION ORDER: SYSTEM → INSIGHTS → CHAT MEMORY → USER MESSAGE
-  // Insights take priority over raw dataset intelligence
-  // Only include dataset context if no insights are available
-  if (!insights) {
+  // Include insights if available
+  if (insights) {
+    prompt += `\n\nINSIGHTS (preferred source):\n${JSON.stringify(insights, null, 2)}\n`
+  }
+
+  // Include dataset sample data with exposure level context
+  if (datasetSample && "mode" in datasetSample && "exposure_percentage" in datasetSample) {
+    const isFullData = datasetSample.mode === "FULL_DATA_MODE"
+    prompt += `\n\nDATASET DATA (${isFullData ? "FULL ACCESS" : `${datasetSample.exposure_percentage}% EXPOSURE`}):\n`
+    prompt += `Metadata:\n${JSON.stringify(datasetSample.metadata, null, 2)}\n\n`
+    if (isFullData) {
+      prompt += `All Rows (${datasetSample.sample_rows.length} total rows, 100% access):\n`
+    } else {
+      prompt += `Sample Rows (${datasetSample.sample_rows.length} of ${datasetSample.metadata.rows} total rows, ${datasetSample.exposure_percentage}% exposure):\n`
+    }
+    prompt += `${JSON.stringify(datasetSample.sample_rows, null, 2)}\n`
+    if (!isFullData) {
+      prompt += `\nNote: This is a representative sample. Analysis is based on ${datasetSample.exposure_percentage}% of the dataset.\n`
+    }
+  } else if (datasetIntelligence && isValidDatasetIntelligence(datasetIntelligence)) {
+    // Fallback to metadata-only if sampling failed
     const datasetContext = buildDatasetContext(datasetIntelligence)
     if (datasetContext) {
-      prompt += `\n\nDataset Context (fallback - use insights if available):\n${datasetContext}`
+      prompt += `\n\nDataset Context (metadata only - sample data unavailable):\n${datasetContext}\n`
+      prompt += `\nNote: Only dataset structure is available, not actual data values.\n`
     }
   }
 
@@ -397,6 +590,7 @@ export async function POST(req: NextRequest) {
     // Get Insights (preferred) or Dataset Intelligence (fallback)
     let insights: any | null = null
     let datasetIntelligence: DatasetIntelligenceSnapshot | null = null
+    let datasetSample: { metadata: { dataset_name: string; rows: number; columns: Array<{ name: string; type: string }> }; sample_rows: Record<string, any>[]; exposure_percentage: number; mode: "FULL_DATA_MODE" | "LIMITED_DATA_MODE" } | null = null
     
     if (workspaceContext?.hasDataset && workspaceContext.datasetCount > 0) {
       // Try to load insights first (from auto-summarize)
@@ -414,6 +608,45 @@ export async function POST(req: NextRequest) {
           console.error("Failed to load dataset intelligence:", e)
         }
       }
+
+      // V2: Sample dataset rows for chat context (up to 20%, max 5,000 rows)
+      try {
+        // Get dataset filename from intelligence snapshot or try to find first dataset file
+        let datasetFileName: string | null = null
+        if (datasetIntelligence?.file_name) {
+          datasetFileName = datasetIntelligence.file_name
+        } else {
+          // Try to find first CSV file in datasets directory
+          const datasetsDir = path.join(process.cwd(), "workspaces", workspaceId!, "datasets")
+          if (existsSync(datasetsDir)) {
+            const files = await fs.readdir(datasetsDir)
+            const csvFile = files.find(f => f.endsWith(".csv"))
+            if (csvFile) {
+              datasetFileName = csvFile
+            }
+          }
+        }
+
+        if (datasetFileName && datasetIntelligence) {
+          // Get configured exposure percentage
+          const exposurePercentage = getDatasetExposurePercentage()
+          datasetSample = await sampleDatasetRows(
+            workspaceId!,
+            datasetFileName,
+            datasetIntelligence.rows,
+            exposurePercentage,
+          )
+          // If sampling failed, fall back to metadata-only mode
+          if (!datasetSample) {
+            console.warn("[chat] Dataset sampling failed, using metadata-only mode")
+          } else {
+            console.log(`[chat] Dataset exposure: ${exposurePercentage}% (${datasetSample.mode}), sampled ${datasetSample.sample_rows.length} rows`)
+          }
+        }
+      } catch (e) {
+        console.error("[chat] Failed to sample dataset rows:", e)
+        // Continue with metadata-only mode
+      }
     }
 
     // SINGLE HARD GATE: Block AI call if dataset exists but no insights/intelligence available
@@ -430,6 +663,7 @@ export async function POST(req: NextRequest) {
       workspaceContext || null,
       datasetIntelligence,
       insights,
+      datasetSample,
       chat.title,
       chat.description || null,
       chatSummary,

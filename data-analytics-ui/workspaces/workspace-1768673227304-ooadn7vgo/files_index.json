@@ -10,13 +10,18 @@
     "summary": "Index of workspace files"
   },
   {
-    "file": "ai_chats/ai_chat_chat_1768742326365_ezo9thnr2.json",
+    "file": "ai_chats/ai_chat_chat_1768757913156_q9l3pkak6.json",
     "type": "conversation",
     "summary": "Contains: messages"
   },
   {
-    "file": "ai_chats/ai_chat_recent_chat_1768742326365_ezo9thnr2.json",
+    "file": "ai_chats/ai_chat_recent_chat_1768757913156_q9l3pkak6.json",
     "type": "conversation",
     "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "dataset_intelligence.json",
+    "type": "dataset",
+    "summary": "Dataset metadata and schema"
   }
 ]

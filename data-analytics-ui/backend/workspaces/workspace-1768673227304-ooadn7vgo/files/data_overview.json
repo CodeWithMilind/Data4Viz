@@ -1,0 +1,294 @@
+{
+  "total_rows": 30,
+  "total_columns": 10,
+  "duplicate_row_count": 0,
+  "numeric_column_count": 8,
+  "categorical_column_count": 2,
+  "datetime_column_count": 0,
+  "columns": [
+    {
+      "name": "employee_id",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "age",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "gender",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "department",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "experience_years",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "weekly_work_hours",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "remote_days",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "performance_score",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "monthly_salary",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "satisfaction_level",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    }
+  ],
+  "column_insights": {
+    "employee_id": {
+      "unique": 30,
+      "top_values": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 1,
+        "8": 1,
+        "9": 1,
+        "10": 1,
+        "11": 1,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 1,
+        "16": 1,
+        "17": 1,
+        "18": 1,
+        "19": 1,
+        "20": 1,
+        "21": 1,
+        "22": 1,
+        "23": 1,
+        "24": 1,
+        "25": 1,
+        "26": 1,
+        "27": 1,
+        "28": 1,
+        "29": 1,
+        "30": 1
+      }
+    },
+    "age": {
+      "unique": 22,
+      "top_values": {
+        "29": 3,
+        "35": 2,
+        "31": 2,
+        "26": 2,
+        "28": 2,
+        "24": 2,
+        "27": 2,
+        "23": 1,
+        "41": 1,
+        "34": 1,
+        "38": 1,
+        "25": 1,
+        "32": 1,
+        "45": 1,
+        "22": 1,
+        "36": 1,
+        "30": 1,
+        "39": 1,
+        "33": 1,
+        "42": 1,
+        "37": 1,
+        "44": 1
+      }
+    },
+    "gender": {
+      "unique": 2,
+      "top_values": {
+        "Male": 15,
+        "Female": 15
+      }
+    },
+    "department": {
+      "unique": 4,
+      "top_values": {
+        "Tech": 8,
+        "HR": 8,
+        "Finance": 7,
+        "Sales": 7
+      }
+    },
+    "experience_years": {
+      "unique": 18,
+      "top_values": {
+        "3": 4,
+        "5": 3,
+        "2": 3,
+        "1": 2,
+        "7": 2,
+        "10": 2,
+        "4": 2,
+        "9": 2,
+        "15": 1,
+        "13": 1,
+        "8": 1,
+        "20": 1,
+        "11": 1,
+        "6": 1,
+        "14": 1,
+        "17": 1,
+        "12": 1,
+        "18": 1
+      }
+    },
+    "weekly_work_hours": {
+      "unique": 12,
+      "top_values": {
+        "38": 4,
+        "40": 3,
+        "45": 3,
+        "42": 3,
+        "44": 3,
+        "39": 3,
+        "43": 2,
+        "46": 2,
+        "41": 2,
+        "47": 2,
+        "48": 2,
+        "37": 1
+      }
+    },
+    "remote_days": {
+      "unique": 5,
+      "top_values": {
+        "1": 7,
+        "4": 7,
+        "0": 6,
+        "2": 5,
+        "3": 5
+      }
+    },
+    "performance_score": {
+      "unique": 14,
+      "top_values": {
+        "4.2": 3,
+        "4.6": 3,
+        "4.5": 3,
+        "3.9": 3,
+        "3.8": 2,
+        "4.1": 2,
+        "4.8": 2,
+        "3.7": 2,
+        "4.4": 2,
+        "4.7": 2,
+        "4.3": 2,
+        "4.9": 2,
+        "4.0": 1,
+        "3.6": 1
+      }
+    },
+    "monthly_salary": {
+      "unique": 30,
+      "top_values": {
+        "35000": 1,
+        "48000": 1,
+        "82000": 1,
+        "42000": 1,
+        "76000": 1,
+        "46000": 1,
+        "110000": 1,
+        "38000": 1,
+        "79000": 1,
+        "44000": 1,
+        "98000": 1,
+        "40000": 1,
+        "83000": 1,
+        "49000": 1,
+        "120000": 1,
+        "34000": 1,
+        "87000": 1,
+        "52000": 1,
+        "102000": 1,
+        "43000": 1,
+        "80000": 1,
+        "47000": 1,
+        "115000": 1,
+        "39000": 1,
+        "90000": 1,
+        "54000": 1,
+        "118000": 1,
+        "45000": 1,
+        "85000": 1,
+        "50000": 1
+      }
+    },
+    "satisfaction_level": {
+      "unique": 25,
+      "top_values": {
+        "0.88": 2,
+        "0.84": 2,
+        "0.86": 2,
+        "0.82": 2,
+        "0.87": 2,
+        "0.74": 1,
+        "0.8": 1,
+        "0.72": 1,
+        "0.81": 1,
+        "0.7": 1,
+        "0.91": 1,
+        "0.89": 1,
+        "0.78": 1,
+        "0.73": 1,
+        "0.93": 1,
+        "0.69": 1,
+        "0.83": 1,
+        "0.9": 1,
+        "0.75": 1,
+        "0.85": 1,
+        "0.79": 1,
+        "0.92": 1,
+        "0.71": 1,
+        "0.94": 1,
+        "0.76": 1
+      }
+    }
+  }
+}
