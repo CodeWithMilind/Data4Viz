@@ -1,0 +1,37 @@
+[
+  {
+    "file": "ai_chats/ai_chat_chat_1768727662929_ck06kqv5u.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768727662929_ck06kqv5u.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/index.json",
+    "type": "conversation",
+    "summary": "Contains: chats"
+  },
+  {
+    "file": "files_index.json",
+    "type": "data",
+    "summary": "Index of workspace files"
+  },
+  {
+    "file": "dataset_intelligence.json",
+    "type": "dataset",
+    "summary": "Dataset metadata and schema"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768732133722_q837xhhnh.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768732133722_q837xhhnh.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  }
+]

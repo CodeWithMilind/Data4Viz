@@ -230,12 +230,14 @@ def list_workspace_files(workspace_id: str) -> list[dict]:
                             file_type = "JSON"
                     elif suffix == ".log":
                         file_type = "LOG"
+                    elif suffix == ".ipynb":
+                        file_type = "NOTEBOOK"
                     else:
                         file_type = suffix[1:].upper() if suffix else "UNKNOWN"
                     
                     files.append({
-                        "id": file_path.name,
-                        "name": file_path.name,
+                        "id": f"files/{file_path.name}",
+                        "name": f"files/{file_path.name}",
                         "size": stat.st_size,
                         "type": file_type,
                         "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),

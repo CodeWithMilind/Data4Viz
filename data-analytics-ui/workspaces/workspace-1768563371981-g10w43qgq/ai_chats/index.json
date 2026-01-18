@@ -1,0 +1,47 @@
+{
+  "chats": [
+    {
+      "chatId": "chat_1768726137164_m17qyuy97",
+      "title": "lets talk about mental stress",
+      "description": "i will talk about mental strees",
+      "createdAt": 1768726137165,
+      "updatedAt": 1768726333545,
+      "isDeleted": true
+    },
+    {
+      "chatId": "chat_1768726348921_9lnv78xnt",
+      "title": "data science internship",
+      "createdAt": 1768726348921,
+      "updatedAt": 1768726902644,
+      "isDeleted": true
+    },
+    {
+      "chatId": "chat_1768726908717_hdzxp2jys",
+      "title": "interview",
+      "createdAt": 1768726908717,
+      "updatedAt": 1768727189945,
+      "isDeleted": true
+    },
+    {
+      "chatId": "chat_1768726936500_fnpq9e2rk",
+      "title": "data clean",
+      "createdAt": 1768726936500,
+      "updatedAt": 1768727192977,
+      "isDeleted": true
+    },
+    {
+      "chatId": "chat_1768727204956_22f605jjv",
+      "title": "mental stress",
+      "createdAt": 1768727204956,
+      "updatedAt": 1768727302618,
+      "isDeleted": true
+    },
+    {
+      "chatId": "chat_1768727316163_075iqc7jw",
+      "title": "interview",
+      "createdAt": 1768727316163,
+      "updatedAt": 1768727545829,
+      "isDeleted": true
+    }
+  ]
+}

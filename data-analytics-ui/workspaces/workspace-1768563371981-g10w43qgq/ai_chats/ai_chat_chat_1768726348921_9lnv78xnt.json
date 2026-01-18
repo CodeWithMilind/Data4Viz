@@ -1,0 +1,28 @@
+{
+  "messages": [
+    {
+      "id": "1768726360867",
+      "role": "user",
+      "content": "analyze my 1 dataset",
+      "timestamp": 1768726360867
+    },
+    {
+      "id": "1768726360868",
+      "role": "assistant",
+      "content": "Let's get started with analyzing your dataset. \n\nFirst, let's summarize the dataset you've uploaded. From the workspace state, I see that the dataset summary is available. \n\nWould you like to view the dataset summary now, or would you like to proceed with cleaning the data first?",
+      "timestamp": 1768726360868
+    },
+    {
+      "id": "1768726395192",
+      "role": "user",
+      "content": "lets do sumerization",
+      "timestamp": 1768726395192
+    },
+    {
+      "id": "1768726395193",
+      "role": "assistant",
+      "content": "To summarize the dataset, I can display the information available in 'ai_chats/ai_chat_recent_chat_1768726137164_m17qyuy97.json'. \n\nHere's a brief summary of your dataset:\n\n**Dataset Summary:**\n\n* **Count:** 1 dataset present\n* **File Size:** Estimate dataset file size based on file type not available (Please add file info for better size)\n* **Description:** No description available for the dataset\n\n\nWould you like me to display more information about the dataset? Perhaps its metadata?",
+      "timestamp": 1768726395193
+    }
+  ]
+}

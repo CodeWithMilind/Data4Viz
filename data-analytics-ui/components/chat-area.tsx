@@ -1,13 +1,33 @@
 "use client"
 
 import { useState, useCallback, useEffect, useMemo } from "react"
-import { Download, ArrowRight } from "lucide-react"
+import { Download, ArrowRight, Plus, MessageSquare, Edit2, Trash2, MoreVertical, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChatMessages } from "@/components/chat-messages"
 import { ChatInput } from "@/components/chat-input"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useAIConfigStore } from "@/lib/ai-config-store"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { computeWorkspaceContext, getRecommendation } from "@/lib/workspace-context"
+import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
 
 export interface Message {
   id: string
@@ -16,21 +36,44 @@ export interface Message {
   suggestions?: string[]
 }
 
+interface ChatEntry {
+  chatId: string
+  title: string
+  description?: string
+  createdAt: number
+  updatedAt: number
+  isDeleted: boolean
+}
+
 interface ChatAreaProps {
   onNavigate?: (page: string) => void
   currentPage?: string
 }
 
 export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
+  const [chats, setChats] = useState<ChatEntry[]>([])
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
+  const [isLoadingChats, setIsLoadingChats] = useState(true)
+  const [newChatOpen, setNewChatOpen] = useState(false)
+  const [newChatTitle, setNewChatTitle] = useState("")
+  const [newChatDescription, setNewChatDescription] = useState("")
+  const [isCreatingChat, setIsCreatingChat] = useState(false)
+  const [renameChatId, setRenameChatId] = useState<string | null>(null)
+  const [renameTitle, setRenameTitle] = useState("")
+  const [renameDescription, setRenameDescription] = useState("")
+  const [isAutoSummarizing, setIsAutoSummarizing] = useState(false)
 
   const { provider, model, apiKey } = useAIConfigStore()
   const { currentWorkspace } = useWorkspace()
+  const { toast } = useToast()
 
   const workspaceContext = useMemo(() => computeWorkspaceContext(currentWorkspace), [currentWorkspace])
+  const activeChat = chats.find((c) => c.chatId === activeChatId)
+
   const recommendation = useMemo(() => {
     if (!workspaceContext) return null
     const rec = getRecommendation(workspaceContext)
@@ -52,16 +95,45 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
     return rec
   }, [workspaceContext, messages, currentPage])
 
+  const loadChats = useCallback(async () => {
+    if (!currentWorkspace?.id) {
+      setIsLoadingChats(false)
+      setChats([])
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/ai/chats?workspaceId=${currentWorkspace.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        const loadedChats = data.chats || []
+        setChats(loadedChats)
+        
+        if (loadedChats.length > 0 && !activeChatId) {
+          setActiveChatId(loadedChats[0].chatId)
+        }
+      }
+    } catch {
+    } finally {
+      setIsLoadingChats(false)
+    }
+  }, [currentWorkspace?.id, activeChatId])
+
+  useEffect(() => {
+    loadChats()
+  }, [loadChats])
+
   useEffect(() => {
     async function loadChatHistory() {
-      if (!currentWorkspace?.id) {
+      if (!currentWorkspace?.id || !activeChatId) {
         setIsLoadingHistory(false)
         setMessages([])
         return
       }
 
+      setIsLoadingHistory(true)
       try {
-        const res = await fetch(`/api/ai/chat/history?workspaceId=${currentWorkspace.id}`)
+        const res = await fetch(`/api/ai/chat/history?workspaceId=${currentWorkspace.id}&chatId=${activeChatId}`)
         if (res.ok) {
           const data = await res.json()
           const loadedMessages: Message[] = (data.messages || [])
@@ -81,7 +153,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
     }
 
     loadChatHistory()
-  }, [currentWorkspace?.id])
+  }, [currentWorkspace?.id, activeChatId])
 
   useEffect(() => {
     return () => {
@@ -90,20 +162,22 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
     }
   }, [])
 
-  const canSend = provider === "groq" && !!apiKey && !isSending && !!currentWorkspace?.id
+  const canSend = provider === "groq" && !!apiKey && !isSending && !!currentWorkspace?.id && !!activeChatId
   const warning =
     !currentWorkspace?.id
       ? "Select a workspace to start chatting."
-      : !apiKey && provider === "groq"
-        ? "Add your Groq API key in Settings to enable chat."
-        : provider !== "groq"
-          ? "Only Groq is supported. Set Groq in Settings."
-          : null
+      : !activeChatId
+        ? "Create or select a chat to start."
+        : !apiKey && provider === "groq"
+          ? "Add your Groq API key in Settings to enable chat."
+          : provider !== "groq"
+            ? "Only Groq is supported. Set Groq in Settings."
+            : null
 
   const runFetch = useCallback(
     async (userMessage: string) => {
-      if (!currentWorkspace?.id) {
-        setError("No workspace selected")
+      if (!currentWorkspace?.id || !activeChatId) {
+        setError("No workspace or chat selected")
         return
       }
 
@@ -120,6 +194,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             workspaceId: currentWorkspace.id,
+            chatId: activeChatId,
             userMessage,
             workspaceContext,
             provider,
@@ -157,9 +232,9 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
           ...p,
           { id: crypto.randomUUID(), role: "assistant" as const, content: data.content },
         ])
-        
-        // Trigger files refresh so ai_chat.json appears in Files page
+
         window.dispatchEvent(new CustomEvent("refreshFiles"))
+        loadChats()
       } catch (err: any) {
         clearTimeout(timeoutId)
         setMessages((p) => p.filter((m) => m.id !== "loading"))
@@ -172,7 +247,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
         setIsSending(false)
       }
     },
-    [provider, model, apiKey, currentWorkspace?.id, workspaceContext],
+    [provider, model, apiKey, currentWorkspace?.id, activeChatId, workspaceContext, loadChats],
   )
 
   const handleSendMessage = (content: string) => {
@@ -191,70 +266,394 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
     handleSendMessage(suggestion)
   }
 
-  if (isLoadingHistory) {
+  const handleCreateChat = async () => {
+    if (!newChatTitle.trim() || !currentWorkspace?.id) return
+
+    setIsCreatingChat(true)
+    try {
+      const res = await fetch("/api/ai/chats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: currentWorkspace.id,
+          title: newChatTitle.trim(),
+          description: newChatDescription.trim() || undefined,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setActiveChatId(data.chat.chatId)
+        setNewChatOpen(false)
+        setNewChatTitle("")
+        setNewChatDescription("")
+        await loadChats()
+      } else {
+        const error = await res.json()
+        setError(error.error || "Failed to create chat")
+      }
+    } catch {
+      setError("Failed to create chat")
+    } finally {
+      setIsCreatingChat(false)
+    }
+  }
+
+  const handleRenameChat = async () => {
+    if (!renameChatId || !renameTitle.trim() || !currentWorkspace?.id) return
+
+    try {
+      const res = await fetch(`/api/ai/chats/${renameChatId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: currentWorkspace.id,
+          title: renameTitle.trim(),
+          description: renameDescription.trim() || undefined,
+        }),
+      })
+
+      if (res.ok) {
+        setRenameChatId(null)
+        setRenameTitle("")
+        setRenameDescription("")
+        await loadChats()
+      } else {
+        const error = await res.json()
+        setError(error.error || "Failed to rename chat")
+      }
+    } catch {
+      setError("Failed to rename chat")
+    }
+  }
+
+  const handleDeleteChat = async (chatId: string) => {
+    if (!currentWorkspace?.id) return
+
+    try {
+      const res = await fetch(`/api/ai/chats/${chatId}?workspaceId=${currentWorkspace.id}`, {
+        method: "DELETE",
+      })
+
+      if (res.ok) {
+        if (activeChatId === chatId) {
+          const remainingChats = chats.filter((c) => c.chatId !== chatId)
+          setActiveChatId(remainingChats.length > 0 ? remainingChats[0].chatId : null)
+        }
+        await loadChats()
+      }
+    } catch {
+      setError("Failed to delete chat")
+    }
+  }
+
+  const openRenameDialog = (chat: ChatEntry) => {
+    setRenameChatId(chat.chatId)
+    setRenameTitle(chat.title)
+    setRenameDescription(chat.description || "")
+  }
+
+  const handleAutoSummarize = useCallback(async () => {
+    if (!currentWorkspace?.id || !workspaceContext?.hasDataset) {
+      toast({
+        title: "Error",
+        description: "Please upload a dataset first",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsAutoSummarizing(true)
+    try {
+      const res = await fetch("/api/ai/auto-summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: currentWorkspace.id,
+          provider,
+          model,
+          apiKey,
+        }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Failed to auto summarize" }))
+        throw new Error(error.error || "Failed to auto summarize")
+      }
+
+      const data = await res.json()
+      toast({
+        title: "Success",
+        description: "Dataset summary generated! Check Files section for the notebook.",
+      })
+
+      // Refresh files
+      window.dispatchEvent(new CustomEvent("refreshFiles"))
+      
+      // Optionally navigate to files or notebook page
+      if (onNavigate) {
+        onNavigate("notebook")
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to auto summarize dataset",
+        variant: "destructive",
+      })
+    } finally {
+      setIsAutoSummarizing(false)
+    }
+  }, [currentWorkspace?.id, workspaceContext?.hasDataset, provider, model, apiKey, toast, onNavigate])
+
+  if (isLoadingChats) {
     return (
       <main className="flex-1 flex flex-col h-screen bg-background">
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading chat history...</p>
+          <p className="text-sm text-muted-foreground">Loading chats...</p>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="flex-1 flex flex-col h-screen bg-background">
-      <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Workspace:</span>
-          <span className="text-sm font-medium text-foreground">
-            {currentWorkspace?.name || "No workspace"}
-          </span>
+    <main className="flex-1 flex h-screen bg-background">
+      <aside className="w-64 border-r border-border bg-card flex flex-col">
+        <div className="p-4 border-b border-border space-y-2">
+          <Button
+            onClick={() => setNewChatOpen(true)}
+            className="w-full gap-2"
+            size="sm"
+            disabled={!currentWorkspace?.id}
+          >
+            <Plus className="w-4 h-4" />
+            New Chat
+          </Button>
+          <Button
+            onClick={handleAutoSummarize}
+            className="w-full gap-2"
+            size="sm"
+            variant="outline"
+            disabled={!currentWorkspace?.id || !workspaceContext?.hasDataset || isAutoSummarizing}
+          >
+            <Sparkles className="w-4 h-4" />
+            {isAutoSummarizing ? "Summarizing..." : "Auto Summarize Dataset"}
+          </Button>
         </div>
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-          <Download className="w-4 h-4" />
-          Export
-        </Button>
-      </header>
+        <div className="flex-1 overflow-y-auto">
+          {chats.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No chats yet. Create one to get started.
+            </div>
+          ) : (
+            <div className="p-2 space-y-1">
+              {chats.map((chat) => (
+                <div
+                  key={chat.chatId}
+                  className={cn(
+                    "group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors",
+                    activeChatId === chat.chatId
+                      ? "bg-primary/10 border border-primary/20"
+                      : "hover:bg-muted/50",
+                  )}
+                  onClick={() => setActiveChatId(chat.chatId)}
+                >
+                  <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{chat.title}</div>
+                    {chat.description && (
+                      <div className="text-xs text-muted-foreground truncate">{chat.description}</div>
+                    )}
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="w-6 h-6 opacity-0 group-hover:opacity-100">
+                        <MoreVertical className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openRenameDialog(chat)}>
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => handleDeleteChat(chat.chatId)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </aside>
 
-      <ChatMessages messages={messages} onSuggestionClick={handleSuggestionClick} />
-
-      <ChatInput
-        onSendMessage={handleSendMessage}
-        disabled={!canSend}
-        top={
+      <div className="flex-1 flex flex-col">
+        {!activeChatId ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-4">Select a chat or create a new one</p>
+              <Button onClick={() => setNewChatOpen(true)} disabled={!currentWorkspace?.id}>
+                <Plus className="w-4 h-4 mr-2" />
+                New Chat
+              </Button>
+            </div>
+          </div>
+        ) : (
           <>
-            {error && (
-              <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                <span>{error}</span>
-                <Button variant="outline" size="sm" onClick={handleRetry}>
-                  Retry
-                </Button>
-              </div>
-            )}
-            {!error && recommendation && (
-              <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-500/50 bg-blue-500/10 px-3 py-2 text-sm text-blue-700 dark:text-blue-400">
-                <span>{recommendation.message}</span>
-                {onNavigate && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onNavigate(recommendation.page)}
-                    className="gap-1.5"
-                  >
-                    {recommendation.action}
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Button>
+            <header className="h-14 flex items-center justify-between px-6 border-b border-border bg-card">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">{activeChat?.title || "Chat"}</span>
+                {activeChat?.description && (
+                  <span className="text-xs text-muted-foreground">• {activeChat.description}</span>
                 )}
               </div>
-            )}
-            {!error && !recommendation && warning && (
-              <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-                {warning}
+              <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                <Download className="w-4 h-4" />
+                Export
+              </Button>
+            </header>
+
+            {isLoadingHistory ? (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">Loading chat history...</p>
               </div>
+            ) : (
+              <>
+                <ChatMessages messages={messages} onSuggestionClick={handleSuggestionClick} />
+
+                <ChatInput
+                  onSendMessage={handleSendMessage}
+                  disabled={!canSend}
+                  top={
+                    <>
+                      {error && (
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                          <span>{error}</span>
+                          <Button variant="outline" size="sm" onClick={handleRetry}>
+                            Retry
+                          </Button>
+                        </div>
+                      )}
+                      {!error && recommendation && (
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-blue-500/50 bg-blue-500/10 px-3 py-2 text-sm text-blue-700 dark:text-blue-400">
+                          <span>{recommendation.message}</span>
+                          {onNavigate && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onNavigate(recommendation.page)}
+                              className="gap-1.5"
+                            >
+                              {recommendation.action}
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      {!error && !recommendation && warning && (
+                        <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                          {warning}
+                        </div>
+                      )}
+                    </>
+                  }
+                />
+              </>
             )}
           </>
-        }
-      />
+        )}
+      </div>
+
+      <Dialog open={newChatOpen} onOpenChange={setNewChatOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Chat</DialogTitle>
+            <DialogDescription>Give your chat a name to get started.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="chat-title">Chat Name *</Label>
+              <Input
+                id="chat-title"
+                value={newChatTitle}
+                onChange={(e) => setNewChatTitle(e.target.value)}
+                placeholder="e.g., Data Cleaning Session"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newChatTitle.trim()) {
+                    handleCreateChat()
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <Label htmlFor="chat-description">Description (optional)</Label>
+              <Textarea
+                id="chat-description"
+                value={newChatDescription}
+                onChange={(e) => setNewChatDescription(e.target.value)}
+                placeholder="e.g., Handle missing values and duplicates"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewChatOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateChat} disabled={!newChatTitle.trim() || isCreatingChat}>
+              {isCreatingChat ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!renameChatId} onOpenChange={(open) => !open && setRenameChatId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Chat</DialogTitle>
+            <DialogDescription>Update the chat name and description.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rename-title">Chat Name *</Label>
+              <Input
+                id="rename-title"
+                value={renameTitle}
+                onChange={(e) => setRenameTitle(e.target.value)}
+                placeholder="e.g., Data Cleaning Session"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && renameTitle.trim()) {
+                    handleRenameChat()
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <Label htmlFor="rename-description">Description (optional)</Label>
+              <Textarea
+                id="rename-description"
+                value={renameDescription}
+                onChange={(e) => setRenameDescription(e.target.value)}
+                placeholder="e.g., Handle missing values and duplicates"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameChatId(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameChat} disabled={!renameTitle.trim()}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

@@ -1,0 +1,16 @@
+{
+  "messages": [
+    {
+      "id": "1768727324508",
+      "role": "user",
+      "content": "5 interview que",
+      "timestamp": 1768727324508
+    },
+    {
+      "id": "1768727324509",
+      "role": "assistant",
+      "content": "1. What are the common interview questions asked in a data scientist role and what are some strategies to answer them effectively? <blank line> 2. How can a candidate demonstrate their problem-solving skills during an interview for a data analyst position? <blank line> 3. What are some common behavioral questions asked in technical interviews and how can a candidate prepare for them? <blank line> 4. What are the key differences between a data engineer and a data scientist, and how do their roles contribute to the overall data workflow? <blank line> 5. How can a candidate showcase their communication skills and storytelling abilities during a technical interview for a data-related position?",
+      "timestamp": 1768727324509
+    }
+  ]
+}

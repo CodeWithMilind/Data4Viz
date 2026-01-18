@@ -130,20 +130,29 @@ async def download_workspace_file(workspace_id: str, file_id: str):
         
         file_path = None
         
-        # Try datasets directory first
-        potential_path = datasets_dir / file_id
-        if potential_path.exists() and potential_path.is_file():
-            file_path = potential_path
+        # Handle files/ prefix
+        actual_file_id = file_id
+        if file_id.startswith("files/"):
+            actual_file_id = file_id.replace("files/", "", 1)
+            potential_path = files_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        
+        # Try datasets directory
+        if not file_path:
+            potential_path = datasets_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
         
         # Try files directory
         if not file_path:
-            potential_path = files_dir / file_id
+            potential_path = files_dir / actual_file_id
             if potential_path.exists() and potential_path.is_file():
                 file_path = potential_path
         
         # Try logs directory
         if not file_path:
-            potential_path = logs_dir / file_id
+            potential_path = logs_dir / actual_file_id
             if potential_path.exists() and potential_path.is_file():
                 file_path = potential_path
         

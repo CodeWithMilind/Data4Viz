@@ -1,0 +1,18 @@
+{
+  "chats": [
+    {
+      "chatId": "chat_1768727662929_ck06kqv5u",
+      "title": "summery",
+      "createdAt": 1768727662929,
+      "updatedAt": 1768728263273,
+      "isDeleted": true
+    },
+    {
+      "chatId": "chat_1768732133722_q837xhhnh",
+      "title": "eda",
+      "createdAt": 1768732133722,
+      "updatedAt": 1768732852196,
+      "isDeleted": false
+    }
+  ]
+}

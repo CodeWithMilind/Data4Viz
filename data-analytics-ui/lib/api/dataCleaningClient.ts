@@ -484,6 +484,43 @@ export async function refreshDatasetOverview(
 }
 
 /**
+ * Generate dataset intelligence snapshot from overview.
+ * 
+ * This creates a compact JSON snapshot that AI uses for analysis.
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetId Dataset filename (required)
+ * @returns Success status
+ * @throws Error if API call fails
+ */
+export async function generateDatasetIntelligenceSnapshot(
+  workspaceId: string,
+  datasetId: string
+): Promise<void> {
+  const requestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/workspaces/${workspaceId}/dataset-intelligence`;
+
+  console.log(`[generateDatasetIntelligenceSnapshot] Request URL: ${requestUrl}`);
+
+  const response = await fetch(requestUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ datasetId }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    console.error(
+      `[generateDatasetIntelligenceSnapshot] Error ${response.status}: ${errorText}`
+    );
+    throw new Error(`Failed to generate dataset intelligence: ${errorText}`);
+  }
+
+  console.log(`[generateDatasetIntelligenceSnapshot] Success`);
+}
+
+/**
  * Get dataset schema from backend
  * 
  * Schema is the single source of truth for column metadata.

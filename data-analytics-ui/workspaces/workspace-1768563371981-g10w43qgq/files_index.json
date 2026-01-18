@@ -13,5 +13,70 @@
     "file": "ai_chat_recent.json",
     "type": "data",
     "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768726137164_m17qyuy97.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768726137164_m17qyuy97.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/index.json",
+    "type": "conversation",
+    "summary": "Contains: chats"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768726348921_9lnv78xnt.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768726348921_9lnv78xnt.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768726908717_hdzxp2jys.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768726936500_fnpq9e2rk.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768726908717_hdzxp2jys.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768726936500_fnpq9e2rk.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768727204956_22f605jjv.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768727204956_22f605jjv.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768727316163_075iqc7jw.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1768727316163_075iqc7jw.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
   }
 ]

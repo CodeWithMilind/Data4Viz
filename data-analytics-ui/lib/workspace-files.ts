@@ -1,6 +1,6 @@
 import { promises as fs } from "fs"
 import path from "path"
-import { existsSync, mkdirSync } from "fs"
+import { existsSync, mkdirSync, unlinkSync } from "fs"
 
 const WORKSPACES_DIR = path.join(process.cwd(), "workspaces")
 
@@ -25,12 +25,41 @@ export interface ChatHistory {
   messages: ChatMessage[]
 }
 
+export interface DatasetIntelligenceSnapshot {
+  file_name: string
+  rows: number
+  columns: number
+  schema: Array<{
+    name: string
+    type: "numeric" | "categorical" | "text" | "datetime"
+    missing: number
+  }>
+  numeric_summary: Record<string, {
+    min: number
+    max: number
+    mean: number
+  }>
+  categorical_summary: Record<string, string[]>
+  data_quality: {
+    missing_columns: number
+    duplicate_rows: number
+  }
+}
+
 function getWorkspaceDir(workspaceId: string): string {
   return path.join(WORKSPACES_DIR, workspaceId)
 }
 
+function getChatsDir(workspaceId: string): string {
+  return path.join(getWorkspaceDir(workspaceId), "ai_chats")
+}
+
 function getFilePath(workspaceId: string, filename: string): string {
   return path.join(getWorkspaceDir(workspaceId), filename)
+}
+
+function getChatFilePath(workspaceId: string, chatId: string, filename: string): string {
+  return path.join(getChatsDir(workspaceId), filename.replace("<chatId>", chatId))
 }
 
 async function ensureWorkspaceDir(workspaceId: string): Promise<void> {
@@ -38,6 +67,10 @@ async function ensureWorkspaceDir(workspaceId: string): Promise<void> {
     const dir = getWorkspaceDir(workspaceId)
     if (!existsSync(dir)) {
       await fs.mkdir(dir, { recursive: true })
+    }
+    const chatsDir = getChatsDir(workspaceId)
+    if (!existsSync(chatsDir)) {
+      await fs.mkdir(chatsDir, { recursive: true })
     }
   } catch (error) {
     console.error(`Failed to ensure workspace directory for ${workspaceId}:`, error)
@@ -87,8 +120,28 @@ export async function listWorkspaceFiles(workspaceId: string): Promise<string[]>
     if (!existsSync(dir)) {
       return []
     }
-    const files = await fs.readdir(dir)
-    return files.filter((f) => f.endsWith(".json"))
+    const files: string[] = []
+    
+    // List root files
+    const rootFiles = await fs.readdir(dir)
+    for (const file of rootFiles) {
+      if (file.endsWith(".json") && !file.startsWith(".")) {
+        files.push(file)
+      }
+    }
+    
+    // List chat files
+    const chatsDir = getChatsDir(workspaceId)
+    if (existsSync(chatsDir)) {
+      const chatFiles = await fs.readdir(chatsDir)
+      for (const file of chatFiles) {
+        if (file.endsWith(".json") && !file.startsWith(".")) {
+          files.push(`ai_chats/${file}`)
+        }
+      }
+    }
+    
+    return files
   } catch {
     return []
   }
@@ -126,7 +179,8 @@ export async function updateFilesIndex(workspaceId: string, filename: string): P
 }
 
 function inferFileType(filename: string): string {
-  if (filename === "ai_chat.json") return "conversation"
+  if (filename.startsWith("ai_chat") && filename.endsWith(".json")) return "conversation"
+  if (filename === "index.json" && filename.includes("ai_chats")) return "index"
   if (filename.includes("dataset")) return "dataset"
   if (filename.includes("meta")) return "metadata"
   if (filename.includes("config")) return "config"
@@ -135,14 +189,17 @@ function inferFileType(filename: string): string {
 }
 
 async function generateFileSummary(workspaceId: string, filename: string): Promise<string> {
-  if (filename === "ai_chat.json") {
-    return "Full chat history with user (append-only)"
+  if (filename.startsWith("ai_chat_") && filename.endsWith(".json") && !filename.includes("recent") && !filename.includes("summary")) {
+    return "Full chat history (append-only)"
   }
-  if (filename === "ai_chat_recent.json") {
+  if (filename.includes("ai_chat_recent_")) {
     return "Recent chat messages (working memory)"
   }
-  if (filename === "ai_chat_summary.json") {
+  if (filename.includes("ai_chat_summary_")) {
     return "Long-term chat summary"
+  }
+  if (filename === "index.json" && filename.includes("ai_chats")) {
+    return "Chat index"
   }
   if (filename === "files_index.json") {
     return "Index of workspace files"
@@ -165,15 +222,226 @@ async function generateFileSummary(workspaceId: string, filename: string): Promi
   }
 }
 
-export async function getChatHistory(workspaceId: string): Promise<ChatHistory> {
-  const history = await readWorkspaceFile<ChatHistory>(workspaceId, "ai_chat.json")
+async function getChatIndexPath(workspaceId: string): Promise<string> {
+  await ensureWorkspaceDir(workspaceId)
+  return path.join(getChatsDir(workspaceId), "index.json")
+}
+
+export async function getChatIndex(workspaceId: string): Promise<ChatIndex> {
+  try {
+    const indexPath = await getChatIndexPath(workspaceId)
+    if (!existsSync(indexPath)) {
+      return { chats: [] }
+    }
+    const content = await fs.readFile(indexPath, "utf-8")
+    return JSON.parse(content) as ChatIndex
+  } catch {
+    return { chats: [] }
+  }
+}
+
+export async function saveChatIndex(workspaceId: string, index: ChatIndex): Promise<void> {
+  const indexPath = await getChatIndexPath(workspaceId)
+  await fs.writeFile(indexPath, JSON.stringify(index, null, 2), "utf-8")
+}
+
+export async function createChat(
+  workspaceId: string,
+  title: string,
+  description?: string,
+): Promise<ChatEntry> {
+  const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const now = Date.now()
+  
+  const chat: ChatEntry = {
+    chatId,
+    title,
+    description,
+    createdAt: now,
+    updatedAt: now,
+    isDeleted: false,
+  }
+  
+  const index = await getChatIndex(workspaceId)
+  index.chats.push(chat)
+  await saveChatIndex(workspaceId, index)
+  
+  // Create empty chat files
+  await ensureWorkspaceDir(workspaceId)
+  const emptyHistory: ChatHistory = { messages: [] }
+  const emptyRecent: RecentChat = { messages: [] }
+  
+  await writeChatFile(workspaceId, chatId, "ai_chat_<chatId>.json", emptyHistory, true)
+  await writeChatFile(workspaceId, chatId, "ai_chat_recent_<chatId>.json", emptyRecent, true)
+  
+  return chat
+}
+
+export async function updateChat(
+  workspaceId: string,
+  chatId: string,
+  updates: { title?: string; description?: string },
+): Promise<void> {
+  const index = await getChatIndex(workspaceId)
+  const chat = index.chats.find((c) => c.chatId === chatId)
+  if (!chat) {
+    throw new Error(`Chat ${chatId} not found`)
+  }
+  
+  if (updates.title !== undefined) chat.title = updates.title
+  if (updates.description !== undefined) chat.description = updates.description
+  chat.updatedAt = Date.now()
+  
+  await saveChatIndex(workspaceId, index)
+}
+
+export async function generateDatasetIntelligence(
+  workspaceId: string,
+  overview: any,
+  datasetFileName: string,
+): Promise<DatasetIntelligenceSnapshot> {
+  const schema = overview.columns.map((col: any) => ({
+    name: col.name,
+    type: col.inferred_type === "numeric" ? "numeric" : col.inferred_type === "datetime" ? "datetime" : col.inferred_type === "categorical" ? "categorical" : "text",
+    missing: col.missing_count || 0,
+  }))
+
+  const numericSummary: Record<string, { min: number; max: number; mean: number }> = {}
+  const categoricalSummary: Record<string, string[]> = {}
+
+  // Build numeric summary from column insights if available
+  if (overview.column_insights) {
+    for (const col of overview.columns) {
+      if (col.inferred_type === "numeric" && overview.column_insights[col.name]) {
+        const insights = overview.column_insights[col.name]
+        // We don't have min/max/mean in column_insights, so we'll leave numeric_summary empty
+        // The AI can still use the schema information
+      } else if (col.inferred_type === "categorical" && overview.column_insights[col.name]) {
+        const insights = overview.column_insights[col.name]
+        if (insights.top_values) {
+          categoricalSummary[col.name] = Object.keys(insights.top_values).slice(0, 5)
+        }
+      }
+    }
+  }
+
+  const missingColumns = schema.filter((s) => s.missing > 0).length
+
+  const snapshot: DatasetIntelligenceSnapshot = {
+    file_name: datasetFileName,
+    rows: overview.total_rows,
+    columns: overview.total_columns,
+    schema,
+    numeric_summary: numericSummary,
+    categorical_summary: categoricalSummary,
+    data_quality: {
+      missing_columns: missingColumns,
+      duplicate_rows: overview.duplicate_row_count || 0,
+    },
+  }
+
+  return snapshot
+}
+
+export async function saveDatasetIntelligence(
+  workspaceId: string,
+  snapshot: DatasetIntelligenceSnapshot,
+): Promise<void> {
+  await writeWorkspaceFile(workspaceId, "dataset_intelligence.json", snapshot, false)
+}
+
+export async function getDatasetIntelligence(
+  workspaceId: string,
+): Promise<DatasetIntelligenceSnapshot | null> {
+  return await readWorkspaceFile<DatasetIntelligenceSnapshot>(workspaceId, "dataset_intelligence.json")
+}
+
+export async function deleteChat(workspaceId: string, chatId: string): Promise<void> {
+  const index = await getChatIndex(workspaceId)
+  const chat = index.chats.find((c) => c.chatId === chatId)
+  if (!chat) {
+    throw new Error(`Chat ${chatId} not found`)
+  }
+  
+  // Hard delete: physically remove all chat files
+  const chatFiles = [
+    `ai_chat_${chatId}.json`,
+    `ai_chat_recent_${chatId}.json`,
+    `ai_chat_summary_${chatId}.json`,
+  ]
+  
+  const chatsDir = getChatsDir(workspaceId)
+  for (const filename of chatFiles) {
+    const filePath = path.join(chatsDir, filename)
+    try {
+      if (existsSync(filePath)) {
+        await fs.unlink(filePath)
+      }
+    } catch (error) {
+      console.error(`Failed to delete chat file ${filename}:`, error)
+      // Continue with other files even if one fails
+    }
+  }
+  
+  // Remove from index
+  index.chats = index.chats.filter((c) => c.chatId !== chatId)
+  await saveChatIndex(workspaceId, index)
+  
+  // Update files index to remove deleted chat files
+  try {
+    await updateFilesIndex(workspaceId, "")
+  } catch (error) {
+    console.error("Failed to update files index after chat deletion:", error)
+  }
+}
+
+async function writeChatFile<T>(
+  workspaceId: string,
+  chatId: string,
+  filename: string,
+  data: T,
+  skipIndexUpdate: boolean = false,
+): Promise<void> {
+  await ensureWorkspaceDir(workspaceId)
+  const filePath = getChatFilePath(workspaceId, chatId, filename)
+  try {
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf-8")
+  } catch (error: any) {
+    console.error(`Failed to write chat file ${filename}:`, error?.message || error)
+    throw error
+  }
+  if (!skipIndexUpdate) {
+    updateFilesIndex(workspaceId, path.basename(filePath)).catch((e) => {
+      console.error("Failed to update files index:", e)
+    })
+  }
+}
+
+async function readChatFile<T>(
+  workspaceId: string,
+  chatId: string,
+  filename: string,
+): Promise<T | null> {
+  try {
+    const filePath = getChatFilePath(workspaceId, chatId, filename)
+    if (!existsSync(filePath)) {
+      return null
+    }
+    const content = await fs.readFile(filePath, "utf-8")
+    return JSON.parse(content) as T
+  } catch {
+    return null
+  }
+}
+
+export async function getChatHistory(workspaceId: string, chatId: string): Promise<ChatHistory> {
+  const history = await readChatFile<ChatHistory>(workspaceId, chatId, "ai_chat_<chatId>.json")
   const result = history || { messages: [] }
   
-  // Ensure recent chat is initialized if history exists
   if (result.messages.length > 0) {
-    const recentExists = await readWorkspaceFile<RecentChat>(workspaceId, "ai_chat_recent.json")
+    const recentExists = await readChatFile<RecentChat>(workspaceId, chatId, "ai_chat_recent_<chatId>.json")
     if (!recentExists) {
-      await rebuildRecentChat(workspaceId, RECENT_CHAT_MAX_MESSAGES).catch((e) => {
+      await rebuildRecentChat(workspaceId, chatId, RECENT_CHAT_MAX_MESSAGES).catch((e) => {
         console.error("Failed to initialize recent chat:", e)
       })
     }
@@ -182,25 +450,25 @@ export async function getChatHistory(workspaceId: string): Promise<ChatHistory> 
   return result
 }
 
-export async function appendChatMessage(
-  workspaceId: string,
-  message: ChatMessage,
-): Promise<void> {
-  const history = await getChatHistory(workspaceId)
-  history.messages.push(message)
-  await writeWorkspaceFile(workspaceId, "ai_chat.json", history, false)
-}
-
 export async function appendChatMessages(
   workspaceId: string,
+  chatId: string,
   messages: ChatMessage[],
 ): Promise<void> {
-  const history = await getChatHistory(workspaceId)
+  const history = await getChatHistory(workspaceId, chatId)
   history.messages.push(...messages)
-  await writeWorkspaceFile(workspaceId, "ai_chat.json", history, false)
+  await writeChatFile(workspaceId, chatId, "ai_chat_<chatId>.json", history, false)
   
   // Rebuild recent chat after appending
-  await rebuildRecentChat(workspaceId, 15)
+  await rebuildRecentChat(workspaceId, chatId, 15)
+  
+  // Update chat updatedAt
+  const index = await getChatIndex(workspaceId)
+  const chat = index.chats.find((c) => c.chatId === chatId)
+  if (chat) {
+    chat.updatedAt = Date.now()
+    await saveChatIndex(workspaceId, index)
+  }
 }
 
 export interface RecentChatMessage {
@@ -218,16 +486,29 @@ export interface ChatSummary {
   lastUpdated: number
 }
 
+export interface ChatEntry {
+  chatId: string
+  title: string
+  description?: string
+  createdAt: number
+  updatedAt: number
+  isDeleted: boolean
+}
+
+export interface ChatIndex {
+  chats: ChatEntry[]
+}
+
 const RECENT_CHAT_MAX_MESSAGES = 15
 const SUMMARY_THRESHOLD = 100
 
 export async function rebuildRecentChat(
   workspaceId: string,
+  chatId: string,
   maxMessages: number = RECENT_CHAT_MAX_MESSAGES,
 ): Promise<void> {
   try {
-    // Read directly to avoid recursion
-    const history = await readWorkspaceFile<ChatHistory>(workspaceId, "ai_chat.json")
+    const history = await readChatFile<ChatHistory>(workspaceId, chatId, "ai_chat_<chatId>.json")
     const messages = history?.messages || []
     
     const recentMessages: RecentChatMessage[] = messages
@@ -241,11 +522,10 @@ export async function rebuildRecentChat(
       messages: recentMessages,
     }
 
-    await writeWorkspaceFile(workspaceId, "ai_chat_recent.json", recentChat, false)
+    await writeChatFile(workspaceId, chatId, "ai_chat_recent_<chatId>.json", recentChat, false)
     
-    // Check if summary needs to be generated
     if (messages.length >= SUMMARY_THRESHOLD) {
-      await generateChatSummary(workspaceId).catch((e) => {
+      await generateChatSummary(workspaceId, chatId).catch((e) => {
         console.error("Failed to generate chat summary:", e)
       })
     }
@@ -255,19 +535,18 @@ export async function rebuildRecentChat(
   }
 }
 
-export async function getRecentChat(workspaceId: string): Promise<RecentChat> {
-  const recent = await readWorkspaceFile<RecentChat>(workspaceId, "ai_chat_recent.json")
+export async function getRecentChat(workspaceId: string, chatId: string): Promise<RecentChat> {
+  const recent = await readChatFile<RecentChat>(workspaceId, chatId, "ai_chat_recent_<chatId>.json")
   return recent || { messages: [] }
 }
 
-export async function getChatSummary(workspaceId: string): Promise<ChatSummary | null> {
-  return await readWorkspaceFile<ChatSummary>(workspaceId, "ai_chat_summary.json")
+export async function getChatSummary(workspaceId: string, chatId: string): Promise<ChatSummary | null> {
+  return await readChatFile<ChatSummary>(workspaceId, chatId, "ai_chat_summary_<chatId>.json")
 }
 
-async function generateChatSummary(workspaceId: string): Promise<void> {
+async function generateChatSummary(workspaceId: string, chatId: string): Promise<void> {
   try {
-    // Read directly to avoid recursion
-    const history = await readWorkspaceFile<ChatHistory>(workspaceId, "ai_chat.json")
+    const history = await readChatFile<ChatHistory>(workspaceId, chatId, "ai_chat_<chatId>.json")
     const messages = history?.messages || []
     const messageCount = messages.length
     
@@ -293,7 +572,7 @@ async function generateChatSummary(workspaceId: string): Promise<void> {
       lastUpdated: Date.now(),
     }
     
-    await writeWorkspaceFile(workspaceId, "ai_chat_summary.json", summary, false)
+    await writeChatFile(workspaceId, chatId, "ai_chat_summary_<chatId>.json", summary, false)
   } catch (error) {
     console.error("Failed to generate chat summary:", error)
     throw error
@@ -309,11 +588,10 @@ export async function getRelevantFiles(
   const relevant: { file: string; content: string; summary: string }[] = []
 
   for (const entry of index) {
-    // AI must NEVER read ai_chat.json, ai_chat_recent.json, or ai_chat_summary.json
+    // AI must NEVER read any chat files or index files
     if (
-      entry.file === "ai_chat.json" ||
-      entry.file === "ai_chat_recent.json" ||
-      entry.file === "ai_chat_summary.json" ||
+      entry.file.includes("ai_chat") ||
+      entry.file.includes("index.json") ||
       entry.file === "files_index.json"
     ) {
       continue

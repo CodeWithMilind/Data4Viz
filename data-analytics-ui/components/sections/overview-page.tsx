@@ -36,7 +36,7 @@ import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, getWorkspaceDatasets, type OverviewResponse, getDatasetSchema, type SchemaResponse } from "@/lib/api/dataCleaningClient"
+import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, getWorkspaceDatasets, type OverviewResponse, getDatasetSchema, type SchemaResponse, generateDatasetIntelligenceSnapshot } from "@/lib/api/dataCleaningClient"
 import { getOverview, setOverview } from "@/lib/overview-cache"
 import type { WorkspaceDataset } from "@/types/workspace"
 
@@ -173,6 +173,13 @@ export function OverviewPage() {
         setOverview(activeWorkspaceId, selectedDataset.fileName, data)
         setOverviewData(data)
         setOverviewFileExists(true)
+        // Generate dataset intelligence snapshot for AI
+        try {
+          await generateDatasetIntelligenceSnapshot(activeWorkspaceId, selectedDataset.fileName)
+        } catch (e) {
+          console.error("Failed to generate dataset intelligence snapshot:", e)
+          // Non-blocking: continue even if snapshot generation fails
+        }
       } else {
         setOverviewData(null)
         setOverviewFileExists(false)
@@ -255,6 +262,10 @@ export function OverviewPage() {
               if (!selectedColumn && fileData.columns.length > 0) {
                 setSelectedColumn(fileData.columns[0].name)
               }
+              // Generate dataset intelligence snapshot for AI (non-blocking)
+              generateDatasetIntelligenceSnapshot(activeWorkspaceId, selectedDataset.fileName).catch((e) => {
+                console.error("Failed to generate dataset intelligence snapshot:", e)
+              })
             }
           })
           .catch((err) => {
