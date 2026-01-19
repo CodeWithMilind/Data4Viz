@@ -1,0 +1,28 @@
+{
+  "file_name": "Salary_dataset.csv",
+  "rows": 30,
+  "columns": 3,
+  "schema": [
+    {
+      "name": "Unnamed: 0",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "YearsExperience",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "Salary",
+      "type": "numeric",
+      "missing": 0
+    }
+  ],
+  "numeric_summary": {},
+  "categorical_summary": {},
+  "data_quality": {
+    "missing_columns": 0,
+    "duplicate_rows": 0
+  }
+}

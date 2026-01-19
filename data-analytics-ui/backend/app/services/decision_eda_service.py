@@ -66,19 +66,38 @@ def compute_decision_eda_stats(
     # Load dataset
     df = load_dataset(dataset_id, workspace_id)
     
-    # Validate decision_metric exists and is numeric
+    # Validate decision_metric exists
     if decision_metric not in df.columns:
         raise ValueError(f"Column '{decision_metric}' not found in dataset")
     
-    # Convert decision_metric to numeric if needed
-    decision_series = pd.to_numeric(df[decision_metric], errors='coerce')
-    if decision_series.isna().mean() > 0.5:
-        raise ValueError(f"Column '{decision_metric}' is not numeric or has too many non-numeric values")
+    # STEP 1: Attempt numeric coercion BEFORE any aggregation
+    coerced = pd.to_numeric(df[decision_metric], errors="coerce")
+    
+    # Validate: Check if all values are NaN OR if valid numeric values < 90%
+    valid_count = coerced.notna().sum()
+    total_count = len(coerced)
+    valid_ratio = valid_count / total_count if total_count > 0 else 0.0
+    
+    if valid_count == 0 or valid_ratio < 0.9:
+        raise ValueError(
+            "The selected metric contains non-numeric values and cannot be analyzed. "
+            "Please clean or convert this column to numeric values."
+        )
+    
+    # Replace original column with coerced numeric series
+    decision_series = coerced
     
     # Remove rows where decision_metric is missing for analysis
     valid_mask = decision_series.notna()
     df_valid = df[valid_mask].copy()
     decision_valid = decision_series[valid_mask]
+    
+    # Ensure we're working with numeric data
+    if not pd.api.types.is_numeric_dtype(decision_valid):
+        raise ValueError(
+            "The selected metric contains non-numeric values and cannot be analyzed. "
+            "Please clean or convert this column to numeric values."
+        )
     
     total_rows = len(df)
     valid_rows = len(df_valid)
@@ -175,50 +194,86 @@ def compute_decision_eda_stats(
         
         col_type = infer_column_type(df, col)
         if col_type == "categorical":
-            # Group by categorical column and compute mean of decision_metric
-            segment_means = df_valid.groupby(col)[decision_metric].mean()
-            
-            if len(segment_means) < 2:
-                continue
-            
-            # Compute difference between highest and lowest segment
-            max_mean = segment_means.max()
-            min_mean = segment_means.min()
-            mean_diff = max_mean - min_mean
-            
-            # Compute overall mean for reference
-            overall_mean = decision_valid.mean()
-            
-            # Impact score: relative difference
-            if overall_mean != 0:
-                relative_impact = abs(mean_diff / overall_mean) * 100
-            else:
-                relative_impact = abs(mean_diff)
-            
-            # Get top segments
-            top_segments = segment_means.nlargest(3).to_dict()
-            bottom_segments = segment_means.nsmallest(3).to_dict()
-            
-            segment_impacts.append({
-                "factor": col,
-                "mean_difference": round(float(mean_diff), 4),
-                "relative_impact_pct": round(float(relative_impact), 2),
-                "top_segments": {str(k): round(float(v), 4) for k, v in top_segments.items()},
-                "bottom_segments": {str(k): round(float(v), 4) for k, v in bottom_segments.items()},
-                "type": "categorical"
-            })
+            try:
+                # Ensure aggregation runs ONLY on numeric columns
+                # Use the already-converted numeric decision_valid series
+                grouped = df_valid.groupby(col)
+                segment_means_dict = {}
+                for group_name, group_indices in grouped.groups.items():
+                    # Get corresponding values from the numeric decision_valid series
+                    group_mask = df_valid.index.isin(group_indices)
+                    group_values = decision_valid[group_mask]
+                    
+                    # Validate numeric before aggregation
+                    if len(group_values) > 0 and pd.api.types.is_numeric_dtype(group_values):
+                        segment_mean = group_values.mean()
+                        if pd.notna(segment_mean):
+                            segment_means_dict[group_name] = segment_mean
+                
+                if len(segment_means_dict) < 2:
+                    continue
+                
+                segment_means = pd.Series(segment_means_dict)
+                
+                # Compute difference between highest and lowest segment
+                max_mean = segment_means.max()
+                min_mean = segment_means.min()
+                mean_diff = max_mean - min_mean
+                
+                # Compute overall mean for reference
+                overall_mean = decision_valid.mean()
+                
+                # Impact score: relative difference
+                if overall_mean != 0:
+                    relative_impact = abs(mean_diff / overall_mean) * 100
+                else:
+                    relative_impact = abs(mean_diff)
+                
+                # Get top segments
+                top_segments = segment_means.nlargest(3).to_dict()
+                bottom_segments = segment_means.nsmallest(3).to_dict()
+                
+                segment_impacts.append({
+                    "factor": col,
+                    "mean_difference": round(float(mean_diff), 4),
+                    "relative_impact_pct": round(float(relative_impact), 2),
+                    "top_segments": {str(k): round(float(v), 4) for k, v in top_segments.items()},
+                    "bottom_segments": {str(k): round(float(v), 4) for k, v in bottom_segments.items()},
+                    "type": "categorical"
+                })
+            except (ValueError, TypeError, AttributeError) as e:
+                # Catch Pandas/NumPy errors and convert to clean error message
+                error_msg = str(e).lower()
+                if "agg function failed" in error_msg or "mean" in error_msg or "dtype" in error_msg:
+                    raise ValueError(
+                        "The selected metric contains non-numeric values and cannot be analyzed. "
+                        "Please clean or convert this column to numeric values."
+                    )
+                # Re-raise other errors as-is
+                raise
     
     # Compute basic outlier influence estimate
     # Using IQR method
-    Q1 = decision_valid.quantile(0.25)
-    Q3 = decision_valid.quantile(0.75)
-    IQR = Q3 - Q1
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
-    
-    outliers_mask = (decision_valid < lower_bound) | (decision_valid > upper_bound)
-    outlier_count = outliers_mask.sum()
-    outlier_pct = round(outlier_count / valid_rows * 100, 2) if valid_rows > 0 else 0.0
+    try:
+        Q1 = decision_valid.quantile(0.25)
+        Q3 = decision_valid.quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        
+        outliers_mask = (decision_valid < lower_bound) | (decision_valid > upper_bound)
+        outlier_count = outliers_mask.sum()
+        outlier_pct = round(outlier_count / valid_rows * 100, 2) if valid_rows > 0 else 0.0
+    except (ValueError, TypeError, AttributeError) as e:
+        # Catch Pandas/NumPy errors and convert to clean error message
+        error_msg = str(e).lower()
+        if "agg function failed" in error_msg or "quantile" in error_msg or "dtype" in error_msg:
+            raise ValueError(
+                "The selected metric contains non-numeric values and cannot be analyzed. "
+                "Please clean or convert this column to numeric values."
+            )
+        # Re-raise other errors as-is
+        raise
     
     # Compute impact scores and rank factors
     factors: List[Dict[str, Any]] = []
@@ -286,13 +341,27 @@ def compute_decision_eda_stats(
         "all_correlations": correlations[:10],  # Top 10 correlations
         "all_segment_impacts": segment_impacts[:10],  # Top 10 segment impacts
         "excluded_columns": excluded_columns,  # Columns excluded from analysis
-        "decision_metric_stats": {
+        "decision_metric_stats": {}
+    }
+    
+    # Compute decision metric stats with error handling
+    try:
+        summary["decision_metric_stats"] = {
             "mean": round(float(decision_valid.mean()), 4),
             "median": round(float(decision_valid.median()), 4),
             "std": round(float(decision_valid.std()), 4),
             "min": round(float(decision_valid.min()), 4),
             "max": round(float(decision_valid.max()), 4)
         }
-    }
+    except (ValueError, TypeError, AttributeError) as e:
+        # Catch Pandas/NumPy errors and convert to clean error message
+        error_msg = str(e).lower()
+        if "agg function failed" in error_msg or "mean" in error_msg or "dtype" in error_msg:
+            raise ValueError(
+                "The selected metric contains non-numeric values and cannot be analyzed. "
+                "Please clean or convert this column to numeric values."
+            )
+        # Re-raise other errors as-is
+        raise
     
     return summary
