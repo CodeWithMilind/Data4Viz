@@ -613,8 +613,10 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
                 <p className="text-sm text-muted-foreground">Loading chat history...</p>
               </div>
             ) : (
-              <>
-                <ChatMessages messages={messages} onSuggestionClick={handleSuggestionClick} />
+              <div className="flex-1 flex flex-col relative min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <ChatMessages messages={messages} onSuggestionClick={handleSuggestionClick} />
+                </div>
 
                 <ChatInput
                   onSendMessage={handleSendMessage}
@@ -653,7 +655,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
                     </>
                   }
                 />
-              </>
+              </div>
             )}
           </>
         )}

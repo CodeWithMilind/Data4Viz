@@ -18,7 +18,7 @@ export function ChatMessages({ messages, onSuggestionClick }: ChatMessagesProps)
   }, [messages])
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
+    <div className="p-6 pb-40">
       <div className="max-w-3xl mx-auto space-y-6">
         {messages.map((message) => (
           <div key={message.id} className={cn("flex gap-4", message.role === "user" ? "justify-end" : "justify-start")}>

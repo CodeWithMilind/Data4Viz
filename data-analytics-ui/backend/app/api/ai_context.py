@@ -5,7 +5,7 @@ Provides AI-friendly context bundles without raw data.
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional
 import logging
 
@@ -22,7 +22,7 @@ class AIContextResponse(BaseModel):
     workspace_id: str
     dataset_id: str
     generated_at: str
-    schema: Dict[str, Any]
+    dataset_schema: Dict[str, Any] = Field(alias="schema")
     logs: Dict[str, Any]
     dataset_summary: Dict[str, Any]
 

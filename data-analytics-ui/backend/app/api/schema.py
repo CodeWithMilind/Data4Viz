@@ -5,7 +5,7 @@ Schema is the single source of truth for column metadata.
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import logging
 
@@ -216,7 +216,7 @@ class MissingValueCleanResponse(BaseModel):
     strategy: str
     affected_rows: int
     preview: bool
-    schema: Optional[SchemaResponse] = None  # Only included when preview=false
+    dataset_schema: Optional[SchemaResponse] = Field(None, alias="schema")  # Only included when preview=false
     preview_rows: Optional[List[Dict[str, Any]]] = None  # Only included when preview=true
     preview_columns: Optional[List[str]] = None  # Only included when preview=true
 
@@ -315,7 +315,7 @@ async def clean_missing_values_endpoint(
             strategy=request.strategy,
             affected_rows=affected_rows,
             preview=request.preview,
-            schema=SchemaResponse(**updated_schema) if updated_schema else None,
+            dataset_schema=SchemaResponse(**updated_schema) if updated_schema else None,
             preview_rows=preview_rows,
             preview_columns=preview_columns
         )
