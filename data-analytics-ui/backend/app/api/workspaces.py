@@ -855,15 +855,14 @@ async def delete_workspace_file(workspace_id: str, file_id: str):
                 detail="File does not belong to the specified workspace"
             )
         
-        # Check if file is protected (CSV files and system notebooks are protected)
+        # Check if file is protected (only system notebooks are protected, CSV files can be deleted)
         file_relative_path = str(file_path.relative_to(workspace_dir)) if workspace_dir in file_path.parents else str(file_path)
-        is_csv = file_path.suffix.lower() == ".csv"
         is_system_notebook = file_relative_path.startswith("notebooks/") and file_relative_path.endswith(".ipynb")
         
-        # PROTECTION RULE: Return success response with protected: true (idempotent, no error)
-        if is_file_protected(str(file_path)) or is_csv or is_system_notebook:
+        # PROTECTION RULE: Only system notebooks are protected (CSV files can be deleted)
+        if is_system_notebook or (is_file_protected(str(file_path)) and is_system_notebook):
             logger.info(
-                f"[delete_workspace_file] Protected file delete attempt (idempotent): {file_path} (CSV={is_csv}, SystemNotebook={is_system_notebook})"
+                f"[delete_workspace_file] Protected file delete attempt (idempotent): {file_path} (SystemNotebook={is_system_notebook})"
             )
             return {
                 "success": True,
@@ -872,14 +871,6 @@ async def delete_workspace_file(workspace_id: str, file_id: str):
                 "workspace_id": workspace_id,
                 "file_id": file_id,
             }
-        
-        # Safety check: Prevent deleting the last CSV file in workspace
-        csv_files = get_csv_files_in_workspace(workspace_id)
-        if len(csv_files) == 1 and is_csv:
-            raise HTTPException(
-                status_code=403,
-                detail="Cannot delete the last CSV file in a workspace"
-            )
         
         # REAL FILE DELETION: Step 1 - Delete physical file from storage
         deleted = False

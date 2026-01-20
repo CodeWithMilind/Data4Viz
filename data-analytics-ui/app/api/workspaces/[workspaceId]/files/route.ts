@@ -85,8 +85,8 @@ export async function GET(
           type = "NOTEBOOK"
         }
 
-        // Determine if file is protected (CSV files and system notebooks are protected)
-        const isProtected = filename.endsWith(".csv") || filename.startsWith("notebooks/") || type === "CSV"
+        // Determine if file is protected (only system notebooks are protected, CSV files can be deleted)
+        const isProtected = filename.startsWith("notebooks/")
 
         return {
           id: `local-${filename}`,
@@ -149,8 +149,8 @@ export async function DELETE(
       )
     }
 
-    // PROTECTION RULE: Protected files return success with protected: true (idempotent, no error)
-    if (relativePath.endsWith(".csv") || relativePath.startsWith("notebooks/")) {
+    // PROTECTION RULE: Only system notebooks are protected (CSV files can be deleted)
+    if (relativePath.startsWith("notebooks/")) {
       return NextResponse.json({
         success: true,
         deleted: false,

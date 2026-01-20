@@ -131,8 +131,9 @@ const getFileTypeLabel = (type: string): string => {
  * - System/audit files (logs) are NOT deletable
  */
 const isFileDeletable = (file: WorkspaceFile): boolean => {
-  // Protected files (CSV) cannot be deleted
-  if (file.is_protected) {
+  // Only system notebooks are protected - CSV files can be deleted
+  // System notebooks in notebooks/ directory are protected
+  if (file.name?.startsWith("notebooks/") && file.name?.endsWith(".ipynb")) {
     return false
   }
   const type = file.type?.toUpperCase() || ""
@@ -376,11 +377,11 @@ export function FilesPage() {
       return
     }
 
-    // Safety check: Prevent deleting protected files (CSV files)
-    if (fileToDelete.is_protected) {
+    // Safety check: Only prevent deleting system notebooks
+    if (fileToDelete.name?.startsWith("notebooks/") && fileToDelete.name?.endsWith(".ipynb")) {
       toast({
         title: "Cannot Delete",
-        description: "CSV files are protected and cannot be deleted. Delete the workspace to remove CSV files.",
+        description: "System notebooks are protected and cannot be deleted.",
         variant: "destructive",
       })
       setDeleteDialogOpen(false)
