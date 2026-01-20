@@ -55,6 +55,16 @@ export function JupyterNotebookPage() {
   const [expandedCells, setExpandedCells] = useState<Set<string>>(new Set())
   const [generatedCode, setGeneratedCode] = useState<string | null>(null)
 
+  // SAFE EVENT CLEANUP: Define handler BEFORE useEffect
+  const handleNotebookDeleted = useCallback((event: CustomEvent) => {
+    const deletedPath = event.detail?.notebookPath
+    if (deletedPath && selectedNotebook === deletedPath) {
+      console.log("[JupyterPage] Notebook deleted, clearing selection:", deletedPath)
+      setSelectedNotebook(null)
+      setCells([])
+    }
+  }, [selectedNotebook])
+
   // Load available notebooks from notebooks/ subdirectory
   useEffect(() => {
     if (!activeWorkspaceId) {
@@ -93,14 +103,18 @@ export function JupyterNotebookPage() {
         console.log("[JupyterPage] Found notebooks:", notebookFiles)
         setNotebooks(notebookFiles)
 
-        // Auto-select auto_summarize.ipynb if available (prioritize AI-generated notebook)
-        if (notebookFiles.includes("notebooks/auto_summarize.ipynb")) {
-          console.log("[JupyterPage] Auto-selecting auto_summarize.ipynb")
-          setSelectedNotebook("notebooks/auto_summarize.ipynb")
-          // Notebook will auto-load via the useEffect hook
-        } else if (notebookFiles.length > 0) {
-          console.log("[JupyterPage] Auto-selecting first notebook:", notebookFiles[0])
-          setSelectedNotebook(notebookFiles[0])
+        // Auto-select first available notebook (no hardcoded paths)
+        if (notebookFiles.length > 0) {
+          // Prioritize notebooks in notebooks/ subdirectory, then root notebooks
+          const prioritized = notebookFiles.sort((a, b) => {
+            const aInSubdir = a.startsWith("notebooks/")
+            const bInSubdir = b.startsWith("notebooks/")
+            if (aInSubdir && !bInSubdir) return -1
+            if (!aInSubdir && bInSubdir) return 1
+            return a.localeCompare(b)
+          })
+          console.log("[JupyterPage] Auto-selecting first notebook:", prioritized[0])
+          setSelectedNotebook(prioritized[0])
           // Notebook will auto-load via the useEffect hook
         } else {
           console.log("[JupyterPage] No notebooks found")
@@ -123,6 +137,12 @@ export function JupyterNotebookPage() {
     }
     window.addEventListener("refreshFiles", handleRefresh)
     
+    // Listen for notebook deletion events
+    const notebookDeletedHandler = (event: Event) => {
+      handleNotebookDeleted(event as CustomEvent)
+    }
+    window.addEventListener("notebookDeleted", notebookDeletedHandler)
+    
     // Also listen for visibility change to refresh when page becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -134,9 +154,10 @@ export function JupyterNotebookPage() {
     
     return () => {
       window.removeEventListener("refreshFiles", handleRefresh)
+      window.removeEventListener("notebookDeleted", notebookDeletedHandler)
       document.removeEventListener("visibilitychange", handleVisibilityChange)
     }
-  }, [activeWorkspaceId])
+  }, [activeWorkspaceId, handleNotebookDeleted])
   
   // Force refresh when component mounts or workspace changes
   useEffect(() => {
@@ -300,12 +321,12 @@ export function JupyterNotebookPage() {
         setCells(displayCells)
         setExpandedCells(new Set(displayCells.map((c) => c.id)))
       } catch (err: any) {
-        console.error("Failed to load notebook:", err)
-        toast({
-          title: "Error",
-          description: err.message || "Failed to load notebook",
-          variant: "destructive",
-        })
+        // Notebook not available or deleted - graceful failure
+        console.warn("[JupyterPage] Notebook not available:", selectedNotebook, err)
+        // Clear selected notebook if it doesn't exist
+        setSelectedNotebook(null)
+        setCells([])
+        // Don't show toast - just clear state gracefully
       } finally {
         setLoading(false)
       }
@@ -454,7 +475,37 @@ export function JupyterNotebookPage() {
       )}
 
       {/* Read-only Banner for Notebooks */}
-      {selectedNotebook && !generatedCode && (
+      {!selectedNotebook && notebooks.length === 0 && !loading && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <FileCode className="w-16 h-16 text-muted-foreground mb-4" />
+          <h3 className="font-medium text-foreground mb-1">No notebooks available</h3>
+          <p className="text-sm text-muted-foreground">
+            Notebooks will appear here when generated. Use the AI Agent to create analysis notebooks.
+          </p>
+        </div>
+      )}
+
+      {selectedNotebook && !notebooks.includes(selectedNotebook) && !loading && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <FileCode className="w-16 h-16 text-muted-foreground mb-4" />
+          <h3 className="font-medium text-foreground mb-1">Notebook not available</h3>
+          <p className="text-sm text-muted-foreground">
+            The selected notebook may have been deleted or moved. Please select another notebook.
+          </p>
+        </div>
+      )}
+
+      {/* Graceful error message for deleted/missing notebooks */}
+      {selectedNotebook && !notebooks.includes(selectedNotebook) && !loading && (
+        <div className="px-6 py-4 bg-yellow-500/10 border-b border-yellow-500/20">
+          <p className="text-sm text-yellow-700 dark:text-yellow-400">
+            <strong>Notebook not available or deleted.</strong> The selected notebook may have been deleted or moved. Please select another notebook from the dropdown above.
+          </p>
+        </div>
+      )}
+
+      {/* Read-only Banner for Notebooks */}
+      {selectedNotebook && notebooks.includes(selectedNotebook) && !generatedCode && (
         <div className="px-6 py-3 bg-blue-500/10 border-b border-blue-500/20">
           <p className="text-sm text-blue-700 dark:text-blue-400">
             <strong>Note:</strong> This notebook is AI-generated. Download to run locally in your Jupyter environment.

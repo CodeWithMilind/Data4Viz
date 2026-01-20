@@ -1,3 +1,22 @@
+// SERVER-ONLY MODULE: This file uses Node.js filesystem APIs
+// DO NOT import this in client components - use API routes instead
+
+// Build-time guard: Prevent client-side imports
+// This will cause build to fail if imported in client components
+if (typeof window !== "undefined") {
+  throw new Error(
+    "workspace-files.ts is a server-only module and cannot be imported in client components. " +
+    "Use API routes (e.g., /api/workspaces/[workspaceId]/files) instead."
+  )
+}
+
+// Runtime guard: Additional check for edge cases
+if (typeof process === "undefined" || !process.versions?.node) {
+  throw new Error(
+    "workspace-files.ts requires Node.js runtime and cannot be used in browser environment."
+  )
+}
+
 import { promises as fs } from "fs"
 import path from "path"
 import { existsSync, mkdirSync, unlinkSync } from "fs"

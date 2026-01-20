@@ -18,6 +18,15 @@ import shutil
 from datetime import datetime
 from app.config import get_workspace_dir, get_workspace_datasets_dir, get_workspace_logs_dir, get_workspace_files_dir, WORKSPACES_DIR
 from app.services.dataset_loader import list_workspace_datasets, list_workspace_files, load_dataset, save_dataset, dataset_exists
+from app.services.file_registry import (
+    delete_workspace_files,
+    cleanup_orphan_files,
+    verify_file_ownership,
+    is_file_protected,
+    get_csv_files_in_workspace,
+    get_file_metadata,
+    unregister_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +261,15 @@ async def upload_dataset_to_workspace(
         file_path = datasets_dir / file.filename
         
         df.to_csv(file_path, index=False)
+        
+        # Register CSV file in registry (protected)
+        from app.services.file_registry import register_file
+        register_file(
+            file_path=str(file_path),
+            workspace_id=workspace_id,
+            file_type="csv",
+            is_protected=True,  # CSV files are protected
+        )
         
         return {
             "id": file.filename,
@@ -706,7 +724,12 @@ async def delete_workspace(workspace_id: str):
         except Exception as e:
             logger.warning(f"[delete_workspace] Could not count files before deletion: {e}")
         
-        # Delete entire workspace directory (cascade delete)
+        # Step 1: Delete all files from registry (cascade delete)
+        # This ensures registry is clean before physical deletion
+        deleted_file_paths = delete_workspace_files(workspace_id)
+        logger.info(f"[delete_workspace] Removed {len(deleted_file_paths)} files from registry")
+        
+        # Step 2: Delete entire workspace directory (cascade delete)
         # This removes:
         # - datasets/ directory and all CSV files
         # - files/ directory and all JSON/overview files
@@ -741,4 +764,200 @@ async def delete_workspace(workspace_id: str):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to delete workspace: {str(e)}"
+        )
+
+
+@router.delete("/{workspace_id}/files/{file_id}")
+async def delete_workspace_file(workspace_id: str, file_id: str):
+    """
+    Delete a file from workspace storage.
+    
+    IMPORTANT RULES:
+    - File must belong to the specified workspace (ownership verification)
+    - CSV files are PROTECTED and cannot be deleted (is_protected=True)
+    - Cannot delete the last CSV file in a workspace
+    - Files can only be deleted from their owning workspace
+    
+    Args:
+        workspace_id: Workspace identifier
+        file_id: File identifier (filename or path)
+        
+    Returns:
+        Success message
+        
+    Raises:
+        HTTPException: If file doesn't exist, is protected, or ownership verification fails
+    """
+    logger.info(f"[delete_workspace_file] Request received - workspace_id={workspace_id}, file_id={file_id}")
+    
+    try:
+        # Find the file in workspace storage
+        datasets_dir = get_workspace_datasets_dir(workspace_id)
+        files_dir = get_workspace_files_dir(workspace_id)
+        logs_dir = get_workspace_logs_dir(workspace_id)
+        workspace_dir = get_workspace_dir(workspace_id)
+        
+        file_path = None
+        actual_file_id = file_id
+        
+        # Handle subdirectory prefixes
+        if file_id.startswith("files/"):
+            actual_file_id = file_id.replace("files/", "", 1)
+            potential_path = files_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        elif file_id.startswith("notebooks/"):
+            actual_file_id = file_id.replace("notebooks/", "", 1)
+            notebooks_dir = workspace_dir / "notebooks"
+            potential_path = notebooks_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        
+        # Try datasets directory
+        if not file_path:
+            potential_path = datasets_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        
+        # Try files directory
+        if not file_path:
+            potential_path = files_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        
+        # Try logs directory
+        if not file_path:
+            potential_path = logs_dir / actual_file_id
+            if potential_path.exists() and potential_path.is_file():
+                file_path = potential_path
+        
+        # IDEMPOTENT DELETE: If file not found, return success with deleted: false
+        if not file_path:
+            logger.info(
+                f"[delete_workspace_file] File not found (idempotent): file_id={file_id}, workspace_id={workspace_id}"
+            )
+            return {
+                "success": True,
+                "deleted": False,
+                "reason": "not_found",
+                "workspace_id": workspace_id,
+                "file_id": file_id,
+            }
+        
+        # Verify file ownership (safety check)
+        if not verify_file_ownership(str(file_path), workspace_id):
+            logger.warning(
+                f"[delete_workspace_file] Ownership verification failed: "
+                f"file={file_path}, workspace={workspace_id}"
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="File does not belong to the specified workspace"
+            )
+        
+        # Check if file is protected (CSV files and system notebooks are protected)
+        file_relative_path = str(file_path.relative_to(workspace_dir)) if workspace_dir in file_path.parents else str(file_path)
+        is_csv = file_path.suffix.lower() == ".csv"
+        is_system_notebook = file_relative_path.startswith("notebooks/") and file_relative_path.endswith(".ipynb")
+        
+        # PROTECTION RULE: Return success response with protected: true (idempotent, no error)
+        if is_file_protected(str(file_path)) or is_csv or is_system_notebook:
+            logger.info(
+                f"[delete_workspace_file] Protected file delete attempt (idempotent): {file_path} (CSV={is_csv}, SystemNotebook={is_system_notebook})"
+            )
+            return {
+                "success": True,
+                "deleted": False,
+                "protected": True,
+                "workspace_id": workspace_id,
+                "file_id": file_id,
+            }
+        
+        # Safety check: Prevent deleting the last CSV file in workspace
+        csv_files = get_csv_files_in_workspace(workspace_id)
+        if len(csv_files) == 1 and is_csv:
+            raise HTTPException(
+                status_code=403,
+                detail="Cannot delete the last CSV file in a workspace"
+            )
+        
+        # REAL FILE DELETION: Step 1 - Delete physical file from storage
+        deleted = False
+        try:
+            if file_path.exists():
+                file_path.unlink()
+                deleted = True
+                logger.info(f"[delete_workspace_file] Deleted physical file: {file_path}")
+            else:
+                # IDEMPOTENT DELETE: File doesn't exist - return success with deleted: false
+                logger.info(f"[delete_workspace_file] File does not exist (idempotent): {file_path}")
+        except Exception as e:
+            logger.error(f"[delete_workspace_file] Failed to delete physical file: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to delete physical file: {str(e)}"
+            )
+        
+        # REAL FILE DELETION: Step 2 - Remove from file registry (only if file existed)
+        if deleted:
+            try:
+                unregister_file(str(file_path))
+                logger.info(f"[delete_workspace_file] Removed from file registry: {file_path}")
+            except Exception as e:
+                logger.error(f"[delete_workspace_file] Failed to remove from registry: {e}")
+                # Continue - physical file is already deleted
+        
+        # CONSISTENT RESPONSE SHAPE
+        return {
+            "success": True,
+            "deleted": deleted,
+            "workspace_id": workspace_id,
+            "file_id": file_id,
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"[delete_workspace_file] Error deleting file '{file_id}' from workspace '{workspace_id}': {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete file: {str(e)}"
+        )
+
+
+@router.post("/cleanup-orphans")
+async def cleanup_orphans():
+    """
+    Clean up orphan files (files that don't belong to any existing workspace).
+    
+    This endpoint:
+    - Scans the file registry
+    - Identifies files whose workspace no longer exists
+    - Removes orphan files from the registry
+    
+    This should be called on app startup or periodically.
+    
+    Returns:
+        List of orphan file paths that were cleaned up
+    """
+    logger.info("[cleanup_orphans] Starting orphan file cleanup")
+    
+    try:
+        orphan_paths = cleanup_orphan_files()
+        
+        logger.info(f"[cleanup_orphans] Cleaned up {len(orphan_paths)} orphan files")
+        
+        return {
+            "message": f"Cleaned up {len(orphan_paths)} orphan files",
+            "orphan_count": len(orphan_paths),
+            "orphan_paths": orphan_paths,
+        }
+    except Exception as e:
+        logger.error(f"[cleanup_orphans] Error during cleanup: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to cleanup orphan files: {str(e)}"
         )

@@ -152,6 +152,15 @@ def save_overview_to_file(workspace_id: str, dataset_id: str, overview: Overview
         json.dump(overview.model_dump(), f, indent=2)
     
     logger.info(f"[save_overview_to_file] Saved overview to {overview_path}")
+    
+    # Register file in registry
+    from app.services.file_registry import register_file
+    register_file(
+        file_path=str(overview_path),
+        workspace_id=workspace_id,
+        file_type="overview",
+        is_protected=False,  # Overview files can be deleted
+    )
 
 
 def load_overview_from_file(workspace_id: str, dataset_id: str) -> Optional[OverviewResponse]:

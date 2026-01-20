@@ -48,10 +48,12 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 interface WorkspaceFile {
   id: string
   name: string
+  relativePath?: string // Exact relative path from workspace root (source of truth)
   size?: number
   type: string
   created_at?: string
   updated_at?: string
+  is_protected?: boolean
 }
 
 interface WorkspaceFilesResponse {
@@ -129,6 +131,10 @@ const getFileTypeLabel = (type: string): string => {
  * - System/audit files (logs) are NOT deletable
  */
 const isFileDeletable = (file: WorkspaceFile): boolean => {
+  // Protected files (CSV) cannot be deleted
+  if (file.is_protected) {
+    return false
+  }
   const type = file.type?.toUpperCase() || ""
   // LOG files are system files and should not be deletable
   if (type === "LOG") {
@@ -205,15 +211,23 @@ export function FilesPage() {
       
       console.log(`[Files Page] Total files after merge: ${allFiles.length}`, allFiles.map(f => f.name))
 
+      // REMOVE LOCAL FILTERING: Set files ONLY from backend response
+      // No local filtering or deduplication - backend is source of truth
       const fileMap = new Map<string, WorkspaceFile>()
       for (const file of allFiles) {
+        // Ensure relativePath is set (use name as fallback for backward compatibility)
+        const fileWithPath: WorkspaceFile = {
+          ...file,
+          relativePath: file.relativePath || file.name,
+        }
         const existing = fileMap.get(file.name)
         if (!existing || (file.updated_at && existing.updated_at && file.updated_at > existing.updated_at)) {
-          fileMap.set(file.name, file)
+          fileMap.set(file.name, fileWithPath)
         }
       }
       const deduplicatedFiles = Array.from(fileMap.values())
       
+      // SINGLE SOURCE OF TRUTH: Replace local state completely from backend response
       setFilesCache(activeWorkspaceId, deduplicatedFiles)
       setFiles(deduplicatedFiles)
       setError(null)
@@ -324,6 +338,11 @@ export function FilesPage() {
         title: "Success",
         description: `Downloaded ${file.name}`,
       })
+      
+      // SINGLE SOURCE OF TRUTH: Re-fetch files list after download
+      // Ensure UI reflects actual disk state
+      invalidateForWorkspace(activeWorkspaceId)
+      await fetchFiles(true)
     } catch (err) {
       console.error("Error downloading file:", err)
       toast({
@@ -357,24 +376,70 @@ export function FilesPage() {
       return
     }
 
+    // Safety check: Prevent deleting protected files (CSV files)
+    if (fileToDelete.is_protected) {
+      toast({
+        title: "Cannot Delete",
+        description: "CSV files are protected and cannot be deleted. Delete the workspace to remove CSV files.",
+        variant: "destructive",
+      })
+      setDeleteDialogOpen(false)
+      setFileToDelete(null)
+      return
+    }
+
     setIsDeleting(true)
 
     try {
+      // Use exact relativePath from file object (source of truth)
+      // NEVER reconstruct or shorten paths
+      const relativePath = fileToDelete.relativePath || fileToDelete.name
+      
+      if (!relativePath) {
+        throw new Error("File path is missing")
+      }
+
+      // Use Next.js API route for file deletion (server-only filesystem operations)
       const response = await fetch(
-        `${BASE_URL}/workspaces/${activeWorkspaceId}/files/${fileToDelete.id}`,
+        `/api/workspaces/${activeWorkspaceId}/files`,
         {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            workspaceId: activeWorkspaceId,
+            relativePath: relativePath, // Exact relative path as received from API
+          }),
         }
       )
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete file: ${response.statusText}`)
+      // Parse response - handle both success and error cases
+      let result: any = {}
+      try {
+        result = await response.json()
+      } catch {
+        // If JSON parse fails, treat as error
+        if (!response.ok) {
+          throw new Error(`Failed to delete file: ${response.statusText}`)
+        }
       }
 
-      const updatedFiles = files.filter((f) => f.id !== fileToDelete.id)
-      setFiles(updatedFiles)
-      if (activeWorkspaceId) setFilesCache(activeWorkspaceId, updatedFiles)
-      
+      // IDEMPOTENT DELETE: Handle success responses (even if deleted: false)
+      if (result.success === true) {
+        // File deleted, not found, or protected - all are successful outcomes
+        // No error thrown - continue to sync UI
+      } else if (!response.ok) {
+        // Only throw error if response is not OK AND not a success response
+        const errorData = result.error || result.detail || response.statusText
+        throw new Error(errorData || `Failed to delete file: ${response.statusText}`)
+      }
+
+      // SINGLE SOURCE OF TRUTH: Always re-fetch files list from backend after delete
+      // Invalidate cache and replace local state completely
+      invalidateForWorkspace(activeWorkspaceId)
+      await fetchFiles(true)
+
       // Remove from selected files if it was selected
       setSelectedFiles((prev) => {
         const next = new Set(prev)
@@ -382,10 +447,29 @@ export function FilesPage() {
         return next
       })
 
-      toast({
-        title: "Success",
-        description: `Deleted ${fileToDelete.name}`,
-      })
+      // ACTIVE FILE STATE CLEANUP: Clear active notebook if deleted file is a notebook
+      if (relativePath.endsWith(".ipynb")) {
+        // Dispatch event to clear selected notebook in JupyterNotebookPage
+        window.dispatchEvent(new CustomEvent("notebookDeleted", { 
+          detail: { notebookPath: relativePath } 
+        }))
+      }
+
+      // Trigger refresh event for other components
+      try {
+        window.dispatchEvent(new CustomEvent("refreshFiles"))
+      } catch (e) {
+        console.warn("Failed to dispatch refresh event:", e)
+      }
+
+      // Only show success toast if file was actually deleted (not protected, not already missing)
+      if (result.deleted === true && result.protected !== true) {
+        toast({
+          title: "Success",
+          description: `Deleted ${fileToDelete.name}`,
+        })
+      }
+      // If deleted === false or protected === true, no toast needed (idempotent or protected)
 
       setDeleteDialogOpen(false)
       setFileToDelete(null)

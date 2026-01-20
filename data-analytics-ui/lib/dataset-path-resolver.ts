@@ -1,6 +1,9 @@
 /**
  * Dataset Path Resolver
  * 
+ * SERVER-ONLY MODULE: This file uses Node.js filesystem APIs
+ * DO NOT import this in client components - use API routes instead
+ * 
  * Centralized helper to resolve dataset file paths using the EXACT same logic
  * as the backend's dataset_loader.py load_dataset function.
  * 
@@ -11,6 +14,22 @@
  * 
  * Which resolves to: workspaces/{workspaceId}/datasets/{datasetId}
  */
+
+// Build-time guard: Prevent client-side imports
+// This will cause build to fail if imported in client components
+if (typeof window !== "undefined") {
+  throw new Error(
+    "dataset-path-resolver.ts is a server-only module and cannot be imported in client components. " +
+    "Use API routes instead."
+  )
+}
+
+// Runtime guard: Additional check for edge cases
+if (typeof process === "undefined" || !process.versions?.node) {
+  throw new Error(
+    "dataset-path-resolver.ts requires Node.js runtime and cannot be used in browser environment."
+  )
+}
 
 import path from "path"
 import { existsSync } from "fs"

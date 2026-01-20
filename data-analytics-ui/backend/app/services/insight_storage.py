@@ -192,6 +192,21 @@ def save_insight_snapshot(
             f"in workspace {workspace_id}"
         )
         
+        # Register insight files in registry
+        from app.services.file_registry import register_file
+        register_file(
+            file_path=str(file_path),
+            workspace_id=workspace_id,
+            file_type="insight",
+            is_protected=False,  # Insight files can be deleted
+        )
+        register_file(
+            file_path=str(latest_path),
+            workspace_id=workspace_id,
+            file_type="insight",
+            is_protected=False,
+        )
+        
         return version
     except Exception as e:
         logger.error(f"Error saving insight snapshot: {e}")

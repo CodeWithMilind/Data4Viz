@@ -25,18 +25,18 @@
     "summary": "Dataset metadata and schema"
   },
   {
-    "file": "ai_chats/ai_chat_chat_1768738503190_878sk4gnr.json",
+    "file": "notebooks/auto_summarize.ipynb",
+    "type": "data",
+    "summary": "Contains: nbformat, nbformat_minor, metadata..."
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1768939511460_eo0lv2s5w.json",
     "type": "conversation",
     "summary": "Contains: messages"
   },
   {
-    "file": "ai_chats/ai_chat_recent_chat_1768738503190_878sk4gnr.json",
+    "file": "ai_chats/ai_chat_recent_chat_1768939511460_eo0lv2s5w.json",
     "type": "conversation",
     "summary": "Recent chat messages (working memory)"
-  },
-  {
-    "file": "notebooks/auto_summarize.ipynb",
-    "type": "data",
-    "summary": "Contains: nbformat, nbformat_minor, metadata..."
   }
 ]

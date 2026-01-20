@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 from datetime import datetime
 from app.config import DATA_DIR, get_workspace_datasets_dir, get_workspace_files_dir, get_workspace_logs_dir
+from app.services.file_registry import register_file, unregister_file, get_file_metadata, verify_file_ownership, is_file_protected
 
 
 def load_dataset(dataset_id: str, workspace_id: Optional[str] = None) -> pd.DataFrame:
@@ -199,14 +200,28 @@ def list_workspace_files(workspace_id: str) -> list[dict]:
         for file_path in datasets_dir.iterdir():
             if file_path.is_file() and file_path.suffix.lower() == ".csv":
                 try:
+                    # HIDE NON-EXISTENT FILES: Only include files that exist on disk
+                    if not file_path.exists():
+                        continue
+                    
                     stat = file_path.stat()
+                    # Get file metadata from registry
+                    metadata = get_file_metadata(str(file_path))
+                    is_protected = metadata.is_protected if metadata else True  # Default CSV to protected
+                    
+                    # Get relative path from workspace root (datasets/{filename})
+                    workspace_root = datasets_dir.parent
+                    relative_path = file_path.relative_to(workspace_root).as_posix()
+                    
                     files.append({
                         "id": file_path.name,
                         "name": file_path.name,
+                        "relativePath": relative_path,  # Exact relative path from workspace root (e.g., "datasets/file.csv")
                         "size": stat.st_size,
                         "type": "CSV",
                         "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
                         "updated_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        "is_protected": is_protected,
                     })
                 except Exception:
                     continue
@@ -217,6 +232,10 @@ def list_workspace_files(workspace_id: str) -> list[dict]:
         for file_path in files_dir.iterdir():
             if file_path.is_file():
                 try:
+                    # HIDE NON-EXISTENT FILES: Only include files that exist on disk
+                    if not file_path.exists():
+                        continue
+                    
                     stat = file_path.stat()
                     suffix = file_path.suffix.lower()
                     
@@ -235,9 +254,14 @@ def list_workspace_files(workspace_id: str) -> list[dict]:
                     else:
                         file_type = suffix[1:].upper() if suffix else "UNKNOWN"
                     
+                    # Get relative path from workspace root (files/{filename})
+                    workspace_root = files_dir.parent
+                    relative_path = file_path.relative_to(workspace_root).as_posix()
+                    
                     files.append({
                         "id": f"files/{file_path.name}",
                         "name": f"files/{file_path.name}",
+                        "relativePath": relative_path,  # Exact relative path from workspace root (e.g., "files/overview.json")
                         "size": stat.st_size,
                         "type": file_type,
                         "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
@@ -252,10 +276,19 @@ def list_workspace_files(workspace_id: str) -> list[dict]:
         for file_path in logs_dir.iterdir():
             if file_path.is_file():
                 try:
+                    # HIDE NON-EXISTENT FILES: Only include files that exist on disk
+                    if not file_path.exists():
+                        continue
+                    
                     stat = file_path.stat()
+                    # Get relative path from workspace root (logs/{filename})
+                    workspace_root = logs_dir.parent
+                    relative_path = file_path.relative_to(workspace_root).as_posix()
+                    
                     files.append({
                         "id": file_path.name,
                         "name": file_path.name,
+                        "relativePath": relative_path,  # Exact relative path from workspace root (e.g., "logs/file.log")
                         "size": stat.st_size,
                         "type": "LOG",
                         "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
