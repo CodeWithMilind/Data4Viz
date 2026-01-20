@@ -1,0 +1,162 @@
+{
+  "version": "1",
+  "workspace_id": "workspace-1768727563585-jhg782rek",
+  "dataset_id": "movie_cleaned_20260117_033108.csv",
+  "decision_metric": "Popularity",
+  "dataset_hash": "e8f0d3b99170860e3770356699523f8253b378dd6c8637b67fd94a3130aa0451",
+  "created_at": "2026-01-20T18:49:25.278381",
+  "backend_stats": {
+    "decision_metric": "Popularity",
+    "total_rows": 9847,
+    "valid_rows": 9818,
+    "missing_percentage": 0.29,
+    "outlier_count": 1046,
+    "outlier_percentage": 10.65,
+    "top_factors": [
+      {
+        "factor": "Genre",
+        "impact_score": 3373.62,
+        "type": "categorical",
+        "mean_difference": 1360.424,
+        "top_segments": {
+          "Animation, Family, Fantasy, Comedy, Adventure": 1373.778,
+          "Action, Crime, Fantasy": 841.0595,
+          "Animation, Comedy, Family, Music": 626.9815
+        },
+        "bottom_segments": {
+          "War, Drama, Science Fiction": 13.354,
+          "Science Fiction, Fantasy, Family, Music": 13.357,
+          "Comedy, TV Movie, Romance": 13.375
+        }
+      },
+      {
+        "factor": "Original_Language",
+        "impact_score": 358.12,
+        "type": "categorical",
+        "mean_difference": 144.412,
+        "top_segments": {
+          "ml": 151.512,
+          "hi": 85.9317,
+          "tr": 71.6314
+        },
+        "bottom_segments": {
+          "https://image.tmdb.org/t/p/original/6iXYe7AkQ1QIfMFuvXsSCT2zF7s.jpg": 7.1,
+          "et": 13.822,
+          "hu": 14.3947
+        }
+      },
+      {
+        "factor": "Vote_Count",
+        "impact_score": 13.74,
+        "type": "numeric",
+        "correlation": 0.1374,
+        "abs_correlation": 0.1374
+      },
+      {
+        "factor": "Vote_Average",
+        "impact_score": 5.38,
+        "type": "numeric",
+        "correlation": 0.0538,
+        "abs_correlation": 0.0538
+      }
+    ],
+    "all_correlations": [
+      {
+        "factor": "Vote_Count",
+        "correlation": 0.1374,
+        "abs_correlation": 0.1374,
+        "type": "numeric"
+      },
+      {
+        "factor": "Vote_Average",
+        "correlation": 0.0538,
+        "abs_correlation": 0.0538,
+        "type": "numeric"
+      }
+    ],
+    "all_segment_impacts": [
+      {
+        "factor": "Genre",
+        "mean_difference": 1360.424,
+        "relative_impact_pct": 3373.62,
+        "top_segments": {
+          "Animation, Family, Fantasy, Comedy, Adventure": 1373.778,
+          "Action, Crime, Fantasy": 841.0595,
+          "Animation, Comedy, Family, Music": 626.9815
+        },
+        "bottom_segments": {
+          "War, Drama, Science Fiction": 13.354,
+          "Science Fiction, Fantasy, Family, Music": 13.357,
+          "Comedy, TV Movie, Romance": 13.375
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "Original_Language",
+        "mean_difference": 144.412,
+        "relative_impact_pct": 358.12,
+        "top_segments": {
+          "ml": 151.512,
+          "hi": 85.9317,
+          "tr": 71.6314
+        },
+        "bottom_segments": {
+          "https://image.tmdb.org/t/p/original/6iXYe7AkQ1QIfMFuvXsSCT2zF7s.jpg": 7.1,
+          "et": 13.822,
+          "hu": 14.3947
+        },
+        "type": "categorical"
+      }
+    ],
+    "decision_metric_stats": {
+      "mean": 40.3254,
+      "median": 21.1895,
+      "std": 108.9219,
+      "min": 7.1,
+      "max": 5083.954
+    }
+  },
+  "insights": {
+    "decision_metric": "Popularity",
+    "top_insights": [
+      {
+        "rank": 1,
+        "factor": "Genre",
+        "why_it_matters": "The genre of a movie influences popularity due to differences in audience preferences.",
+        "evidence": "Mean difference: 1360.424, Top segments: Animation, Family, Fantasy, Comedy, Adventure (1373.778) and Action, Crime, Fantasy (841.0595)",
+        "confidence": "high",
+        "confidence_explanation": "High confidence \u2014 based on large sample size and consistent differences across segments."
+      },
+      {
+        "rank": 2,
+        "factor": "Original_Language",
+        "why_it_matters": "Movies in different languages have varying levels of popularity, possibly due to linguistic and cultural differences.",
+        "evidence": "Mean difference: 144.412, Top segments: ml (151.512), hi (85.9317), and tr (71.6314)",
+        "confidence": "medium",
+        "confidence_explanation": "Medium confidence \u2014 based on moderate separation between segments."
+      },
+      {
+        "rank": 3,
+        "factor": "Vote_Count",
+        "why_it_matters": "A larger number of votes contributes to higher popularity, as it indicates more widespread recognition.",
+        "evidence": "Correlation: 0.1374, indicating a weak positive relationship",
+        "confidence": "medium",
+        "confidence_explanation": "Medium confidence \u2014 based on moderate separation between segments."
+      },
+      {
+        "rank": 4,
+        "factor": "Vote_Average",
+        "why_it_matters": "A higher average vote score contributes to higher popularity, as it suggests better quality content.",
+        "evidence": "Correlation: 0.0538, indicating a weak positive relationship",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on weak association."
+      }
+    ],
+    "data_risks": [
+      "Missing values (0.29 of the total)",
+      "Outliers (10.65 of the total)",
+      "Small difference in correlations between Vote_Count and Vote_Average (0.0538 and 0.1374)"
+    ],
+    "limitations": "This analysis cannot determine causality or make predictions about future popularity. It only provides insights into factors influencing popularity based on existing data."
+  }
+}

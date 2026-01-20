@@ -51,8 +51,8 @@ export function MainContent({ activeNav, setActiveNav }: MainContentProps) {
   }
 
   return (
-    <main className="flex-1 overflow-auto bg-background">
-      <div className="p-4 space-y-4">
+    <main className="flex-1 overflow-auto bg-background" suppressHydrationWarning>
+      <div className="p-4 space-y-4" suppressHydrationWarning>
         {activeNav !== "settings" && <WorkspaceStatusBanner />}
         {renderContent()}
       </div>

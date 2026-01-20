@@ -277,11 +277,11 @@ export function Sidebar({
   }
 
   return (
-    <aside className="w-[280px] h-screen flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300">
+    <aside className="w-[280px] h-screen flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300" suppressHydrationWarning>
       {/* Logo and Toggle */}
-      <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <div className="p-4 space-y-4" suppressHydrationWarning>
+        <div className="flex items-center justify-between" suppressHydrationWarning>
+          <div className="flex items-center gap-2" suppressHydrationWarning>
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <BarChart3 className="w-5 h-5 text-primary-foreground" />
             </div>
@@ -299,8 +299,8 @@ export function Sidebar({
       </div>
 
       {/* Workspace Section */}
-      <div className="px-4 pb-4 border-b border-sidebar-border">
-        <div className="flex items-center justify-between mb-2">
+      <div className="px-4 pb-4 border-b border-sidebar-border" suppressHydrationWarning>
+        <div className="flex items-center justify-between mb-2" suppressHydrationWarning>
           <button
             onClick={() => setWorkspacesOpen(!workspacesOpen)}
             className="flex items-center gap-2 text-xs font-semibold text-muted-foreground tracking-wider hover:text-sidebar-foreground transition-colors"
@@ -309,7 +309,7 @@ export function Sidebar({
             <span>WORKSPACES</span>
             <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", !workspacesOpen && "-rotate-90")} />
           </button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1" suppressHydrationWarning>
             <input
               ref={fileInputRef}
               type="file"
@@ -389,7 +389,7 @@ export function Sidebar({
               const datasetCount = workspace.datasets?.length || 0
 
               return (
-                <div key={workspace.id} className="space-y-1">
+                <div key={workspace.id} className="space-y-1" suppressHydrationWarning>
                   <div
                     className={cn(
                       "group flex items-center justify-between px-2 py-1.5 rounded-md text-sm transition-colors",

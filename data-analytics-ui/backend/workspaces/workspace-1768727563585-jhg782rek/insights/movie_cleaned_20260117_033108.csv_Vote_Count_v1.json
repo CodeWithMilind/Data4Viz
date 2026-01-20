@@ -1,0 +1,141 @@
+{
+  "version": "1",
+  "workspace_id": "workspace-1768727563585-jhg782rek",
+  "dataset_id": "movie_cleaned_20260117_033108.csv",
+  "decision_metric": "Vote_Count",
+  "dataset_hash": "e8f0d3b99170860e3770356699523f8253b378dd6c8637b67fd94a3130aa0451",
+  "created_at": "2026-01-20T18:53:27.029874",
+  "backend_stats": {
+    "decision_metric": "Vote_Count",
+    "total_rows": 9847,
+    "valid_rows": 9817,
+    "missing_percentage": 0.3,
+    "outlier_count": 1128,
+    "outlier_percentage": 11.49,
+    "top_factors": [
+      {
+        "factor": "Genre",
+        "impact_score": 1359.51,
+        "type": "categorical",
+        "mean_difference": 18944,
+        "top_segments": {
+          "Science Fiction, Adventure, Fantasy": 18944,
+          "Action, Adventure, Science Fiction, Drama": 18174,
+          "Animation, Family, Adventure, Drama, Comedy": 17586
+        },
+        "bottom_segments": {
+          "Action, Adventure, Science Fiction, Comedy": 0,
+          "Action, Adventure, Science Fiction, Fantasy, Drama": 0,
+          "Action, Animation, Adventure, Fantasy, Music": 0
+        }
+      },
+      {
+        "factor": "Original_Language",
+        "impact_score": 121.11,
+        "type": "categorical",
+        "mean_difference": 1687.5417,
+        "top_segments": {
+          "en": 1687.5417,
+          "nb": 1239,
+          "la": 914
+        },
+        "bottom_segments": {
+          "lv": 0,
+          "tl": 7.375,
+          "ca": 10
+        }
+      },
+      {
+        "factor": "Vote_Average",
+        "impact_score": 25.38,
+        "type": "numeric",
+        "correlation": 0.2538,
+        "abs_correlation": 0.2538
+      }
+    ],
+    "all_correlations": [
+      {
+        "factor": "Vote_Average",
+        "correlation": 0.2538,
+        "abs_correlation": 0.2538,
+        "type": "numeric"
+      }
+    ],
+    "all_segment_impacts": [
+      {
+        "factor": "Genre",
+        "mean_difference": 18944,
+        "relative_impact_pct": 1359.51,
+        "top_segments": {
+          "Science Fiction, Adventure, Fantasy": 18944,
+          "Action, Adventure, Science Fiction, Drama": 18174,
+          "Animation, Family, Adventure, Drama, Comedy": 17586
+        },
+        "bottom_segments": {
+          "Action, Adventure, Science Fiction, Comedy": 0,
+          "Action, Adventure, Science Fiction, Fantasy, Drama": 0,
+          "Action, Animation, Adventure, Fantasy, Music": 0
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "Original_Language",
+        "mean_difference": 1687.5417,
+        "relative_impact_pct": 121.11,
+        "top_segments": {
+          "en": 1687.5417,
+          "nb": 1239,
+          "la": 914
+        },
+        "bottom_segments": {
+          "lv": 0,
+          "tl": 7.375,
+          "ca": 10
+        },
+        "type": "categorical"
+      }
+    ],
+    "decision_metric_stats": {
+      "mean": 1393.4462,
+      "median": 444,
+      "std": 2612.007,
+      "min": 0,
+      "max": 31077
+    }
+  },
+  "insights": {
+    "decision_metric": "Vote_Count",
+    "top_insights": [
+      {
+        "rank": 1,
+        "factor": "Genre",
+        "why_it_matters": "The genre factor significantly influences the Vote_Count, with a mean difference of ,.",
+        "evidence": "With top segments like Science Fiction, Adventure, Fantasy having 18,944 and bottom segments like Action, Adventure, Science Fiction, Comedy, Action, Adventure, Science Fiction, Fantasy, Drama and Action, Animation, Adventure, Fantasy, Music having 0.",
+        "confidence": "medium",
+        "confidence_explanation": "Medium confidence \u2014 based on moderate separation between segments."
+      },
+      {
+        "rank": 2,
+        "factor": "Original_Language",
+        "why_it_matters": "The original language factor also affects the Vote_Count, with a mean difference of ,.",
+        "evidence": "Top segments like en have 1,687.54 and bottom segments like lv, tl, and ca have 0, 7.375, and 10 respectively.",
+        "confidence": "medium",
+        "confidence_explanation": "Medium confidence \u2014 based on moderate separation between segments."
+      },
+      {
+        "rank": 3,
+        "factor": "Vote_Average",
+        "why_it_matters": "While the correlation between Vote_Average and Vote_Count is relatively low at , it still suggests a weak positive relationship.",
+        "evidence": "The absolute correlation is 0.2538.",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on weak association."
+      }
+    ],
+    "data_risks": [
+      "0.3% missing values",
+      "11.49% outliers",
+      "Outliers: 1128"
+    ],
+    "limitations": "This analysis is limited to describing correlations and associations, without making causal inferences or predictions."
+  }
+}

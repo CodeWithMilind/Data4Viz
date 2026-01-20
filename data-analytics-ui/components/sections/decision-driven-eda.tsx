@@ -37,6 +37,8 @@ interface DecisionEDAResponse {
   }
   backend_stats: any
   excluded_columns?: ExcludedColumn[]
+  cached?: boolean
+  version?: string
 }
 
 export function DecisionDrivenEDA() {
@@ -51,7 +53,6 @@ export function DecisionDrivenEDA() {
   const [insights, setInsights] = useState<DecisionEDAResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [expandedInsights, setExpandedInsights] = useState<Set<number>>(new Set())
-  const [showEvidence, setShowEvidence] = useState(false)
 
   // Sync Zustand store with workspaceStore on mount
   useEffect(() => {
@@ -106,7 +107,7 @@ export function DecisionDrivenEDA() {
     }
   }
 
-  async function generateInsights() {
+  async function generateInsights(regenerate: boolean = false) {
     if (!currentWorkspace?.id || !selectedDataset || !selectedMetric) {
       setError("Please select a dataset and decision metric")
       return
@@ -114,7 +115,9 @@ export function DecisionDrivenEDA() {
 
     setLoading(true)
     setError(null)
-    setInsights(null)
+    if (regenerate) {
+      setInsights(null) // Clear existing insights during regeneration
+    }
 
     try {
       // Use the SAME AI config as AI Agent (shared store)
@@ -129,6 +132,7 @@ export function DecisionDrivenEDA() {
           provider: provider || "groq",
           model: model || "llama-3.1-70b-versatile",
           apiKey: apiKey, // Optional - backend prioritizes env var
+          regenerate: regenerate,
         }),
       })
 
@@ -141,8 +145,12 @@ export function DecisionDrivenEDA() {
       setInsights(data)
       
       toast({
-        title: "Success",
-        description: "Insights generated successfully",
+        title: regenerate ? "Success" : "Success",
+        description: regenerate 
+          ? "Insights regenerated successfully" 
+          : data.cached 
+            ? "Insights loaded from cache" 
+            : "Insights generated successfully",
       })
     } catch (err: any) {
       setError(err.message || "Failed to generate insights")
@@ -181,6 +189,37 @@ export function DecisionDrivenEDA() {
 
   return (
     <div className="space-y-6">
+      {/* Pre-Insight Data Guidance */}
+      {!insights && (
+        <Alert className="border-blue-500/50 bg-blue-500/10">
+          <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertDescription>
+            <div className="font-semibold mb-2 text-blue-900 dark:text-blue-100">
+              Data Quality Guidance for Best Results
+            </div>
+            <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+              <p className="font-medium">For strongest insights, use:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Cleaned datasets (missing values handled, outliers addressed)</li>
+                <li>Numerical decision metrics with sufficient sample size (&gt;30 rows recommended)</li>
+                <li>Categorical features with balanced distributions and multiple categories</li>
+                <li>Preprocessed data (data cleaning and outlier handling completed)</li>
+              </ul>
+              <p className="font-medium mt-3">Results may be weaker with:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Sparse or highly missing data (&gt;50% missing values)</li>
+                <li>Noisy or inconsistent data formats</li>
+                <li>Very small sample sizes (&lt;30 rows)</li>
+                <li>Highly imbalanced categorical features</li>
+              </ul>
+              <p className="text-xs italic mt-2">
+                Tip: Complete data cleaning and outlier handling steps first for optimal insight quality.
+              </p>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Scope Definition - Always Visible */}
       <Alert>
         <Info className="h-4 w-4" />
@@ -236,21 +275,43 @@ export function DecisionDrivenEDA() {
             </Select>
           </div>
 
-          {/* Generate Button */}
-          <Button
-            onClick={generateInsights}
-            disabled={loading || !selectedDataset || !selectedMetric}
-            className="w-full"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Insights...
-              </>
-            ) : (
-              "Generate Insights"
+          {/* Generate/Regenerate Buttons */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => generateInsights(false)}
+              disabled={loading || !selectedDataset || !selectedMetric}
+              className="flex-1"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating Insights...
+                </>
+              ) : (
+                "Generate Insights"
+              )}
+            </Button>
+            {insights && (
+              <Button
+                onClick={(e) => {
+                  e.preventDefault()
+                  generateInsights(true)
+                }}
+                disabled={loading || !selectedDataset || !selectedMetric}
+                variant="outline"
+                className="flex-1"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  "Regenerate Insights"
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
 
           {/* Error Display */}
           {error && (
@@ -366,25 +427,6 @@ export function DecisionDrivenEDA() {
               </Alert>
             )}
 
-            {/* Show Evidence Toggle */}
-            <div className="pt-4 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowEvidence(!showEvidence)}
-                className="w-full"
-              >
-                {showEvidence ? "Hide" : "Show"} Evidence (Backend Statistics)
-              </Button>
-              
-              {showEvidence && insights.backend_stats && (
-                <div className="mt-4 p-4 bg-secondary rounded-lg">
-                  <pre className="text-xs overflow-auto max-h-96">
-                    {JSON.stringify(insights.backend_stats, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
       )}

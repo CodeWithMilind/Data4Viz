@@ -31,10 +31,10 @@ const features = [
 
 export function WelcomePage() {
   return (
-    <main className="flex-1 flex flex-col h-screen bg-background overflow-auto">
-      <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="max-w-3xl w-full text-center space-y-8">
-          <div className="space-y-4">
+    <main className="flex-1 flex flex-col h-screen bg-background overflow-auto" suppressHydrationWarning>
+      <div className="flex-1 flex flex-col items-center justify-center p-8" suppressHydrationWarning>
+        <div className="max-w-3xl w-full text-center space-y-8" suppressHydrationWarning>
+          <div className="space-y-4" suppressHydrationWarning>
             <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto">
               <BarChart3 className="w-8 h-8 text-primary-foreground" />
             </div>
@@ -45,7 +45,7 @@ export function WelcomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-12" suppressHydrationWarning>
             {features.map((feature) => {
               const Icon = feature.icon
               return (

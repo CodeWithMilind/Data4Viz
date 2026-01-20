@@ -7,11 +7,18 @@ No explanations, no recommendations, no ML models.
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 import logging
 
 from app.services.decision_eda_service import compute_decision_eda_stats
 from app.services.dataset_loader import dataset_exists
+from app.services.insight_storage import (
+    save_insight_snapshot,
+    load_insight_snapshot,
+    is_dataset_changed,
+    get_all_versions,
+    delete_all_insight_versions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,3 +82,106 @@ async def compute_decision_eda(
     except Exception as e:
         logger.error(f"[decision-eda] Error computing stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to compute statistics: {str(e)}")
+
+
+class SaveInsightsRequest(BaseModel):
+    workspace_id: str
+    dataset_id: str
+    decision_metric: str
+    backend_stats: Dict[str, Any]
+    insights: Dict[str, Any]
+
+
+@router.post("/insights")
+async def save_insights(request: SaveInsightsRequest):
+    """
+    Save insight snapshot to disk.
+    Internal endpoint - not exposed to users.
+    """
+    try:
+        version = save_insight_snapshot(
+            request.workspace_id,
+            request.dataset_id,
+            request.decision_metric,
+            request.backend_stats,
+            request.insights
+        )
+        
+        return {"success": True, "version": version}
+    except Exception as e:
+        logger.error(f"[decision-eda] Error saving insights: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to save insights: {str(e)}")
+
+
+@router.get("/insights/{workspace_id}/{dataset_id}/{decision_metric}")
+async def get_insights(
+    workspace_id: str,
+    dataset_id: str,
+    decision_metric: str
+):
+    """
+    Load insight snapshot from disk.
+    Internal endpoint - not exposed to users.
+    """
+    try:
+        snapshot = load_insight_snapshot(workspace_id, dataset_id, decision_metric)
+        
+        if not snapshot:
+            raise HTTPException(status_code=404, detail="Insight snapshot not found")
+        
+        return snapshot
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[decision-eda] Error loading insights: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load insights: {str(e)}")
+
+
+class CheckDatasetChangeRequest(BaseModel):
+    workspace_id: str
+    dataset_id: str
+    stored_hash: str
+
+
+@router.post("/check-dataset-change")
+async def check_dataset_change(request: CheckDatasetChangeRequest):
+    """
+    Check if dataset has changed since snapshot was created.
+    Internal endpoint - not exposed to users.
+    """
+    try:
+        changed = is_dataset_changed(
+            request.workspace_id,
+            request.dataset_id,
+            request.stored_hash
+        )
+        
+        return {"changed": changed}
+    except Exception as e:
+        logger.error(f"[decision-eda] Error checking dataset change: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to check dataset change: {str(e)}")
+
+
+class DeleteInsightsRequest(BaseModel):
+    workspace_id: str
+    dataset_id: str
+    decision_metric: str
+
+
+@router.post("/insights/delete")
+async def delete_insights(request: DeleteInsightsRequest):
+    """
+    Delete all insight snapshots for a dataset/metric combination.
+    Internal endpoint - used during regeneration.
+    """
+    try:
+        deleted_count = delete_all_insight_versions(
+            request.workspace_id,
+            request.dataset_id,
+            request.decision_metric
+        )
+        
+        return {"success": True, "deleted_count": deleted_count}
+    except Exception as e:
+        logger.error(f"[decision-eda] Error deleting insights: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete insights: {str(e)}")

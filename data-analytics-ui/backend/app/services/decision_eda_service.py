@@ -301,8 +301,9 @@ def compute_decision_eda_stats(
             "bottom_segments": seg["bottom_segments"]
         })
     
-    # Sort by impact score (descending)
-    factors.sort(key=lambda x: x["impact_score"], reverse=True)
+    # Sort by impact score (descending) with deterministic tie-breaker
+    # Use factor name as tie-breaker for stable, deterministic sorting
+    factors.sort(key=lambda x: (-x["impact_score"], x["factor"]))
     
     # Deduplicate factors: keep only the strongest signal per factor
     seen_factors = {}
@@ -324,7 +325,8 @@ def compute_decision_eda_stats(
                 seen_factors[factor_name] = factor
     
     # Re-sort after deduplication (in case replacement changed order)
-    deduplicated_factors.sort(key=lambda x: x["impact_score"], reverse=True)
+    # Use deterministic tie-breaker for stable sorting
+    deduplicated_factors.sort(key=lambda x: (-x["impact_score"], x["factor"]))
     
     # Get top 5 (after deduplication)
     top_factors = deduplicated_factors[:5]
@@ -338,8 +340,8 @@ def compute_decision_eda_stats(
         "outlier_count": int(outlier_count),
         "outlier_percentage": outlier_pct,
         "top_factors": top_factors,
-        "all_correlations": correlations[:10],  # Top 10 correlations
-        "all_segment_impacts": segment_impacts[:10],  # Top 10 segment impacts
+        "all_correlations": sorted(correlations[:10], key=lambda x: (-abs(x.get("correlation", 0)), x.get("factor", ""))),  # Top 10 correlations, deterministically sorted
+        "all_segment_impacts": sorted(segment_impacts[:10], key=lambda x: (-x.get("relative_impact_pct", 0), x.get("factor", ""))),  # Top 10 segment impacts, deterministically sorted
         "excluded_columns": excluded_columns,  # Columns excluded from analysis
         "decision_metric_stats": {}
     }
