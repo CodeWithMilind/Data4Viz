@@ -309,7 +309,10 @@ export function FilesPage() {
       
       if (file.id?.startsWith("local-")) {
         // Local files: use Next.js API route which handles subdirectories
-        response = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${filePath}`)
+        // URL encode each path segment separately to handle special characters and spaces
+        const pathSegments = filePath.split("/")
+        const encodedPath = pathSegments.map(segment => encodeURIComponent(segment)).join("/")
+        response = await fetch(`/api/workspaces/${activeWorkspaceId}/files/${encodedPath}`)
       } else {
         // Backend files: use backend download endpoint which handles subdirectories
         response = await fetch(`${BASE_URL}/workspaces/${activeWorkspaceId}/files/${filePath}/download`)
@@ -317,7 +320,15 @@ export function FilesPage() {
       
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error(`File "${file.name}" not found in workspace. It may have been deleted or moved.`)
+          // File not found - refresh file list and show user-friendly message
+          invalidateForWorkspace(activeWorkspaceId)
+          await fetchFiles(true)
+          toast({
+            title: "File Not Found",
+            description: `File "${file.name}" may have been deleted or moved. The file list has been refreshed.`,
+            variant: "destructive",
+          })
+          return // Exit early - don't throw error
         }
         const errorText = await response.text().catch(() => response.statusText)
         throw new Error(`Failed to download file: ${errorText || response.statusText}`)
@@ -456,9 +467,30 @@ export function FilesPage() {
         }))
       }
 
+      // SYNC WITH DATASET VIEW: If deleted file is a CSV, remove it from workspace datasets
+      if (relativePath.endsWith(".csv") || fileToDelete.type === "CSV") {
+        try {
+          const datasets = getDatasets()
+          
+          // Find dataset by fileName matching the deleted file
+          const fileName = fileToDelete.name || relativePath.split("/").pop() || ""
+          const datasetToRemove = datasets.find((ds) => ds.fileName === fileName)
+          
+          if (datasetToRemove) {
+            await removeDatasetFromWorkspace(datasetToRemove.id)
+            console.log(`[Files Page] Removed dataset ${datasetToRemove.id} (${fileName}) from workspace`)
+          }
+        } catch (datasetError) {
+          console.warn("[Files Page] Failed to remove dataset from workspace:", datasetError)
+          // Continue - file is already deleted, dataset removal is secondary
+        }
+      }
+
       // Trigger refresh event for other components
       try {
         window.dispatchEvent(new CustomEvent("refreshFiles"))
+        // Also trigger dataset refresh event
+        window.dispatchEvent(new CustomEvent("refreshDatasets"))
       } catch (e) {
         console.warn("Failed to dispatch refresh event:", e)
       }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Database, Upload, FileSpreadsheet, Table, Link2, Loader2, AlertCircle, Trash2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -42,6 +42,21 @@ export function DatasetPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const datasets = getDatasets()
+
+  // Listen for file deletion events to sync dataset view
+  useEffect(() => {
+    const handleRefreshDatasets = () => {
+      // Force re-render by accessing getDatasets (workspace context will update)
+      // The datasets variable will automatically update when workspace state changes
+      console.log("[Dataset Page] Refresh event received, datasets will update automatically")
+    }
+    
+    window.addEventListener("refreshDatasets", handleRefreshDatasets)
+    
+    return () => {
+      window.removeEventListener("refreshDatasets", handleRefreshDatasets)
+    }
+  }, [getDatasets])
 
   // Handle CSV URL loading
   const handleLoadFromUrl = async () => {
