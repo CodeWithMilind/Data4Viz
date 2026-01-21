@@ -1,7 +1,7 @@
 {
-  "file_name": "Salary_dataset.csv",
-  "rows": 30,
-  "columns": 3,
+  "file_name": "Encoded_EDA_DONE.csv",
+  "rows": 35604,
+  "columns": 21,
   "schema": [
     {
       "name": "Unnamed: 0",
@@ -9,12 +9,102 @@
       "missing": 0
     },
     {
-      "name": "YearsExperience",
+      "name": "age",
       "type": "numeric",
       "missing": 0
     },
     {
-      "name": "Salary",
+      "name": "job",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "marital",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "education",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "default",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "housing",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "loan",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "contact",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "month",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "day_of_week",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "campaign",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "pdays",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "previous",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "poutcome",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "emp_var_rate",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "cons_price_idx",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "cons_conf_idx",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "euribor3m",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "nr_employed",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "y",
       "type": "numeric",
       "missing": 0
     }

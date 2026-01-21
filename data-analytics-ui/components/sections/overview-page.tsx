@@ -26,6 +26,7 @@ import {
   BarChart3,
   Database,
   Loader2,
+  Sparkles,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,7 +37,7 @@ import { Progress } from "@/components/ui/progress"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, getWorkspaceDatasets, type OverviewResponse, getDatasetSchema, type SchemaResponse, generateDatasetIntelligenceSnapshot } from "@/lib/api/dataCleaningClient"
+import { getDatasetOverviewFromFile, getDatasetOverview, refreshDatasetOverview, getWorkspaceDatasets, type OverviewResponse, getDatasetSchema, type SchemaResponse, generateDatasetIntelligenceSnapshot, generateColumnIntelligence, getColumnIntelligence, type ColumnIntelligence } from "@/lib/api/dataCleaningClient"
 import { getOverview, setOverview } from "@/lib/overview-cache"
 import type { WorkspaceDataset } from "@/types/workspace"
 
@@ -97,6 +98,7 @@ export function OverviewPage() {
   const [toRow, setToRow] = useState("20")
   const [structureExpanded, setStructureExpanded] = useState(false)
   const [insightsExpanded, setInsightsExpanded] = useState(false)
+  const [intelligenceExpanded, setIntelligenceExpanded] = useState(false)
   const [selectedColumn, setSelectedColumn] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [valueCountLimit, setValueCountLimit] = useState("5")
@@ -119,6 +121,12 @@ export function OverviewPage() {
   const [schema, setSchema] = useState<SchemaResponse | null>(null)
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [schemaError, setSchemaError] = useState<string | null>(null)
+
+  // Column Intelligence state
+  const [columnIntelligence, setColumnIntelligence] = useState<ColumnIntelligence | null>(null)
+  const [isLoadingIntelligence, setIsLoadingIntelligence] = useState(false)
+  const [isGeneratingIntelligence, setIsGeneratingIntelligence] = useState(false)
+  const [intelligenceError, setIntelligenceError] = useState<string | null>(null)
 
   // Get dataset from workspace (must be declared before useEffects that use it)
   const selectedDataset = useMemo(() => {
@@ -299,6 +307,62 @@ export function OverviewPage() {
       }
     }
   }, [schema, overviewData, selectedColumn])
+
+  // Load column intelligence when workspace/dataset changes
+  useEffect(() => {
+    if (!activeWorkspaceId) {
+      setColumnIntelligence(null)
+      return
+    }
+
+    let cancelled = false
+    setIsLoadingIntelligence(true)
+    setIntelligenceError(null)
+
+    getColumnIntelligence(activeWorkspaceId)
+      .then((intelligence) => {
+        if (cancelled) return
+        setColumnIntelligence(intelligence)
+        setIntelligenceError(null)
+        setIsLoadingIntelligence(false)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        const errorMessage = error instanceof Error ? error.message : "Failed to load column intelligence"
+        setIntelligenceError(errorMessage)
+        setColumnIntelligence(null)
+        setIsLoadingIntelligence(false)
+        console.error("Error fetching column intelligence:", error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWorkspaceId])
+
+  // Handle generate/regenerate column intelligence
+  const handleGenerateIntelligence = async (regenerate: boolean = false) => {
+    if (!activeWorkspaceId || !selectedDataset?.fileName) return
+
+    setIsGeneratingIntelligence(true)
+    setIntelligenceError(null)
+
+    try {
+      const intelligence = await generateColumnIntelligence(
+        activeWorkspaceId,
+        selectedDataset.fileName,
+        regenerate
+      )
+      setColumnIntelligence(intelligence)
+      setIntelligenceError(null)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate column intelligence"
+      setIntelligenceError(errorMessage)
+      console.error("Error generating column intelligence:", error)
+    } finally {
+      setIsGeneratingIntelligence(false)
+    }
+  }
 
   // Mark overview as ready when data is loaded
   useEffect(() => {
@@ -1094,6 +1158,122 @@ dtypes: ${[
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* 6. Column Intelligence (New Section) */}
+        <Collapsible open={intelligenceExpanded} onOpenChange={setIntelligenceExpanded}>
+          <Card>
+            <CardHeader className="py-3">
+              <div className="flex items-center gap-2">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    {intelligenceExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <Sparkles className="w-4 h-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <CardTitle className="text-base">Column Intelligence</CardTitle>
+                  <CardDescription className="text-xs mt-0.5">
+                    AI-powered explanation of what each column means and why it is used
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                {isLoadingIntelligence ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-sm text-muted-foreground">Loading intelligence...</span>
+                  </div>
+                ) : !columnIntelligence ? (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <div className="text-center space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Column meanings are not available yet. Generate AI-powered explanations to understand each column in simple English.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => handleGenerateIntelligence(false)}
+                      disabled={isGeneratingIntelligence || !selectedDataset}
+                    >
+                      {isGeneratingIntelligence ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        "Generate Column Intelligence"
+                      )}
+                    </Button>
+                    {intelligenceError && (
+                      <p className="text-sm text-destructive">{intelligenceError}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          AI Generated • Stored
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGenerateIntelligence(true)}
+                        disabled={isGeneratingIntelligence || !selectedDataset}
+                      >
+                        {isGeneratingIntelligence ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Regenerating...
+                          </>
+                        ) : (
+                          "Regenerate Intelligence"
+                        )}
+                      </Button>
+                    </div>
+                    {intelligenceError && (
+                      <p className="text-sm text-destructive">{intelligenceError}</p>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {columnIntelligence.columns.map((col) => {
+                        const columnType = getColumnType(col.name)
+                        return (
+                          <Card key={col.name} className="bg-card">
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-semibold">{col.name}</h4>
+                                <Badge variant="outline" className={`text-xs ${getTypeBadgeColor(columnType)}`}>
+                                  {col.data_type}
+                                </Badge>
+                              </div>
+                              <div className="space-y-2">
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">Meaning</p>
+                                  <p className="text-sm text-foreground">{col.meaning}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">Why this column is used</p>
+                                  <p className="text-sm text-foreground">{col.why_used}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Column Intelligence is read-only. It does not modify, clean, or delete your data or unique values.
+                  </p>
+                </div>
               </CardContent>
             </CollapsibleContent>
           </Card>

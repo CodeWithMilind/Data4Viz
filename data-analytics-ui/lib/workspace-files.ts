@@ -386,6 +386,43 @@ export async function getDatasetIntelligence(
   return await readWorkspaceFile<DatasetIntelligenceSnapshot>(workspaceId, "dataset_intelligence.json")
 }
 
+export interface ColumnIntelligence {
+  columns: Array<{
+    name: string
+    data_type: string
+    meaning: string
+    why_used: string
+  }>
+  generated_at: number
+}
+
+export async function getColumnIntelligence(
+  workspaceId: string,
+): Promise<ColumnIntelligence | null> {
+  return await readWorkspaceFile<ColumnIntelligence>(workspaceId, "column_intelligence.json")
+}
+
+export async function saveColumnIntelligence(
+  workspaceId: string,
+  intelligence: ColumnIntelligence,
+): Promise<void> {
+  await writeWorkspaceFile(workspaceId, "column_intelligence.json", intelligence, false)
+}
+
+export async function deleteColumnIntelligence(
+  workspaceId: string,
+): Promise<void> {
+  const filePath = getFilePath(workspaceId, "column_intelligence.json")
+  try {
+    if (existsSync(filePath)) {
+      await fs.unlink(filePath)
+    }
+  } catch (error) {
+    console.error("Failed to delete column intelligence file:", error)
+    throw error
+  }
+}
+
 export async function deleteChat(workspaceId: string, chatId: string): Promise<void> {
   const index = await getChatIndex(workspaceId)
   const chat = index.chats.find((c) => c.chatId === chatId)

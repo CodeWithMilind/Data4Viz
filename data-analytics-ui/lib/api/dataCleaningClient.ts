@@ -521,6 +521,93 @@ export async function generateDatasetIntelligenceSnapshot(
 }
 
 /**
+ * Column Intelligence interfaces
+ */
+export interface ColumnIntelligence {
+  columns: Array<{
+    name: string
+    data_type: string
+    meaning: string
+    why_used: string
+  }>
+  generated_at: number
+}
+
+/**
+ * Generate column intelligence explanations
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetId Dataset filename (required)
+ * @param regenerate If true, regenerate using previous intelligence as context
+ * @returns Column intelligence with explanations
+ * @throws Error if API call fails
+ */
+export async function generateColumnIntelligence(
+  workspaceId: string,
+  datasetId: string,
+  regenerate: boolean = false
+): Promise<ColumnIntelligence> {
+  const requestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/workspaces/${workspaceId}/column-intelligence`;
+
+  console.log(`[generateColumnIntelligence] Request URL: ${requestUrl}`);
+
+  const response = await fetch(requestUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ datasetId, regenerate }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    console.error(
+      `[generateColumnIntelligence] Error ${response.status}: ${errorText}`
+    );
+    throw new Error(`Failed to generate column intelligence: ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log(`[generateColumnIntelligence] Success`);
+  return data.intelligence;
+}
+
+/**
+ * Get column intelligence from workspace
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @returns Column intelligence with explanations, or null if not found
+ * @throws Error if API call fails
+ */
+export async function getColumnIntelligence(
+  workspaceId: string
+): Promise<ColumnIntelligence | null> {
+  const requestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/workspaces/${workspaceId}/column-intelligence`;
+
+  const response = await fetch(requestUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    console.error(
+      `[getColumnIntelligence] Error ${response.status}: ${errorText}`
+    );
+    throw new Error(`Failed to fetch column intelligence: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.intelligence;
+}
+
+/**
  * Get dataset schema from backend
  * 
  * Schema is the single source of truth for column metadata.

@@ -1,0 +1,131 @@
+{
+  "columns": [
+    {
+      "name": "Unnamed: 0",
+      "data_type": "identifier",
+      "meaning": "Row identifier or index column used to uniquely identify each record in the dataset.",
+      "why_used": "Used as a unique identifier to reference specific rows and maintain data integrity."
+    },
+    {
+      "name": "age",
+      "data_type": "numeric",
+      "meaning": "Age in years, representing the age of individuals in the dataset.",
+      "why_used": "Used for demographic segmentation, age-based customer profiling, and age-related trend analysis."
+    },
+    {
+      "name": "job",
+      "data_type": "categorical",
+      "meaning": "Job title or occupation category Common values: 0, 1, 2.",
+      "why_used": "Used for job-based segmentation, career analysis, and occupational grouping."
+    },
+    {
+      "name": "marital",
+      "data_type": "categorical",
+      "meaning": "Marital status of individuals (e.g., single, married, divorced).",
+      "why_used": "Used for demographic analysis, customer segmentation, and lifestyle profiling."
+    },
+    {
+      "name": "education",
+      "data_type": "categorical",
+      "meaning": "Education level or qualification Examples: 0, 1, 2.",
+      "why_used": "Used for educational background analysis and qualification-based segmentation."
+    },
+    {
+      "name": "default",
+      "data_type": "boolean",
+      "meaning": "Boolean indicator showing whether the customer defaulted on payment (yes/no).",
+      "why_used": "Used as a target variable for default prediction models and credit risk analysis."
+    },
+    {
+      "name": "housing",
+      "data_type": "boolean",
+      "meaning": "Boolean indicator showing housing loan status (yes/no).",
+      "why_used": "Used to identify customers with housing loans for financial product segmentation and risk assessment."
+    },
+    {
+      "name": "loan",
+      "data_type": "boolean",
+      "meaning": "Boolean indicator showing whether a loan was approved or not (yes/no).",
+      "why_used": "Used to filter and segment customers based on loan approval status for risk analysis and targeting."
+    },
+    {
+      "name": "contact",
+      "data_type": "boolean",
+      "meaning": "Boolean flag indicating true/false or yes/no values (e.g., 0, 1).",
+      "why_used": "Used for binary classification, filtering, and conditional segmentation in predictive modeling."
+    },
+    {
+      "name": "month",
+      "data_type": "categorical",
+      "meaning": "Month of the year Examples: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "day_of_week",
+      "data_type": "categorical",
+      "meaning": "Day of the week Examples: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "campaign",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: 1, 2, 3.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "pdays",
+      "data_type": "categorical",
+      "meaning": "Day-related categorical feature.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "previous",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 8 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "poutcome",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "emp_var_rate",
+      "data_type": "numeric",
+      "meaning": "Numerical score or rating value for evaluation.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "cons_price_idx",
+      "data_type": "numeric",
+      "meaning": "Monetary or quantitative amount in currency or unit terms.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "cons_conf_idx",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "euribor3m",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "nr_employed",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "y",
+      "data_type": "boolean",
+      "meaning": "Boolean flag indicating true/false or yes/no values (e.g., 0, 1).",
+      "why_used": "Used for binary classification, filtering, and conditional segmentation in predictive modeling."
+    }
+  ],
+  "generated_at": 1769027759140
+}

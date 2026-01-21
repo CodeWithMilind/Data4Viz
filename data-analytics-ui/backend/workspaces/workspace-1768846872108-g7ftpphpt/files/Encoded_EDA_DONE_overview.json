@@ -1,0 +1,576 @@
+{
+  "total_rows": 35604,
+  "total_columns": 21,
+  "duplicate_row_count": 0,
+  "numeric_column_count": 21,
+  "categorical_column_count": 0,
+  "datetime_column_count": 0,
+  "columns": [
+    {
+      "name": "Unnamed: 0",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "age",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "job",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "marital",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "education",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "default",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "housing",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "loan",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "contact",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "month",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "day_of_week",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "campaign",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "pdays",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "previous",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "poutcome",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "emp_var_rate",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "cons_price_idx",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "cons_conf_idx",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "euribor3m",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "nr_employed",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "y",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    }
+  ],
+  "column_insights": {
+    "Unnamed: 0": {
+      "unique": 35604,
+      "top_values": {
+        "0": 1,
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 1,
+        "8": 1,
+        "9": 1,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 1,
+        "17": 1,
+        "18": 1,
+        "19": 1,
+        "20": 1,
+        "21": 1,
+        "22": 1,
+        "23": 1,
+        "24": 1,
+        "25": 1,
+        "26": 1,
+        "27": 1,
+        "28": 1,
+        "29": 1,
+        "30": 1,
+        "32": 1,
+        "33": 1,
+        "34": 1,
+        "35": 1,
+        "36": 1,
+        "37": 1,
+        "38": 1,
+        "39": 1,
+        "40": 1,
+        "41": 1,
+        "42": 1,
+        "43": 1,
+        "44": 1,
+        "45": 1,
+        "46": 1,
+        "47": 1,
+        "48": 1,
+        "49": 1,
+        "50": 1,
+        "51": 1,
+        "52": 1,
+        "53": 1
+      }
+    },
+    "age": {
+      "unique": 64,
+      "top_values": {
+        "31": 1657,
+        "32": 1601,
+        "33": 1580,
+        "35": 1525,
+        "34": 1507,
+        "36": 1494,
+        "30": 1443,
+        "37": 1292,
+        "29": 1251,
+        "38": 1236,
+        "39": 1230,
+        "41": 1095,
+        "42": 1005,
+        "40": 1004,
+        "45": 961,
+        "43": 906,
+        "46": 889,
+        "44": 885,
+        "28": 876,
+        "48": 846,
+        "47": 803,
+        "50": 748,
+        "27": 726,
+        "49": 724,
+        "52": 681,
+        "51": 662,
+        "53": 628,
+        "26": 623,
+        "56": 621,
+        "54": 600,
+        "55": 572,
+        "57": 561,
+        "25": 517,
+        "58": 505,
+        "59": 399,
+        "24": 397,
+        "60": 255,
+        "23": 195,
+        "22": 124,
+        "21": 93,
+        "61": 72,
+        "62": 62,
+        "20": 61,
+        "66": 54,
+        "63": 54,
+        "64": 54,
+        "71": 47,
+        "70": 46,
+        "65": 43,
+        "19": 41
+      }
+    },
+    "job": {
+      "unique": 11,
+      "top_values": {
+        "0": 9173,
+        "1": 7968,
+        "9": 5787,
+        "7": 3432,
+        "4": 2592,
+        "5": 1462,
+        "2": 1298,
+        "6": 1266,
+        "3": 919,
+        "10": 897,
+        "8": 810
+      }
+    },
+    "marital": {
+      "unique": 3,
+      "top_values": {
+        "1": 21598,
+        "2": 10012,
+        "0": 3994
+      }
+    },
+    "education": {
+      "unique": 7,
+      "top_values": {
+        "6": 11971,
+        "3": 8271,
+        "2": 5259,
+        "5": 4545,
+        "0": 3526,
+        "1": 2015,
+        "4": 17
+      }
+    },
+    "default": {
+      "unique": 2,
+      "top_values": {
+        "0": 35601,
+        "1": 3
+      }
+    },
+    "housing": {
+      "unique": 2,
+      "top_values": {
+        "1": 19460,
+        "0": 16144
+      }
+    },
+    "loan": {
+      "unique": 2,
+      "top_values": {
+        "0": 29996,
+        "1": 5608
+      }
+    },
+    "contact": {
+      "unique": 2,
+      "top_values": {
+        "0": 22588,
+        "1": 13016
+      }
+    },
+    "month": {
+      "unique": 10,
+      "top_values": {
+        "6": 12153,
+        "3": 5736,
+        "1": 5061,
+        "4": 4588,
+        "7": 3754,
+        "0": 2441,
+        "8": 682,
+        "9": 533,
+        "5": 491,
+        "2": 165
+      }
+    },
+    "day_of_week": {
+      "unique": 5,
+      "top_values": {
+        "1": 7434,
+        "2": 7334,
+        "4": 7061,
+        "3": 7000,
+        "0": 6775
+      }
+    },
+    "campaign": {
+      "unique": 5,
+      "top_values": {
+        "1": 16098,
+        "2": 10112,
+        "3": 5193,
+        "4": 2617,
+        "5": 1584
+      }
+    },
+    "pdays": {
+      "unique": 27,
+      "top_values": {
+        "999": 34155,
+        "3": 418,
+        "6": 389,
+        "4": 114,
+        "9": 62,
+        "2": 58,
+        "7": 57,
+        "12": 55,
+        "10": 50,
+        "5": 45,
+        "13": 35,
+        "11": 27,
+        "1": 25,
+        "15": 24,
+        "14": 19,
+        "8": 18,
+        "0": 15,
+        "16": 11,
+        "17": 8,
+        "18": 7,
+        "22": 3,
+        "19": 3,
+        "21": 2,
+        "25": 1,
+        "26": 1,
+        "27": 1,
+        "20": 1
+      }
+    },
+    "previous": {
+      "unique": 8,
+      "top_values": {
+        "0": 30322,
+        "1": 4271,
+        "2": 719,
+        "3": 205,
+        "4": 64,
+        "5": 17,
+        "6": 5,
+        "7": 1
+      }
+    },
+    "poutcome": {
+      "unique": 3,
+      "top_values": {
+        "1": 30322,
+        "0": 3968,
+        "2": 1314
+      }
+    },
+    "emp_var_rate": {
+      "unique": 10,
+      "top_values": {
+        "1.4": 13072,
+        "-1.8": 8240,
+        "1.1": 6845,
+        "-0.1": 3354,
+        "-2.9": 1586,
+        "-3.4": 1011,
+        "-1.7": 727,
+        "-1.1": 604,
+        "-3.0": 155,
+        "-0.2": 10
+      }
+    },
+    "cons_price_idx": {
+      "unique": 26,
+      "top_values": {
+        "93.994": 6845,
+        "93.918": 5281,
+        "92.893": 5104,
+        "93.444": 4106,
+        "94.465": 3685,
+        "93.2": 3287,
+        "93.075": 2283,
+        "92.201": 736,
+        "92.963": 685,
+        "92.431": 418,
+        "92.649": 340,
+        "94.215": 290,
+        "94.199": 280,
+        "93.369": 254,
+        "92.379": 253,
+        "92.843": 237,
+        "94.027": 219,
+        "94.055": 218,
+        "93.876": 204,
+        "94.601": 197,
+        "92.469": 165,
+        "93.749": 158,
+        "92.713": 155,
+        "94.767": 127,
+        "93.798": 67,
+        "92.756": 10
+      }
+    },
+    "cons_conf_idx": {
+      "unique": 26,
+      "top_values": {
+        "-36.4": 6845,
+        "-42.7": 5281,
+        "-46.2": 5104,
+        "-36.1": 4106,
+        "-41.8": 3685,
+        "-42.0": 3287,
+        "-47.1": 2283,
+        "-31.4": 736,
+        "-40.8": 685,
+        "-26.9": 418,
+        "-30.1": 340,
+        "-40.3": 290,
+        "-37.5": 280,
+        "-34.8": 254,
+        "-29.8": 253,
+        "-50.0": 237,
+        "-38.3": 219,
+        "-39.8": 218,
+        "-40.0": 204,
+        "-49.5": 197,
+        "-33.6": 165,
+        "-34.6": 158,
+        "-33.0": 155,
+        "-50.8": 127,
+        "-40.4": 67,
+        "-45.9": 10
+      }
+    },
+    "euribor3m": {
+      "unique": 315,
+      "top_values": {
+        "4.857": 2538,
+        "4.962": 2019,
+        "4.963": 1982,
+        "4.961": 1581,
+        "1.405": 1084,
+        "4.856": 1066,
+        "4.964": 913,
+        "4.864": 869,
+        "4.965": 851,
+        "4.96": 849,
+        "4.855": 783,
+        "4.86": 761,
+        "4.968": 739,
+        "4.076": 724,
+        "1.266": 711,
+        "4.859": 700,
+        "4.12": 694,
+        "4.959": 673,
+        "4.153": 644,
+        "4.858": 633,
+        "4.021": 591,
+        "4.191": 572,
+        "1.281": 568,
+        "4.967": 568,
+        "4.966": 522,
+        "1.327": 489,
+        "1.25": 485,
+        "4.958": 479,
+        "1.291": 476,
+        "1.299": 467,
+        "1.313": 449,
+        "1.334": 445,
+        "4.957": 422,
+        "1.244": 352,
+        "1.344": 342,
+        "4.865": 321,
+        "4.866": 303,
+        "1.365": 281,
+        "1.26": 240,
+        "1.41": 237,
+        "1.354": 191,
+        "0.879": 172,
+        "4.97": 156,
+        "1.262": 142,
+        "0.714": 133,
+        "0.715": 124,
+        "0.884": 123,
+        "0.883": 114,
+        "1.27": 102,
+        "4.955": 94
+      }
+    },
+    "nr_employed": {
+      "unique": 11,
+      "top_values": {
+        "5228.1": 13072,
+        "5099.1": 7624,
+        "5191.0": 6845,
+        "5195.8": 3354,
+        "5076.2": 1586,
+        "5017.5": 1011,
+        "4991.6": 727,
+        "5008.7": 616,
+        "4963.6": 604,
+        "5023.5": 155,
+        "5176.3": 10
+      }
+    },
+    "y": {
+      "unique": 2,
+      "top_values": {
+        "0": 31248,
+        "1": 4356
+      }
+    }
+  }
+}
