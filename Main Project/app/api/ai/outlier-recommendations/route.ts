@@ -6,9 +6,12 @@ import type { AIMessage } from "@/lib/ai/getAiClient"
 interface OutlierColumnSummary {
   column_name: string
   type: string
-  outlier_count: number
-  min_outlier: number
-  max_outlier: number
+  lower_outlier_count?: number
+  lower_outlier_min?: number
+  lower_outlier_max?: number
+  upper_outlier_count?: number
+  upper_outlier_min?: number
+  upper_outlier_max?: number
   mean?: number
   median?: number
 }
@@ -24,8 +27,10 @@ interface OutlierRecommendationRequest {
 
 interface OutlierRecommendation {
   column_name: string
-  recommended_action: "Remove" | "Cap" | "Transform" | "Ignore"
-  short_reason: string
+  lower_action?: "Remove" | "Cap" | "Transform" | "Ignore"
+  lower_reason?: string
+  upper_action?: "Remove" | "Cap" | "Transform" | "Ignore"
+  upper_reason?: string
   is_ai_recommendation: boolean
 }
 
@@ -42,8 +47,15 @@ function buildRecommendationPrompt(columns: OutlierColumnSummary[]): string {
   const columnsInfo = columns.map(col => {
     let info = `Column: ${col.column_name}\n`
     info += `- Type: ${col.type}\n`
-    info += `- Outlier count: ${col.outlier_count}\n`
-    info += `- Outlier range: ${col.min_outlier} to ${col.max_outlier}\n`
+    
+    if (col.lower_outlier_count !== undefined && col.lower_outlier_count > 0) {
+      info += `- Lower-bound outliers: ${col.lower_outlier_count} values from ${col.lower_outlier_min} to ${col.lower_outlier_max}\n`
+    }
+    
+    if (col.upper_outlier_count !== undefined && col.upper_outlier_count > 0) {
+      info += `- Upper-bound outliers: ${col.upper_outlier_count} values from ${col.upper_outlier_min} to ${col.upper_outlier_max}\n`
+    }
+    
     if (col.mean !== undefined) {
       info += `- Mean: ${col.mean}\n`
     }
@@ -53,9 +65,13 @@ function buildRecommendationPrompt(columns: OutlierColumnSummary[]): string {
     return info
   }).join("\n\n")
 
-  return `You are a data quality expert. Analyze the following outlier information and recommend the BEST action for each column.
+  return `You are a data quality expert. Analyze the following outlier information and recommend the BEST action for LOWER-BOUND and UPPER-BOUND outliers separately for each column.
 
-For each column, recommend ONE of these actions:
+For each column, recommend actions for:
+- Lower-bound outliers (values below the lower threshold)
+- Upper-bound outliers (values above the upper threshold)
+
+For each type, recommend ONE of these actions:
 - "Remove": If outliers are clearly errors or will significantly harm analysis
 - "Cap": If outliers are valid but extreme, cap them to reasonable bounds
 - "Transform": If outliers indicate a need for log/box-cox transformation
@@ -65,8 +81,10 @@ Provide your response as a JSON array with this exact structure:
 [
   {
     "column_name": "column_name",
-    "recommended_action": "Remove|Cap|Transform|Ignore",
-    "short_reason": "1-2 sentence explanation in simple human language"
+    "lower_action": "Remove|Cap|Transform|Ignore" (only if lower outliers exist),
+    "lower_reason": "1-2 sentence explanation for lower outliers",
+    "upper_action": "Remove|Cap|Transform|Ignore" (only if upper outliers exist),
+    "upper_reason": "1-2 sentence explanation for upper outliers"
   }
 ]
 
@@ -99,13 +117,17 @@ function parseAIRecommendations(
     const validActions: ("Remove" | "Cap" | "Transform" | "Ignore")[] = ["Remove", "Cap", "Transform", "Ignore"]
     
     return parsed.map((item: any) => {
-      const action = item.recommended_action || "Ignore"
-      const validAction = validActions.includes(action) ? action : "Ignore"
+      const lowerAction = item.lower_action || "Ignore"
+      const upperAction = item.upper_action || "Ignore"
+      const validLowerAction = validActions.includes(lowerAction) ? lowerAction : "Ignore"
+      const validUpperAction = validActions.includes(upperAction) ? upperAction : "Ignore"
       
       return {
         column_name: item.column_name || "",
-        recommended_action: validAction,
-        short_reason: item.short_reason || "No reason provided",
+        lower_action: validLowerAction,
+        lower_reason: item.lower_reason || "No reason provided",
+        upper_action: validUpperAction,
+        upper_reason: item.upper_reason || "No reason provided",
         is_ai_recommendation: true,
       }
     }).filter((rec: OutlierRecommendation) => 
@@ -124,25 +146,42 @@ function generateRuleBasedRecommendations(
   columns: OutlierColumnSummary[]
 ): OutlierRecommendation[] {
   return columns.map(col => {
-    // Rule-based logic: simple heuristics
-    let action: "Remove" | "Cap" | "Transform" | "Ignore" = "Ignore"
-    let reason = ""
+    // Rule-based logic: simple heuristics for lower and upper separately
+    let lowerAction: "Remove" | "Cap" | "Transform" | "Ignore" = "Ignore"
+    let lowerReason = ""
+    let upperAction: "Remove" | "Cap" | "Transform" | "Ignore" = "Ignore"
+    let upperReason = ""
 
-    if (col.outlier_count > 50) {
-      action = "Remove"
-      reason = `High number of outliers (${col.outlier_count}) suggests data quality issues. Consider removing extreme values.`
-    } else if (col.outlier_count > 10) {
-      action = "Cap"
-      reason = `Moderate outliers detected. Capping values to reasonable bounds may preserve data while reducing impact.`
-    } else {
-      action = "Ignore"
-      reason = `Few outliers detected. These may be valid extreme values worth keeping.`
+    // Lower-bound outliers: often valid minimums, but can be errors
+    if (col.lower_outlier_count && col.lower_outlier_count > 50) {
+      lowerAction = "Remove"
+      lowerReason = `High number of lower-bound outliers (${col.lower_outlier_count}) suggests data quality issues. Consider removing extreme low values.`
+    } else if (col.lower_outlier_count && col.lower_outlier_count > 10) {
+      lowerAction = "Cap"
+      lowerReason = `Moderate lower-bound outliers detected. Capping values to reasonable lower bound may preserve data while reducing impact.`
+    } else if (col.lower_outlier_count && col.lower_outlier_count > 0) {
+      lowerAction = "Ignore"
+      lowerReason = `Few lower-bound outliers detected. These may be valid minimum values worth keeping.`
+    }
+
+    // Upper-bound outliers: often extreme spikes, more likely to be problematic
+    if (col.upper_outlier_count && col.upper_outlier_count > 50) {
+      upperAction = "Remove"
+      upperReason = `High number of upper-bound outliers (${col.upper_outlier_count}) suggests data quality issues. Consider removing extreme high values.`
+    } else if (col.upper_outlier_count && col.upper_outlier_count > 10) {
+      upperAction = "Cap"
+      upperReason = `Moderate upper-bound outliers detected. Capping values to reasonable upper bound may preserve data while reducing impact.`
+    } else if (col.upper_outlier_count && col.upper_outlier_count > 0) {
+      upperAction = "Ignore"
+      upperReason = `Few upper-bound outliers detected. These may be valid extreme values worth keeping.`
     }
 
     return {
       column_name: col.column_name,
-      recommended_action: action,
-      short_reason: reason,
+      lower_action: col.lower_outlier_count && col.lower_outlier_count > 0 ? lowerAction : undefined,
+      lower_reason: col.lower_outlier_count && col.lower_outlier_count > 0 ? lowerReason : undefined,
+      upper_action: col.upper_outlier_count && col.upper_outlier_count > 0 ? upperAction : undefined,
+      upper_reason: col.upper_outlier_count && col.upper_outlier_count > 0 ? upperReason : undefined,
       is_ai_recommendation: false,
     }
   })
