@@ -40,5 +40,110 @@
     "file_type": "overview",
     "is_protected": false,
     "created_at": "2026-01-22T21:40:20.303046"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\smoke (1).csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\smoke (1).csv",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-23T02:23:37.350478"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\smoke (1)_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\smoke (1)_overview.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:23:50.984267"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\annual-enterprise-survey-2024-financial-year-provisional.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\annual-enterprise-survey-2024-financial-year-provisional.csv",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-23T02:24:25.249078"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\annual-enterprise-survey-2024-financial-year-provisional_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\annual-enterprise-survey-2024-financial-year-provisional_overview.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:24:31.152541"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\annual-enterprise-survey-2024-financial-year-provisional_outlier_analysis.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\annual-enterprise-survey-2024-financial-year-provisional_outlier_analysis.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:28:29.017539"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\bank-additional-full.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\bank-additional-full.csv",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-23T02:31:02.434563"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\bank-additional-full_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\bank-additional-full_overview.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:31:57.705944"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\weight-height.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\weight-height.csv",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-23T02:36:09.356498"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\weight-height_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\weight-height_overview.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:36:14.475265"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\movie_cleaned_20260117_033108 (1).csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\movie_cleaned_20260117_033108 (1).csv",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-23T02:36:54.083987"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\movie_cleaned_20260117_033108 (1)_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\movie_cleaned_20260117_033108 (1)_overview.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:37:26.856114"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\movie_cleaned_20260117_033108 (1)_outlier_analysis.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\movie_cleaned_20260117_033108 (1)_outlier_analysis.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:38:33.568205"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\a.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\datasets\\a.csv",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-23T02:41:29.387348"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\a_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\a_overview.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:41:34.540764"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\a_outlier_analysis.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769110856958-tfmydsx7b\\files\\a_outlier_analysis.json",
+    "workspace_id": "workspace-1769110856958-tfmydsx7b",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-23T02:41:43.531747"
   }
 }

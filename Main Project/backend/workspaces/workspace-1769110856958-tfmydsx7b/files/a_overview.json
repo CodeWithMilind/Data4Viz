@@ -1,0 +1,204 @@
+{
+  "total_rows": 18,
+  "total_columns": 7,
+  "duplicate_row_count": 0,
+  "numeric_column_count": 7,
+  "categorical_column_count": 0,
+  "datetime_column_count": 0,
+  "columns": [
+    {
+      "name": "user_id",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "age",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 3,
+      "missing_percentage": 16.67
+    },
+    {
+      "name": "income",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 3,
+      "missing_percentage": 16.67
+    },
+    {
+      "name": "monthly_spend",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 3,
+      "missing_percentage": 16.67
+    },
+    {
+      "name": "credit_score",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 3,
+      "missing_percentage": 16.67
+    },
+    {
+      "name": "work_hours",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 3,
+      "missing_percentage": 16.67
+    },
+    {
+      "name": "transactions",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 3,
+      "missing_percentage": 16.67
+    }
+  ],
+  "column_insights": {
+    "user_id": {
+      "unique": 18,
+      "top_values": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 1,
+        "8": 1,
+        "# \ud83d\udd34 BIG OUTLIERS BELOW": 1,
+        "9": 1,
+        "10": 1,
+        "11": 1,
+        "# \ud83d\udd34 LOW-END OUTLIERS": 1,
+        "12": 1,
+        "13": 1,
+        "# \ud83d\udd34 NEGATIVE / INVALID EDGE CASES": 1,
+        "14": 1,
+        "15": 1
+      }
+    },
+    "age": {
+      "unique": 15,
+      "top_values": {
+        "22.0": 1,
+        "25.0": 1,
+        "28.0": 1,
+        "35.0": 1,
+        "40.0": 1,
+        "45.0": 1,
+        "50.0": 1,
+        "55.0": 1,
+        "60.0": 1,
+        "65.0": 1,
+        "70.0": 1,
+        "18.0": 1,
+        "19.0": 1,
+        "30.0": 1,
+        "32.0": 1
+      }
+    },
+    "income": {
+      "unique": 15,
+      "top_values": {
+        "18000.0": 1,
+        "22000.0": 1,
+        "30000.0": 1,
+        "45000.0": 1,
+        "55000.0": 1,
+        "65000.0": 1,
+        "75000.0": 1,
+        "85000.0": 1,
+        "5000000.0": 1,
+        "12000000.0": 1,
+        "25000000.0": 1,
+        "500.0": 1,
+        "800.0": 1,
+        "-20000.0": 1,
+        "40000.0": 1
+      }
+    },
+    "monthly_spend": {
+      "unique": 15,
+      "top_values": {
+        "3000.0": 1,
+        "4500.0": 1,
+        "6000.0": 1,
+        "9000.0": 1,
+        "12000.0": 1,
+        "15000.0": 1,
+        "18000.0": 1,
+        "21000.0": 1,
+        "450000.0": 1,
+        "900000.0": 1,
+        "1500000.0": 1,
+        "50.0": 1,
+        "80.0": 1,
+        "-500.0": 1,
+        "-10000.0": 1
+      }
+    },
+    "credit_score": {
+      "unique": 15,
+      "top_values": {
+        "650.0": 1,
+        "680.0": 1,
+        "700.0": 1,
+        "720.0": 1,
+        "740.0": 1,
+        "760.0": 1,
+        "780.0": 1,
+        "800.0": 1,
+        "900.0": 1,
+        "950.0": 1,
+        "990.0": 1,
+        "300.0": 1,
+        "320.0": 1,
+        "400.0": 1,
+        "600.0": 1
+      }
+    },
+    "work_hours": {
+      "unique": 15,
+      "top_values": {
+        "40.0": 1,
+        "42.0": 1,
+        "45.0": 1,
+        "48.0": 1,
+        "50.0": 1,
+        "52.0": 1,
+        "55.0": 1,
+        "58.0": 1,
+        "120.0": 1,
+        "160.0": 1,
+        "200.0": 1,
+        "5.0": 1,
+        "6.0": 1,
+        "35.0": 1,
+        "38.0": 1
+      }
+    },
+    "transactions": {
+      "unique": 15,
+      "top_values": {
+        "15.0": 1,
+        "18.0": 1,
+        "20.0": 1,
+        "25.0": 1,
+        "30.0": 1,
+        "35.0": 1,
+        "40.0": 1,
+        "45.0": 1,
+        "400.0": 1,
+        "900.0": 1,
+        "1500.0": 1,
+        "1.0": 1,
+        "2.0": 1,
+        "-10.0": 1,
+        "9999.0": 1
+      }
+    }
+  }
+}

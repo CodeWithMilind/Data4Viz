@@ -1,0 +1,10 @@
+{
+  "workspace_id": "workspace-1769110856958-tfmydsx7b",
+  "dataset_id": "movie_cleaned_20260117_033108 (1).csv",
+  "dataset_hash": "e8f0d3b99170860e3770356699523f8253b378dd6c8637b67fd94a3130aa0451",
+  "method": "zscore",
+  "threshold": 3.0,
+  "timestamp": "2026-01-23T02:38:33.561945",
+  "outliers": [],
+  "total_outliers": 0
+}

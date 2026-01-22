@@ -1,0 +1,79 @@
+{
+  "total_rows": 5,
+  "total_columns": 4,
+  "duplicate_row_count": 0,
+  "numeric_column_count": 2,
+  "categorical_column_count": 1,
+  "datetime_column_count": 1,
+  "columns": [
+    {
+      "name": "date",
+      "inferred_type": "datetime",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "revenue",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "marketing_spend",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "region",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    }
+  ],
+  "column_insights": {
+    "date": {
+      "unique": 5,
+      "top_values": {
+        "2024-01-01": 1,
+        "2024-01-02": 1,
+        "2024-01-03": 1,
+        "2024-01-04": 1,
+        "2024-01-05": 1
+      }
+    },
+    "revenue": {
+      "unique": 5,
+      "top_values": {
+        "12000": 1,
+        "15000": 1,
+        "10000": 1,
+        "18000": 1,
+        "16000": 1
+      }
+    },
+    "marketing_spend": {
+      "unique": 5,
+      "top_values": {
+        "3000": 1,
+        "4000": 1,
+        "2000": 1,
+        "5000": 1,
+        "4500": 1
+      }
+    },
+    "region": {
+      "unique": 4,
+      "top_values": {
+        "North": 2,
+        "South": 1,
+        "East": 1,
+        "West": 1
+      }
+    }
+  }
+}

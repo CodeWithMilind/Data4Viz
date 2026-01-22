@@ -91,30 +91,37 @@ async def get_dataset_schema(
     Returns:
         Schema with column metadata
     """
+    logger.info(f"[API START] get_dataset_schema - dataset_id={dataset_id}, workspace_id={workspace_id}, use_current={use_current}")
     try:
         # Verify dataset exists
+        logger.info(f"[SCHEMA] Checking if dataset exists...")
         if not dataset_exists(dataset_id, workspace_id):
+            logger.warning(f"[SCHEMA] Dataset not found: {dataset_id} in workspace {workspace_id}")
             raise HTTPException(
                 status_code=404,
                 detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
             )
+        logger.info(f"[SCHEMA] Dataset exists, computing schema...")
         
         # Compute schema (will auto-load into cache if needed)
         schema = compute_schema(workspace_id, dataset_id, use_current=use_current)
+        logger.info(f"[SCHEMA] Schema computed, schema is None: {schema is None}")
         
         if schema is None:
+            logger.error(f"[SCHEMA] Failed to compute schema for {dataset_id}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to compute schema for dataset '{dataset_id}'"
             )
         
-        logger.info(f"Returned schema for dataset '{dataset_id}' in workspace '{workspace_id}'")
+        logger.info(f"[RESPONSE SENT] Returning schema for dataset '{dataset_id}' in workspace '{workspace_id}'")
         return SchemaResponse(**schema)
         
     except HTTPException:
+        logger.info(f"[RESPONSE SENT] HTTPException raised for {dataset_id}")
         raise
     except Exception as e:
-        logger.error(f"Error getting schema for dataset '{dataset_id}': {e}")
+        logger.error(f"[ERROR] Error getting schema for dataset '{dataset_id}': {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to get schema: {str(e)}"

@@ -1,0 +1,27 @@
+{
+  "workspace_id": "workspace-1769110856958-tfmydsx7b",
+  "dataset_id": "a.csv",
+  "dataset_hash": "73e84ec2bffe3a927acfd2cee87c563e91d72ff0d179a61b273d1ee918b39982",
+  "method": "zscore",
+  "threshold": 3.0,
+  "timestamp": "2026-01-23T02:41:43.498575",
+  "outliers": [
+    {
+      "column_name": "transactions",
+      "detected_value": 9999.0,
+      "outlier_score": 3.56,
+      "row_index": 17,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "income",
+      "detected_value": 25000000.0,
+      "outlier_score": 3.2,
+      "row_index": 11,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    }
+  ],
+  "total_outliers": 2
+}

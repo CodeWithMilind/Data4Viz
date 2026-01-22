@@ -163,6 +163,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
   // Fetch cleaning summary when dataset is selected
   useEffect(() => {
     if (!activeWorkspaceId || !selectedDatasetId) {
+      setIsLoadingSummary(false)
       return
     }
 
@@ -186,7 +187,6 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
         } else {
           setCleaningSummary(summary)
           setSummaryError(null)
-          setIsLoadingSummary(false)
         }
       })
       .catch((error) => {
@@ -197,12 +197,18 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
         } else {
           const errorMessage = error instanceof Error ? error.message : "Failed to load cleaning summary"
           setSummaryError(errorMessage)
+        }
+      })
+      .finally(() => {
+        // Only clear loading if we're not attempting sync
+        if (!cancelled && !hasAttemptedSync) {
           setIsLoadingSummary(false)
         }
       })
 
     return () => {
       cancelled = true
+      setIsLoadingSummary(false)
     }
   }, [activeWorkspaceId, selectedDatasetId, workspaceDataset, syncAndFetchSummary])
   
@@ -211,6 +217,7 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
     if (!activeWorkspaceId || !selectedDatasetId) {
       setSchema(null)
       setSchemaError(null)
+      setIsLoadingSchema(false)
       return
     }
 
@@ -223,18 +230,22 @@ export function DataCleaningPage({ onApplyCleaningAction }: DataCleaningPageProp
         if (cancelled) return
         setSchema(schemaData)
         setSchemaError(null)
-        setIsLoadingSchema(false)
       })
       .catch((error) => {
         if (cancelled) return
         const errorMessage = error instanceof Error ? error.message : "Failed to load schema"
         setSchemaError(errorMessage)
-        setIsLoadingSchema(false)
         console.error("Error fetching schema:", error)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingSchema(false)
+        }
       })
 
     return () => {
       cancelled = true
+      setIsLoadingSchema(false)
     }
   }, [activeWorkspaceId, selectedDatasetId])
 

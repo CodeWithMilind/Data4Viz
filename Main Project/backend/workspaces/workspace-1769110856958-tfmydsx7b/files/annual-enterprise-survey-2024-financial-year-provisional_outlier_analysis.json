@@ -1,0 +1,10 @@
+{
+  "workspace_id": "workspace-1769110856958-tfmydsx7b",
+  "dataset_id": "annual-enterprise-survey-2024-financial-year-provisional.csv",
+  "dataset_hash": "bf4e0fced5e71470d605b5071d595a5e534c584cd846417ba4a9f43710bdfc69",
+  "method": "zscore",
+  "threshold": 3.0,
+  "timestamp": "2026-01-23T02:28:28.981502",
+  "outliers": [],
+  "total_outliers": 0
+}

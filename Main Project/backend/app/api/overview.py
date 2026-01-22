@@ -207,28 +207,50 @@ async def get_overview(
     Returns:
         Overview statistics
     """
-    if not dataset_exists(dataset_id, workspace_id):
+    logger.info(f"[API START] get_overview - dataset_id={dataset_id}, workspace_id={workspace_id}, refresh={refresh}")
+    try:
+        logger.info(f"[OVERVIEW] Checking if dataset exists...")
+        if not dataset_exists(dataset_id, workspace_id):
+            logger.warning(f"[OVERVIEW] Dataset not found: {dataset_id} in workspace {workspace_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
+            )
+        logger.info(f"[OVERVIEW] Dataset exists")
+
+        # Try to load from file first (unless refresh requested)
+        if not refresh:
+            logger.info(f"[OVERVIEW] Attempting to load from file...")
+            cached_overview = load_overview_from_file(workspace_id, dataset_id)
+            if cached_overview:
+                logger.info(f"[RESPONSE SENT] Returning cached overview for {dataset_id}")
+                return cached_overview
+            logger.info(f"[OVERVIEW] No cached overview found, will compute")
+
+        # Compute overview (either missing or refresh requested)
+        logger.info(f"[OVERVIEW] Computing overview for {dataset_id} (refresh={refresh})")
+        logger.info(f"[OVERVIEW] Loading dataset...")
+        df = load_dataset(dataset_id, workspace_id)
+        logger.info(f"[OVERVIEW] Dataset loaded - rows={len(df)}, columns={len(df.columns)}")
+        logger.info(f"[OVERVIEW] Computing overview statistics...")
+        overview = compute_overview(df)
+        logger.info(f"[OVERVIEW] Overview computed")
+        
+        # Save to file for future use
+        logger.info(f"[OVERVIEW] Saving overview to file...")
+        save_overview_to_file(workspace_id, dataset_id, overview)
+        logger.info(f"[RESPONSE SENT] Returning overview for {dataset_id}")
+        return overview
+        
+    except HTTPException:
+        logger.info(f"[RESPONSE SENT] HTTPException raised for {dataset_id}")
+        raise
+    except Exception as e:
+        logger.error(f"[ERROR] Error getting overview for dataset '{dataset_id}': {e}", exc_info=True)
         raise HTTPException(
-            status_code=404,
-            detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
+            status_code=500,
+            detail=f"Failed to get overview: {str(e)}"
         )
-
-    # Try to load from file first (unless refresh requested)
-    if not refresh:
-        cached_overview = load_overview_from_file(workspace_id, dataset_id)
-        if cached_overview:
-            logger.info(f"[get_overview] Returning cached overview for {dataset_id}")
-            return cached_overview
-
-    # Compute overview (either missing or refresh requested)
-    logger.info(f"[get_overview] Computing overview for {dataset_id} (refresh={refresh})")
-    df = load_dataset(dataset_id, workspace_id)
-    overview = compute_overview(df)
-    
-    # Save to file for future use
-    save_overview_to_file(workspace_id, dataset_id, overview)
-    
-    return overview
 
 
 @router.get("/file", response_model=OverviewResponse)
@@ -242,16 +264,30 @@ async def get_overview_from_file(
     This is the preferred endpoint for frontend - reads cached overview.
     Returns 404 if file doesn't exist (frontend should then call GET /overview).
     """
-    overview = load_overview_from_file(workspace_id, dataset_id)
-    
-    if not overview:
+    logger.info(f"[API START] get_overview_from_file - dataset_id={dataset_id}, workspace_id={workspace_id}")
+    try:
+        logger.info(f"[OVERVIEW_FILE] Loading overview from file...")
+        overview = load_overview_from_file(workspace_id, dataset_id)
+        
+        if not overview:
+            logger.warning(f"[OVERVIEW_FILE] Overview file not found for {dataset_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Overview file not found for dataset '{dataset_id}' in workspace '{workspace_id}'. Call GET /overview to compute."
+            )
+        
+        logger.info(f"[RESPONSE SENT] Returning overview from file for {dataset_id}")
+        return overview
+        
+    except HTTPException:
+        logger.info(f"[RESPONSE SENT] HTTPException raised for {dataset_id}")
+        raise
+    except Exception as e:
+        logger.error(f"[ERROR] Error getting overview from file for dataset '{dataset_id}': {e}", exc_info=True)
         raise HTTPException(
-            status_code=404,
-            detail=f"Overview file not found for dataset '{dataset_id}' in workspace '{workspace_id}'. Call GET /overview to compute."
+            status_code=500,
+            detail=f"Failed to get overview from file: {str(e)}"
         )
-    
-    logger.info(f"[get_overview_from_file] Returning overview from file for {dataset_id}")
-    return overview
 
 
 @router.post("/refresh", response_model=OverviewResponse)

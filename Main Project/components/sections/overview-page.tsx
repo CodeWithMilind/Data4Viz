@@ -139,6 +139,7 @@ export function OverviewPage() {
     if (!activeWorkspaceId || !selectedDataset?.fileName) {
       setSchema(null)
       setSchemaError(null)
+      setIsLoadingSchema(false)
       return
     }
 
@@ -151,18 +152,22 @@ export function OverviewPage() {
         if (cancelled) return
         setSchema(schemaData ?? null)
         setSchemaError(null)
-        setIsLoadingSchema(false)
       })
       .catch((error) => {
         if (cancelled) return
         const errorMessage = error instanceof Error ? error.message : "Failed to load schema"
         setSchemaError(errorMessage)
-        setIsLoadingSchema(false)
         console.error("Error fetching schema:", error)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingSchema(false)
+        }
       })
 
     return () => {
       cancelled = true
+      setIsLoadingSchema(false)
     }
   }, [activeWorkspaceId, selectedDataset?.fileName])
 

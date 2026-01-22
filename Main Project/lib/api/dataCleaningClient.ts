@@ -9,7 +9,28 @@
  * Backend is the single source of truth for all data.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { safeFetch, safeFetchJson, FetchError } from "./safe-fetch";
+
+// Get base URL with validation (lazy evaluation to avoid errors during module load)
+function getBaseUrlSafe(): string {
+  // Only access process.env in browser/client context
+  if (typeof window === 'undefined') {
+    // SSR - return default, will be validated on first use
+    return "http://localhost:8000";
+  }
+  
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  // Validate it's not file:// and is a valid HTTP(S) URL
+  if (baseUrl.startsWith('file://')) {
+    console.error('Cannot use file:// protocol for API calls. Please use http://localhost:8000');
+    return "http://localhost:8000"; // Fallback to default
+  }
+  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+    console.error(`Invalid API base URL: ${baseUrl}. Must start with http:// or https://`);
+    return "http://localhost:8000"; // Fallback to default
+  }
+  return baseUrl.replace(/\/+$/, ''); // Remove trailing slashes
+}
 
 // Schema types
 export interface ColumnSchema {
@@ -122,21 +143,23 @@ export interface OutlierDetectionResponse {
  */
 export async function getWorkspaceDatasets(workspaceId: string): Promise<DatasetInfo[]> {
   try {
-    const response = await fetch(`${BASE_URL}/workspaces/${workspaceId}/datasets`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    const data: WorkspaceDatasetsResponse = await safeFetchJson<WorkspaceDatasetsResponse>(
+      `/workspaces/${workspaceId}/datasets`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 30000,
       },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch workspace datasets: ${response.statusText}`);
-    }
-
-    const data: WorkspaceDatasetsResponse = await response.json();
+      getBaseUrlSafe()
+    );
     return data.datasets;
   } catch (error) {
     console.error("Error fetching workspace datasets:", error);
+    if (error instanceof FetchError) {
+      throw new Error(`Failed to fetch workspace datasets: ${error.message}`);
+    }
     throw error;
   }
 }
@@ -160,20 +183,21 @@ export async function uploadDatasetToWorkspace(
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${BASE_URL}/workspaces/${workspaceId}/datasets/upload`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-      throw new Error(errorData.detail || `Failed to upload dataset: ${response.statusText}`);
-    }
-
-    const data = await response.json();
+    const data = await safeFetchJson<DatasetInfo>(
+      `/workspaces/${workspaceId}/datasets/upload`,
+      {
+        method: "POST",
+        body: formData,
+        timeout: 60000, // Longer timeout for file uploads
+      },
+      getBaseUrlSafe()
+    );
     return data;
   } catch (error) {
     console.error("Error uploading dataset to workspace:", error);
+    if (error instanceof FetchError) {
+      throw new Error(`Failed to upload dataset: ${error.message}`);
+    }
     throw error;
   }
 }
@@ -186,26 +210,27 @@ export async function uploadDatasetToWorkspace(
  */
 export async function previewCleaning(payload: CleaningRequest): Promise<CleaningResponse> {
   try {
-    const response = await fetch(`${BASE_URL}/cleaning/preview`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const data = await safeFetchJson<CleaningResponse>(
+      `/cleaning/preview`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...payload,
+          preview: true,
+        }),
+        timeout: 30000,
       },
-      body: JSON.stringify({
-        ...payload,
-        preview: true,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(errorData.error || errorData.detail || `Failed to preview: ${response.statusText}`);
-    }
-
-    const data: CleaningResponse = await response.json();
+      getBaseUrlSafe()
+    );
     return data;
   } catch (error) {
     console.error("Error previewing cleaning operation:", error);
+    if (error instanceof FetchError) {
+      throw new Error(`Failed to preview cleaning operation: ${error.message}`);
+    }
     throw error;
   }
 }
@@ -218,26 +243,27 @@ export async function previewCleaning(payload: CleaningRequest): Promise<Cleanin
  */
 export async function applyCleaning(payload: CleaningRequest): Promise<CleaningResponse> {
   try {
-    const response = await fetch(`${BASE_URL}/cleaning/apply`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const data = await safeFetchJson<CleaningResponse>(
+      `/cleaning/apply`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...payload,
+          preview: false,
+        }),
+        timeout: 60000, // Longer timeout for apply operations
       },
-      body: JSON.stringify({
-        ...payload,
-        preview: false,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: response.statusText }));
-      throw new Error(errorData.error || errorData.detail || `Failed to apply: ${response.statusText}`);
-    }
-
-    const data: CleaningResponse = await response.json();
+      getBaseUrlSafe()
+    );
     return data;
   } catch (error) {
     console.error("Error applying cleaning operation:", error);
+    if (error instanceof FetchError) {
+      throw new Error(`Failed to apply cleaning operation: ${error.message}`);
+    }
     throw error;
   }
 }
@@ -280,7 +306,7 @@ export async function getCleaningSummary(
   workspaceId: string,
   datasetName: string
 ): Promise<CleaningSummaryResponse> {
-  const requestUrl = `${BASE_URL}/workspaces/${workspaceId}/cleaning/summary`;
+  const requestUrl = `${getBaseUrlSafe()}/workspaces/${workspaceId}/cleaning/summary`;
   const requestBody = { dataset: datasetName };
   
   console.log(`[getCleaningSummary] Request URL: ${requestUrl}`);
@@ -288,13 +314,14 @@ export async function getCleaningSummary(
   console.log(`[getCleaningSummary] Called with workspaceId=${workspaceId}, datasetName=${datasetName}`);
   
   try {
-    const response = await fetch(requestUrl, {
+    const response = await safeFetch(requestUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
-    });
+      timeout: 30000,
+    }, getBaseUrlSafe());
 
     console.log(`[getCleaningSummary] Response status: ${response.status}`);
     console.log(`[getCleaningSummary] Response ok: ${response.ok}`);
@@ -309,17 +336,6 @@ export async function getCleaningSummary(
       };
     }
 
-    if (!response.ok) {
-      // For other errors, also return safe fallback to prevent UI crash
-      const errorText = await response.text().catch(() => response.statusText);
-      console.warn(`[getCleaningSummary] Error ${response.status}: ${errorText}`);
-      return {
-        rows: 0,
-        columns: [],
-        overall_score: 0,
-      };
-    }
-
     const data: CleaningSummaryResponse = await response.json();
     console.log(`[getCleaningSummary] Parsed JSON data:`, data);
     console.log(`[getCleaningSummary] Success - rows=${data.rows}, columns=${data.columns.length}, overall_score=${data.overall_score}`);
@@ -327,6 +343,9 @@ export async function getCleaningSummary(
   } catch (error) {
     // Network errors or other exceptions - return safe fallback instead of throwing
     console.warn("[getCleaningSummary] Network error, using fallback:", error);
+    if (error instanceof FetchError) {
+      console.warn(`[getCleaningSummary] FetchError: ${error.message} (code: ${error.code})`);
+    }
     return {
       rows: 0,
       columns: [],
@@ -391,31 +410,38 @@ export async function getDatasetOverviewFromFile(
   datasetId: string
 ): Promise<OverviewResponse | null> {
   const requestUrl =
-    `${BASE_URL}/api/overview/file?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
+    `${getBaseUrlSafe()}/api/overview/file?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
 
   console.log(`[getDatasetOverviewFromFile] Request URL: ${requestUrl}`);
 
-  const response = await fetch(requestUrl, {
-    method: "GET",
-  });
+  try {
+    const response = await safeFetch(requestUrl, {
+      method: "GET",
+      timeout: 30000,
+    }, getBaseUrlSafe());
 
-  if (!response.ok) {
     if (response.status === 404) {
       return null;
     }
-    const errorText = await response.text().catch(() => response.statusText);
-    console.error(
-      `[getDatasetOverviewFromFile] Error ${response.status}: ${errorText}`
+
+    const data: OverviewResponse = await response.json();
+    console.log(
+      `[getDatasetOverviewFromFile] Success – rows=${data.total_rows}, columns=${data.total_columns}`
     );
-    throw new Error(`Failed to fetch dataset overview: ${errorText}`);
+
+    return data;
+  } catch (error) {
+    if (error instanceof FetchError && error.status === 404) {
+      return null;
+    }
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    console.error(`[getDatasetOverviewFromFile] Error: ${errorMessage}`);
+    throw new Error(`Failed to fetch dataset overview: ${errorMessage}`);
   }
-
-  const data: OverviewResponse = await response.json();
-  console.log(
-    `[getDatasetOverviewFromFile] Success – rows=${data.total_rows}, columns=${data.total_columns}`
-  );
-
-  return data;
 }
 
 /**
@@ -436,31 +462,38 @@ export async function getDatasetOverview(
   refresh: boolean = false
 ): Promise<OverviewResponse | null> {
   const requestUrl =
-    `${BASE_URL}/api/overview?workspace_id=${workspaceId}&dataset_id=${datasetId}&refresh=${refresh}`;
+    `${getBaseUrlSafe()}/api/overview?workspace_id=${workspaceId}&dataset_id=${datasetId}&refresh=${refresh}`;
 
   console.log(`[getDatasetOverview] Request URL: ${requestUrl}, refresh=${refresh}`);
 
-  const response = await fetch(requestUrl, {
-    method: "GET",
-  });
+  try {
+    const response = await safeFetch(requestUrl, {
+      method: "GET",
+      timeout: 30000,
+    }, getBaseUrlSafe());
 
-  if (!response.ok) {
     if (response.status === 404) {
       return null;
     }
-    const errorText = await response.text().catch(() => response.statusText);
-    console.error(
-      `[getDatasetOverview] Error ${response.status}: ${errorText}`
+
+    const data: OverviewResponse = await response.json();
+    console.log(
+      `[getDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
     );
-    throw new Error(`Failed to fetch dataset overview: ${errorText}`);
+
+    return data;
+  } catch (error) {
+    if (error instanceof FetchError && error.status === 404) {
+      return null;
+    }
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    console.error(`[getDatasetOverview] Error: ${errorMessage}`);
+    throw new Error(`Failed to fetch dataset overview: ${errorMessage}`);
   }
-
-  const data: OverviewResponse = await response.json();
-  console.log(
-    `[getDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
-  );
-
-  return data;
 }
 
 /**
@@ -476,28 +509,32 @@ export async function refreshDatasetOverview(
   datasetId: string
 ): Promise<OverviewResponse> {
   const requestUrl =
-    `${BASE_URL}/api/overview/refresh?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
+    `${getBaseUrlSafe()}/api/overview/refresh?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
 
   console.log(`[refreshDatasetOverview] Request URL: ${requestUrl}`);
 
-  const response = await fetch(requestUrl, {
-    method: "POST",
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    console.error(
-      `[refreshDatasetOverview] Error ${response.status}: ${errorText}`
+  try {
+    const data = await safeFetchJson<OverviewResponse>(
+      requestUrl,
+      {
+        method: "POST",
+        timeout: 60000, // Longer timeout for refresh operations
+      },
+      getBaseUrlSafe()
     );
-    throw new Error(`Failed to refresh dataset overview: ${errorText}`);
+    console.log(
+      `[refreshDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
+    );
+    return data;
+  } catch (error) {
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    console.error(`[refreshDatasetOverview] Error: ${errorMessage}`);
+    throw new Error(`Failed to refresh dataset overview: ${errorMessage}`);
   }
-
-  const data: OverviewResponse = await response.json();
-  console.log(
-    `[refreshDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
-  );
-
-  return data;
 }
 
 /**
@@ -505,36 +542,47 @@ export async function refreshDatasetOverview(
  * 
  * This creates a compact JSON snapshot that AI uses for analysis.
  * 
+ * CLIENT-ONLY: This function must be called from client-side code only.
+ * It uses fetch() which is not available in server environments.
+ * 
  * @param workspaceId Workspace identifier (required)
  * @param datasetId Dataset filename (required)
  * @returns Success status
- * @throws Error if API call fails
+ * @throws Error if API call fails or if called in server environment
  */
 export async function generateDatasetIntelligenceSnapshot(
   workspaceId: string,
   datasetId: string
 ): Promise<void> {
+  // Guard: Only execute in browser environment
+  if (typeof window === 'undefined') {
+    console.warn('[generateDatasetIntelligenceSnapshot] Skipped: Called in server environment. This function must be called client-side only.');
+    return; // Silently skip on server - not an error, just not applicable
+  }
+
   const requestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/workspaces/${workspaceId}/dataset-intelligence`;
 
   console.log(`[generateDatasetIntelligenceSnapshot] Request URL: ${requestUrl}`);
 
-  const response = await fetch(requestUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ datasetId }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    console.error(
-      `[generateDatasetIntelligenceSnapshot] Error ${response.status}: ${errorText}`
-    );
-    throw new Error(`Failed to generate dataset intelligence: ${errorText}`);
+  try {
+    await safeFetch(requestUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ datasetId }),
+      timeout: 60000, // Longer timeout for AI operations
+    }, process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000");
+    console.log(`[generateDatasetIntelligenceSnapshot] Success`);
+  } catch (error) {
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    console.error(`[generateDatasetIntelligenceSnapshot] Error: ${errorMessage}`);
+    throw new Error(`Failed to generate dataset intelligence: ${errorMessage}`);
   }
-
-  console.log(`[generateDatasetIntelligenceSnapshot] Success`);
 }
 
 /**
@@ -553,75 +601,104 @@ export interface ColumnIntelligence {
 /**
  * Generate column intelligence explanations
  * 
+ * CLIENT-ONLY: This function must be called from client-side code only.
+ * It uses fetch() which is not available in server environments.
+ * 
  * @param workspaceId Workspace identifier (required)
  * @param datasetId Dataset filename (required)
  * @param regenerate If true, regenerate using previous intelligence as context
  * @returns Column intelligence with explanations
- * @throws Error if API call fails
+ * @throws Error if API call fails or if called in server environment
  */
 export async function generateColumnIntelligence(
   workspaceId: string,
   datasetId: string,
   regenerate: boolean = false
 ): Promise<ColumnIntelligence> {
+  // Guard: Only execute in browser environment
+  if (typeof window === 'undefined') {
+    console.warn('[generateColumnIntelligence] Skipped: Called in server environment. This function must be called client-side only.');
+    throw new Error('generateColumnIntelligence must be called client-side only');
+  }
+
   const requestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/workspaces/${workspaceId}/column-intelligence`;
 
   console.log(`[generateColumnIntelligence] Request URL: ${requestUrl}`);
 
-  const response = await fetch(requestUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ datasetId, regenerate }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    console.error(
-      `[generateColumnIntelligence] Error ${response.status}: ${errorText}`
+  try {
+    const data = await safeFetchJson<{ intelligence: ColumnIntelligence }>(
+      requestUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ datasetId, regenerate }),
+        timeout: 60000, // Longer timeout for AI operations
+      },
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
     );
-    throw new Error(`Failed to generate column intelligence: ${errorText}`);
+    console.log(`[generateColumnIntelligence] Success`);
+    return data.intelligence;
+  } catch (error) {
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    console.error(`[generateColumnIntelligence] Error: ${errorMessage}`);
+    throw new Error(`Failed to generate column intelligence: ${errorMessage}`);
   }
-
-  const data = await response.json();
-  console.log(`[generateColumnIntelligence] Success`);
-  return data.intelligence;
 }
 
 /**
  * Get column intelligence from workspace
  * 
+ * CLIENT-ONLY: This function must be called from client-side code only.
+ * It uses fetch() which is not available in server environments.
+ * 
  * @param workspaceId Workspace identifier (required)
  * @returns Column intelligence with explanations, or null if not found
- * @throws Error if API call fails
+ * @throws Error if API call fails or if called in server environment
  */
 export async function getColumnIntelligence(
   workspaceId: string
 ): Promise<ColumnIntelligence | null> {
+  // Guard: Only execute in browser environment
+  if (typeof window === 'undefined') {
+    console.warn('[getColumnIntelligence] Skipped: Called in server environment. This function must be called client-side only.');
+    return null; // Return null on server - not an error, just no data available
+  }
+
   const requestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/workspaces/${workspaceId}/column-intelligence`;
 
-  const response = await fetch(requestUrl, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  try {
+    const response = await safeFetch(requestUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      timeout: 30000,
+    }, process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000");
 
-  if (response.status === 404) {
-    return null;
+    if (response.status === 404) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data.intelligence;
+  } catch (error) {
+    if (error instanceof FetchError && error.status === 404) {
+      return null;
+    }
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    console.error(`[getColumnIntelligence] Error: ${errorMessage}`);
+    throw new Error(`Failed to fetch column intelligence: ${errorMessage}`);
   }
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => response.statusText);
-    console.error(
-      `[getColumnIntelligence] Error ${response.status}: ${errorText}`
-    );
-    throw new Error(`Failed to fetch column intelligence: ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.intelligence;
 }
 
 /**
@@ -641,28 +718,35 @@ export async function getDatasetSchema(
   useCurrent: boolean = true
 ): Promise<SchemaResponse | null> {
   try {
-    const response = await fetch(
-      `${BASE_URL}/dataset/${encodeURIComponent(datasetId)}/schema?workspace_id=${encodeURIComponent(workspaceId)}&use_current=${useCurrent}`,
+    const response = await safeFetch(
+      `/dataset/${encodeURIComponent(datasetId)}/schema?workspace_id=${encodeURIComponent(workspaceId)}&use_current=${useCurrent}`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
-      }
+        timeout: 30000,
+      },
+      getBaseUrlSafe()
     );
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error(`Failed to fetch dataset schema: ${response.statusText}`);
+    if (response.status === 404) {
+      return null;
     }
 
     const data: SchemaResponse = await response.json();
     return data;
   } catch (error) {
     console.error("Error fetching dataset schema:", error);
-    throw error;
+    if (error instanceof FetchError && error.status === 404) {
+      return null;
+    }
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    throw new Error(`Failed to fetch dataset schema: ${errorMessage}`);
   }
 }
 
@@ -681,26 +765,24 @@ export async function cleanMissingValues(
   request: MissingValueCleanRequest
 ): Promise<MissingValueCleanResponse> {
   try {
-    const response = await fetch(
-      `${BASE_URL}/dataset/${encodeURIComponent(datasetId)}/clean/missing?workspace_id=${encodeURIComponent(workspaceId)}`,
+    const data = await safeFetchJson<MissingValueCleanResponse>(
+      `/dataset/${encodeURIComponent(datasetId)}/clean/missing?workspace_id=${encodeURIComponent(workspaceId)}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(request),
-      }
+        timeout: 60000, // Longer timeout for cleaning operations
+      },
+      getBaseUrlSafe()
     );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-      throw new Error(errorData.detail || `Failed to clean missing values: ${response.statusText}`);
-    }
-
-    const data: MissingValueCleanResponse = await response.json();
     return data;
   } catch (error) {
     console.error("Error cleaning missing values:", error);
+    if (error instanceof FetchError) {
+      throw new Error(`Failed to clean missing values: ${error.message}`);
+    }
     throw error;
   }
 }
@@ -722,27 +804,29 @@ export async function cleanMissingValues(
  * @throws Error if API call fails
  */
 export async function deleteWorkspace(workspaceId: string): Promise<{ message: string; workspace_id: string }> {
-  const requestUrl = `${BASE_URL}/workspaces/${workspaceId}`;
+  const requestUrl = `${getBaseUrlSafe()}/workspaces/${workspaceId}`;
 
   console.log(`[deleteWorkspace] Request URL: ${requestUrl}`);
 
   try {
-    const response = await fetch(requestUrl, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => response.statusText);
-      console.error(`[deleteWorkspace] Error ${response.status}: ${errorText}`);
-      throw new Error(`Failed to delete workspace: ${errorText}`);
-    }
-
-    const data = await response.json();
+    const data = await safeFetchJson<{ message: string; workspace_id: string }>(
+      requestUrl,
+      {
+        method: "DELETE",
+        timeout: 30000,
+      },
+      getBaseUrlSafe()
+    );
     console.log(`[deleteWorkspace] Success – workspace_id=${data.workspace_id}`);
     return data;
   } catch (error) {
     console.error("Error deleting workspace:", error);
-    throw error;
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    throw new Error(`Failed to delete workspace: ${errorMessage}`);
   }
 }
 
@@ -758,35 +842,38 @@ export async function getCachedOutlierAnalysis(
   workspaceId: string,
   datasetId: string
 ): Promise<OutlierDetectionResponse | null> {
-  const requestUrl = `${BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/outliers/cached`;
+  const requestUrl = `${getBaseUrlSafe()}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/outliers/cached`;
 
   console.log(`[getCachedOutlierAnalysis] Request URL: ${requestUrl}`);
 
   try {
-    const response = await fetch(requestUrl, {
+    const response = await safeFetch(requestUrl, {
       method: "GET",
-    });
+      timeout: 30000,
+    }, getBaseUrlSafe());
 
     if (response.status === 404) {
       // No cached analysis found - this is expected
       return null;
     }
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => response.statusText);
-      console.error(`[getCachedOutlierAnalysis] Error ${response.status}: ${errorText}`);
-      throw new Error(`Failed to get cached outlier analysis: ${errorText}`);
-    }
-
     const data = await response.json();
     console.log(`[getCachedOutlierAnalysis] Success – loaded cached analysis with ${data.total_outliers} outliers`);
     return data;
   } catch (error) {
+    if (error instanceof FetchError && error.status === 404) {
+      return null;
+    }
     if (error instanceof Error && error.message.includes("404")) {
       return null;
     }
     console.error("Error getting cached outlier analysis:", error);
-    throw error;
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    throw new Error(`Failed to get cached outlier analysis: ${errorMessage}`);
   }
 }
 
@@ -812,26 +899,28 @@ export async function detectOutliers(
   threshold: number = 3.0,
   forceRecompute: boolean = false
 ): Promise<OutlierDetectionResponse> {
-  const requestUrl = `${BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/outliers?method=${encodeURIComponent(method)}&threshold=${threshold}&force_recompute=${forceRecompute}`;
+  const requestUrl = `${getBaseUrlSafe()}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/outliers?method=${encodeURIComponent(method)}&threshold=${threshold}&force_recompute=${forceRecompute}`;
 
   console.log(`[detectOutliers] Request URL: ${requestUrl}`);
 
   try {
-    const response = await fetch(requestUrl, {
-      method: "GET",
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => response.statusText);
-      console.error(`[detectOutliers] Error ${response.status}: ${errorText}`);
-      throw new Error(`Failed to detect outliers: ${errorText}`);
-    }
-
-    const data = await response.json();
+    const data = await safeFetchJson<OutlierDetectionResponse>(
+      requestUrl,
+      {
+        method: "GET",
+        timeout: 60000, // Longer timeout for outlier detection
+      },
+      getBaseUrlSafe()
+    );
     console.log(`[detectOutliers] Success – detected ${data.total_outliers} outliers`);
     return data;
   } catch (error) {
     console.error("Error detecting outliers:", error);
-    throw error;
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    throw new Error(`Failed to detect outliers: ${errorMessage}`);
   }
 }
