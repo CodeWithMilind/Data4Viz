@@ -95,3 +95,24 @@ def get_overview_file_path(workspace_id: str, dataset_id: str) -> Path:
     dataset_name = Path(dataset_id).stem
     overview_filename = f"{dataset_name}_overview.json"
     return files_dir / overview_filename
+
+
+def get_outlier_analysis_file_path(workspace_id: str, dataset_id: str) -> Path:
+    """
+    Get the path to the outlier analysis JSON file for a dataset.
+    
+    Format: dataset_name_outlier_analysis.json
+    Example: netflix.csv -> netflix_outlier_analysis.json
+    
+    Args:
+        workspace_id: Workspace identifier
+        dataset_id: Dataset filename (e.g., "netflix.csv")
+        
+    Returns:
+        Path to outlier analysis JSON file
+    """
+    files_dir = get_workspace_files_dir(workspace_id)
+    # Remove .csv extension and add _outlier_analysis.json
+    dataset_name = Path(dataset_id).stem
+    outlier_filename = f"{dataset_name}_outlier_analysis.json"
+    return files_dir / outlier_filename

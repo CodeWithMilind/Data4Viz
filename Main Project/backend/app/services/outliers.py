@@ -124,7 +124,7 @@ def detect_outliers_for_dataset(
     Detect outliers across all numeric columns in a dataset.
     
     This function is used for detection only (no modification).
-    Returns a list of detected outliers with metadata.
+    Returns a list of detected outliers with metadata, categorized by lower/upper bound.
     
     Args:
         df: DataFrame to analyze
@@ -138,6 +138,7 @@ def detect_outliers_for_dataset(
         - outlier_score: Z-score or IQR flag
         - row_index: Row index where outlier was found
         - suggested_action: Rule-based suggestion (Review/Cap/Remove)
+        - outlier_type: "lower" or "upper" (indicates if below lower bound or above upper bound)
     """
     outliers = []
     
@@ -152,40 +153,45 @@ def detect_outliers_for_dataset(
         if df[column].std() == 0:
             continue
         
-        # Detect outliers based on method
+        # Calculate bounds based on method
         if method.lower() == "zscore":
-            outlier_mask = detect_outliers_zscore(df, column, threshold)
             mean = df[column].mean()
             std = df[column].std()
+            if std == 0:
+                continue
+            lower_bound = mean - threshold * std
+            upper_bound = mean + threshold * std
+            
+            # Detect lower and upper outliers separately
+            lower_outlier_mask = df[column] < lower_bound
+            upper_outlier_mask = df[column] > upper_bound
         elif method.lower() == "iqr":
-            outlier_mask = detect_outliers_iqr(df, column)
             Q1 = df[column].quantile(0.25)
             Q3 = df[column].quantile(0.75)
+            IQR = Q3 - Q1
+            if IQR == 0:
+                continue
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            # Detect lower and upper outliers separately
+            lower_outlier_mask = df[column] < lower_bound
+            upper_outlier_mask = df[column] > upper_bound
         else:
             raise ValueError(f"Unknown method: {method}. Use 'zscore' or 'iqr'")
         
-        # Get outlier rows
-        outlier_rows = df[outlier_mask]
-        
-        for idx, row in outlier_rows.iterrows():
+        # Process lower-bound outliers
+        lower_outlier_rows = df[lower_outlier_mask]
+        for idx, row in lower_outlier_rows.iterrows():
             value = row[column]
             
             # Calculate score
             if method.lower() == "zscore":
                 score = abs((value - mean) / std) if std > 0 else 0
             else:  # IQR
-                IQR = Q3 - Q1
-                if IQR > 0:
-                    if value < Q1 - 1.5 * IQR:
-                        # How many IQRs below the lower bound
-                        score = abs((value - (Q1 - 1.5 * IQR)) / IQR)
-                    else:  # value > Q3 + 1.5 * IQR
-                        # How many IQRs above the upper bound
-                        score = abs((value - (Q3 + 1.5 * IQR)) / IQR)
-                else:
-                    score = 0
+                score = abs((value - lower_bound) / IQR) if IQR > 0 else 0
             
-            # Rule-based suggested action
+            # Rule-based suggested action for lower outliers
             if method.lower() == "zscore":
                 if score > 4.0:
                     action = "Remove"  # Extreme outliers
@@ -207,6 +213,43 @@ def detect_outliers_for_dataset(
                 "outlier_score": round(float(score), 2),
                 "row_index": int(idx),
                 "suggested_action": action,
+                "outlier_type": "lower",  # Below lower bound
+            })
+        
+        # Process upper-bound outliers
+        upper_outlier_rows = df[upper_outlier_mask]
+        for idx, row in upper_outlier_rows.iterrows():
+            value = row[column]
+            
+            # Calculate score
+            if method.lower() == "zscore":
+                score = abs((value - mean) / std) if std > 0 else 0
+            else:  # IQR
+                score = abs((value - upper_bound) / IQR) if IQR > 0 else 0
+            
+            # Rule-based suggested action for upper outliers
+            if method.lower() == "zscore":
+                if score > 4.0:
+                    action = "Remove"  # Extreme outliers
+                elif score > 3.5:
+                    action = "Cap"  # High outliers
+                else:
+                    action = "Review"  # Moderate outliers
+            else:  # IQR
+                if score > 2.0:
+                    action = "Remove"  # Extreme outliers
+                elif score > 1.5:
+                    action = "Cap"  # High outliers
+                else:
+                    action = "Review"  # Moderate outliers
+            
+            outliers.append({
+                "column_name": column,
+                "detected_value": float(value) if pd.notna(value) else None,
+                "outlier_score": round(float(score), 2),
+                "row_index": int(idx),
+                "suggested_action": action,
+                "outlier_type": "upper",  # Above upper bound
             })
     
     # Sort by score (highest first)

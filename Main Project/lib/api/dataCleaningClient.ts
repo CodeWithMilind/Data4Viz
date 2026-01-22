@@ -98,6 +98,7 @@ export interface DetectedOutlier {
   outlier_score: number;
   row_index: number;
   suggested_action: "Review" | "Cap" | "Remove";
+  outlier_type: "lower" | "upper"; // Indicates if below lower bound or above upper bound
 }
 
 export interface OutlierDetectionResponse {
@@ -746,15 +747,61 @@ export async function deleteWorkspace(workspaceId: string): Promise<{ message: s
 }
 
 /**
+ * Get cached outlier analysis if available.
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetId Dataset filename (e.g., "sample.csv")
+ * @returns Outlier detection response if cached and valid, null if not found
+ * @throws Error if API call fails (other than 404)
+ */
+export async function getCachedOutlierAnalysis(
+  workspaceId: string,
+  datasetId: string
+): Promise<OutlierDetectionResponse | null> {
+  const requestUrl = `${BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/outliers/cached`;
+
+  console.log(`[getCachedOutlierAnalysis] Request URL: ${requestUrl}`);
+
+  try {
+    const response = await fetch(requestUrl, {
+      method: "GET",
+    });
+
+    if (response.status === 404) {
+      // No cached analysis found - this is expected
+      return null;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      console.error(`[getCachedOutlierAnalysis] Error ${response.status}: ${errorText}`);
+      throw new Error(`Failed to get cached outlier analysis: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`[getCachedOutlierAnalysis] Success – loaded cached analysis with ${data.total_outliers} outliers`);
+    return data;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("404")) {
+      return null;
+    }
+    console.error("Error getting cached outlier analysis:", error);
+    throw error;
+  }
+}
+
+/**
  * Detect outliers in numeric columns of a dataset.
  * 
  * This function only detects outliers - it does NOT modify the dataset.
  * Purpose is understanding + local handling (no auto-clean).
+ * Results are automatically cached for future use.
  * 
  * @param workspaceId Workspace identifier (required)
  * @param datasetId Dataset filename (e.g., "sample.csv")
  * @param method Detection method ("zscore" or "iqr", default: "zscore")
  * @param threshold Z-score threshold (only used for zscore method, default: 3.0)
+ * @param forceRecompute If true, forces recomputation even if cached results exist
  * @returns Outlier detection response with list of detected outliers
  * @throws Error if API call fails
  */
@@ -762,9 +809,10 @@ export async function detectOutliers(
   workspaceId: string,
   datasetId: string,
   method: string = "zscore",
-  threshold: number = 3.0
+  threshold: number = 3.0,
+  forceRecompute: boolean = false
 ): Promise<OutlierDetectionResponse> {
-  const requestUrl = `${BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/outliers?method=${encodeURIComponent(method)}&threshold=${threshold}`;
+  const requestUrl = `${BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/outliers?method=${encodeURIComponent(method)}&threshold=${threshold}&force_recompute=${forceRecompute}`;
 
   console.log(`[detectOutliers] Request URL: ${requestUrl}`);
 

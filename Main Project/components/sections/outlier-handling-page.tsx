@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { AlertTriangle, Eye, Trash2, Loader2, Database } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { getDatasetSchema, type SchemaResponse, detectOutliers, type DetectedOutlier } from "@/lib/api/dataCleaningClient"
+import { getDatasetSchema, type SchemaResponse, detectOutliers, getCachedOutlierAnalysis, type DetectedOutlier } from "@/lib/api/dataCleaningClient"
 import { useToast } from "@/hooks/use-toast"
 import { useAIConfigStore } from "@/lib/ai-config-store"
 
@@ -21,7 +21,7 @@ export function OutlierHandlingPage() {
   const [isDetecting, setIsDetecting] = useState(false)
   const [detectionError, setDetectionError] = useState<string | null>(null)
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
-  const [aiRecommendations, setAiRecommendations] = useState<Record<string, { recommended_action: string; short_reason: string; is_ai_recommendation: boolean }>>({})
+  const [aiRecommendations, setAiRecommendations] = useState<Record<string, { lower_action?: string; lower_reason?: string; upper_action?: string; upper_reason?: string; is_ai_recommendation: boolean }>>({})
   
   // Get AI config from store
   const { provider, model, apiKey } = useAIConfigStore()
@@ -64,24 +64,172 @@ export function OutlierHandlingPage() {
     }
   }, [activeWorkspaceId, selectedDataset?.fileName])
 
+  // Fetch AI recommendations for outlier columns (defined early for use in useEffect)
+  const fetchAIRecommendations = useCallback(async (detectedOutliers: DetectedOutlier[]) => {
+    // Skip if no outliers
+    if (!detectedOutliers || detectedOutliers.length === 0) {
+      return
+    }
+    if (!activeWorkspaceId || !selectedDataset?.fileName) {
+      return
+    }
+
+    // Group outliers by column and type (lower/upper)
+    const grouped = detectedOutliers.reduce((acc, outlier) => {
+      if (outlier.detected_value === null) return acc
+      
+      if (!acc[outlier.column_name]) {
+        acc[outlier.column_name] = { lower: [], upper: [] }
+      }
+      
+      if (outlier.outlier_type === "lower") {
+        acc[outlier.column_name].lower.push(outlier)
+      } else if (outlier.outlier_type === "upper") {
+        acc[outlier.column_name].upper.push(outlier)
+      }
+      
+      return acc
+    }, {} as Record<string, { lower: DetectedOutlier[]; upper: DetectedOutlier[] }>)
+
+    const columnSummaries = Object.entries(grouped).map(([columnName, { lower, upper }]) => {
+      const column = schema?.columns.find((col) => col.name === columnName)
+      const numericStats = column?.numeric_stats
+
+      const summary: any = {
+        column_name: columnName,
+        type: column?.canonical_type || "numeric",
+        mean: numericStats?.mean,
+        median: numericStats?.median,
+      }
+
+      // Add lower outlier info if exists
+      if (lower.length > 0) {
+        const lowerValues = lower
+          .map(o => o.detected_value)
+          .filter((v): v is number => v !== null)
+        summary.lower_outlier_count = lower.length
+        summary.lower_outlier_min = Math.min(...lowerValues)
+        summary.lower_outlier_max = Math.max(...lowerValues)
+      }
+
+      // Add upper outlier info if exists
+      if (upper.length > 0) {
+        const upperValues = upper
+          .map(o => o.detected_value)
+          .filter((v): v is number => v !== null)
+        summary.upper_outlier_count = upper.length
+        summary.upper_outlier_min = Math.min(...upperValues)
+        summary.upper_outlier_max = Math.max(...upperValues)
+      }
+
+      return summary
+    }).filter(col => (col.lower_outlier_count && col.lower_outlier_count > 0) || (col.upper_outlier_count && col.upper_outlier_count > 0))
+
+    if (columnSummaries.length === 0) return
+
+    setIsLoadingRecommendations(true)
+
+    try {
+      const response = await fetch("/api/ai/outlier-recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: activeWorkspaceId,
+          datasetId: selectedDataset.fileName,
+          columns: columnSummaries,
+          provider: provider || "groq",
+          model: model || "llama-3.1-70b-versatile",
+          apiKey: apiKey || undefined,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch AI recommendations")
+      }
+
+      const data = await response.json()
+      if (data.success && data.recommendations) {
+        // Convert array to map for easy lookup
+        const recommendationsMap: Record<string, { lower_action?: string; lower_reason?: string; upper_action?: string; upper_reason?: string; is_ai_recommendation: boolean }> = {}
+        data.recommendations.forEach((rec: any) => {
+          recommendationsMap[rec.column_name] = {
+            lower_action: rec.lower_action,
+            lower_reason: rec.lower_reason,
+            upper_action: rec.upper_action,
+            upper_reason: rec.upper_reason,
+            is_ai_recommendation: rec.is_ai_recommendation || false,
+          }
+        })
+        setAiRecommendations(recommendationsMap)
+      }
+    } catch (error) {
+      console.warn("Failed to fetch AI recommendations, using rule-based:", error)
+      // Silently fallback to rule-based (already handled in columnSummaries)
+    } finally {
+      setIsLoadingRecommendations(false)
+    }
+  }, [activeWorkspaceId, selectedDataset?.fileName, schema, provider, model, apiKey])
+
+  // Load cached outlier analysis on page load
+  useEffect(() => {
+    if (!activeWorkspaceId || !selectedDataset?.fileName) {
+      setOutliers([])
+      return
+    }
+
+    let cancelled = false
+
+    // Try to load cached outlier analysis
+    getCachedOutlierAnalysis(activeWorkspaceId, selectedDataset.fileName)
+      .then((cachedData) => {
+        if (cancelled) return
+        if (cachedData) {
+          console.log(`[OutlierHandlingPage] Loaded cached outlier analysis with ${cachedData.total_outliers} outliers`)
+          setOutliers(cachedData.outliers)
+          // Fetch AI recommendations for cached data
+          fetchAIRecommendations(cachedData.outliers).catch((err) => {
+            console.warn("Failed to fetch AI recommendations for cached data:", err)
+          })
+        } else {
+          console.log(`[OutlierHandlingPage] No cached outlier analysis found`)
+          setOutliers([])
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return
+        console.warn("Failed to load cached outlier analysis:", error)
+        setOutliers([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWorkspaceId, selectedDataset?.fileName, fetchAIRecommendations])
+
   // Get numeric columns from schema (outliers only apply to numeric columns)
   const numericColumns = useMemo(() => {
     if (!schema) return []
     return schema.columns.filter((col) => col.canonical_type === "numeric")
   }, [schema])
 
-  // Group outliers by column and create column-level summary
+  // Group outliers by column and create column-level summary with lower/upper separation
+  interface LowerUpperOutlierInfo {
+    count: number
+    min: number
+    max: number
+    recommendation: string
+  }
+
   interface ColumnOutlierSummary {
     column_name: string
     type: string
-    outlier_count: number
-    min_outlier: number
-    max_outlier: number
-    recommendation: string
-    explanation: string
+    lower_outliers: LowerUpperOutlierInfo | null
+    upper_outliers: LowerUpperOutlierInfo | null
     ai_recommendation?: {
-      recommended_action: string
-      short_reason: string
+      lower_action?: string
+      upper_action?: string
+      lower_reason?: string
+      upper_reason?: string
       is_ai_recommendation: boolean
     }
   }
@@ -89,68 +237,128 @@ export function OutlierHandlingPage() {
   const columnSummaries = useMemo<ColumnOutlierSummary[]>(() => {
     if (outliers.length === 0) return []
 
-    // Group outliers by column name
+    // Group outliers by column name and type (lower/upper)
     const grouped = outliers.reduce((acc, outlier) => {
       if (outlier.detected_value === null) return acc
       
       if (!acc[outlier.column_name]) {
-        acc[outlier.column_name] = []
+        acc[outlier.column_name] = { lower: [], upper: [] }
       }
-      acc[outlier.column_name].push(outlier)
+      
+      if (outlier.outlier_type === "lower") {
+        acc[outlier.column_name].lower.push(outlier)
+      } else if (outlier.outlier_type === "upper") {
+        acc[outlier.column_name].upper.push(outlier)
+      }
+      
       return acc
-    }, {} as Record<string, DetectedOutlier[]>)
+    }, {} as Record<string, { lower: DetectedOutlier[]; upper: DetectedOutlier[] }>)
 
     // Create summary for each column
-    return Object.entries(grouped).map(([columnName, columnOutliers]) => {
-      const values = columnOutliers
-        .map(o => o.detected_value)
-        .filter((v): v is number => v !== null)
-      
-      const minOutlier = Math.min(...values)
-      const maxOutlier = Math.max(...values)
-      
-      // Determine recommendation based on most common action
-      const actionCounts = columnOutliers.reduce((acc, o) => {
-        acc[o.suggested_action] = (acc[o.suggested_action] || 0) + 1
-        return acc
-      }, {} as Record<string, number>)
-      
-      // Priority: Remove > Cap > Ignore (rule-based fallback)
-      let recommendation = "Ignore"
-      if (actionCounts["Remove"] && actionCounts["Remove"] > 0) {
-        recommendation = "Remove"
-      } else if (actionCounts["Cap"] && actionCounts["Cap"] > 0) {
-        recommendation = "Cap"
-      }
+    const summaries: ColumnOutlierSummary[] = []
+    
+    for (const [columnName, { lower, upper }] of Object.entries(grouped)) {
+      // Skip columns with no outliers
+      if (lower.length === 0 && upper.length === 0) continue
 
       const column = schema?.columns.find((col) => col.name === columnName)
       
-      // Generate rule-based explanation text (will be replaced by AI if available)
-      let actionVerb = "keeping"
-      if (recommendation === "Remove") {
-        actionVerb = "removing"
-      } else if (recommendation === "Cap") {
-        actionVerb = "capping"
-      } else if (recommendation === "Transform") {
-        actionVerb = "transforming"
+      // Process lower outliers
+      let lowerInfo: LowerUpperOutlierInfo | null = null
+      if (lower.length > 0) {
+        const lowerValues = lower
+          .map(o => o.detected_value)
+          .filter((v): v is number => v !== null)
+        
+        const lowerMin = Math.min(...lowerValues)
+        const lowerMax = Math.max(...lowerValues)
+        
+        // Determine recommendation based on most common action
+        const lowerActionCounts = lower.reduce((acc, o) => {
+          acc[o.suggested_action] = (acc[o.suggested_action] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+        
+        // Priority: Remove > Cap > Ignore
+        let lowerRecommendation = "Ignore"
+        if (lowerActionCounts["Remove"] && lowerActionCounts["Remove"] > 0) {
+          lowerRecommendation = "Remove"
+        } else if (lowerActionCounts["Cap"] && lowerActionCounts["Cap"] > 0) {
+          lowerRecommendation = "Cap"
+        }
+        
+        lowerInfo = {
+          count: lower.length,
+          min: lowerMin,
+          max: lowerMax,
+          recommendation: lowerRecommendation,
+        }
       }
       
-      const explanation = `In ${columnName}, consider ${actionVerb} values from ${minOutlier.toLocaleString()} to ${maxOutlier.toLocaleString()}.`
-
+      // Process upper outliers
+      let upperInfo: LowerUpperOutlierInfo | null = null
+      if (upper.length > 0) {
+        const upperValues = upper
+          .map(o => o.detected_value)
+          .filter((v): v is number => v !== null)
+        
+        const upperMin = Math.min(...upperValues)
+        const upperMax = Math.max(...upperValues)
+        
+        // Determine recommendation based on most common action
+        const upperActionCounts = upper.reduce((acc, o) => {
+          acc[o.suggested_action] = (acc[o.suggested_action] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+        
+        // Priority: Remove > Cap > Ignore
+        let upperRecommendation = "Ignore"
+        if (upperActionCounts["Remove"] && upperActionCounts["Remove"] > 0) {
+          upperRecommendation = "Remove"
+        } else if (upperActionCounts["Cap"] && upperActionCounts["Cap"] > 0) {
+          upperRecommendation = "Cap"
+        }
+        
+        upperInfo = {
+          count: upper.length,
+          min: upperMin,
+          max: upperMax,
+          recommendation: upperRecommendation,
+        }
+      }
+      
       // Get AI recommendation if available
       const aiRec = aiRecommendations[columnName]
+      
+      // Apply AI recommendations if available
+      if (aiRec) {
+        if (lowerInfo && aiRec.lower_action) {
+          lowerInfo.recommendation = aiRec.lower_action
+        }
+        if (upperInfo && aiRec.upper_action) {
+          upperInfo.recommendation = aiRec.upper_action
+        }
+      }
+      
+      // Store AI recommendation for explanation text
+      const aiRecommendation = aiRec ? {
+        lower_action: lowerInfo && aiRec.lower_action ? aiRec.lower_action : undefined,
+        lower_reason: lowerInfo && aiRec.lower_reason ? aiRec.lower_reason : undefined,
+        upper_action: upperInfo && aiRec.upper_action ? aiRec.upper_action : undefined,
+        upper_reason: upperInfo && aiRec.upper_reason ? aiRec.upper_reason : undefined,
+        is_ai_recommendation: aiRec.is_ai_recommendation,
+      } : undefined
 
-      return {
+      summaries.push({
         column_name: columnName,
         type: column?.canonical_type || "numeric",
-        outlier_count: columnOutliers.length,
-        min_outlier: minOutlier,
-        max_outlier: maxOutlier,
-        recommendation: aiRec?.recommended_action || recommendation,
-        explanation: aiRec?.short_reason || explanation,
-        ai_recommendation: aiRec,
-      }
-    })
+        lower_outliers: lowerInfo,
+        upper_outliers: upperInfo,
+        ai_recommendation: aiRecommendation,
+      })
+    }
+    
+    return summaries
   }, [outliers, schema, aiRecommendations])
 
   // Handle outlier detection
@@ -173,7 +381,8 @@ export function OutlierHandlingPage() {
         activeWorkspaceId,
         selectedDataset.fileName,
         "zscore", // Use Z-score method (simple & explainable)
-        3.0 // Standard threshold
+        3.0, // Standard threshold
+        true // Force recompute when user explicitly clicks
       )
 
       setOutliers(response.outliers)
@@ -205,87 +414,6 @@ export function OutlierHandlingPage() {
     }
   }
 
-  // Fetch AI recommendations for outlier columns
-  const fetchAIRecommendations = async (detectedOutliers: DetectedOutlier[]) => {
-    if (!activeWorkspaceId || !selectedDataset?.fileName || detectedOutliers.length === 0) {
-      return
-    }
-
-    // Group outliers by column to create summaries
-    const grouped = detectedOutliers.reduce((acc, outlier) => {
-      if (outlier.detected_value === null) return acc
-      
-      if (!acc[outlier.column_name]) {
-        acc[outlier.column_name] = []
-      }
-      acc[outlier.column_name].push(outlier)
-      return acc
-    }, {} as Record<string, DetectedOutlier[]>)
-
-    const columnSummaries = Object.entries(grouped).map(([columnName, columnOutliers]) => {
-      const values = columnOutliers
-        .map(o => o.detected_value)
-        .filter((v): v is number => v !== null)
-      
-      const minOutlier = Math.min(...values)
-      const maxOutlier = Math.max(...values)
-      
-      const column = schema?.columns.find((col) => col.name === columnName)
-      const numericStats = column?.numeric_stats
-
-      return {
-        column_name: columnName,
-        type: column?.canonical_type || "numeric",
-        outlier_count: columnOutliers.length,
-        min_outlier: minOutlier,
-        max_outlier: maxOutlier,
-        mean: numericStats?.mean,
-        median: numericStats?.median,
-      }
-    })
-
-    if (columnSummaries.length === 0) return
-
-    setIsLoadingRecommendations(true)
-
-    try {
-      const response = await fetch("/api/ai/outlier-recommendations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceId: activeWorkspaceId,
-          datasetId: selectedDataset.fileName,
-          columns: columnSummaries,
-          provider: provider || "groq",
-          model: model || "llama-3.1-70b-versatile",
-          apiKey: apiKey || undefined,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch AI recommendations")
-      }
-
-      const data = await response.json()
-      if (data.success && data.recommendations) {
-        // Convert array to map for easy lookup
-        const recommendationsMap: Record<string, { recommended_action: string; short_reason: string; is_ai_recommendation: boolean }> = {}
-        data.recommendations.forEach((rec: any) => {
-          recommendationsMap[rec.column_name] = {
-            recommended_action: rec.recommended_action,
-            short_reason: rec.short_reason,
-            is_ai_recommendation: rec.is_ai_recommendation || false,
-          }
-        })
-        setAiRecommendations(recommendationsMap)
-      }
-    } catch (error) {
-      console.warn("Failed to fetch AI recommendations, using rule-based:", error)
-      // Silently fallback to rule-based (already handled in columnSummaries)
-    } finally {
-      setIsLoadingRecommendations(false)
-    }
-  }
 
   if (isLoadingSchema) {
     return (
@@ -380,6 +508,12 @@ export function OutlierHandlingPage() {
                       {columnSummaries.length} column{columnSummaries.length === 1 ? "" : "s"} with outliers
                     </Badge>
                   )}
+                  {isLoadingRecommendations && (
+                    <Badge variant="outline" className="gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Getting AI recommendations...
+                    </Badge>
+                  )}
                 </div>
                 
                 {detectionError && (
@@ -400,9 +534,9 @@ export function OutlierHandlingPage() {
                       <TableRow>
                         <TableHead>Column</TableHead>
                         <TableHead>Type</TableHead>
-                        <TableHead>Outliers Count</TableHead>
-                        <TableHead>Outlier Range</TableHead>
-                        <TableHead>Recommendation</TableHead>
+                        <TableHead>Lower Outliers</TableHead>
+                        <TableHead>Upper Outliers</TableHead>
+                        <TableHead>Recommendations</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -415,43 +549,80 @@ export function OutlierHandlingPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="text-xs">
-                              {summary.outlier_count}
-                            </Badge>
+                            {summary.lower_outliers ? (
+                              <div className="flex flex-col gap-1">
+                                <div className="font-mono text-sm">
+                                  <span className="text-destructive">
+                                    {summary.lower_outliers.min.toLocaleString()}
+                                  </span>
+                                  <span className="text-muted-foreground mx-1">→</span>
+                                  <span className="text-destructive">
+                                    {summary.lower_outliers.max.toLocaleString()}
+                                  </span>
+                                  <span className="text-muted-foreground ml-2">
+                                    ({summary.lower_outliers.count} values)
+                                  </span>
+                                </div>
+                                <Badge 
+                                  variant={
+                                    summary.lower_outliers.recommendation === "Remove" ? "destructive" :
+                                    summary.lower_outliers.recommendation === "Cap" ? "default" :
+                                    summary.lower_outliers.recommendation === "Ignore" ? "outline" :
+                                    "secondary"
+                                  }
+                                  className="text-xs w-fit"
+                                >
+                                  {summary.lower_outliers.recommendation === "Ignore" ? "Keep" : summary.lower_outliers.recommendation}
+                                </Badge>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
                           </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            <span className="text-destructive">
-                              {summary.min_outlier.toLocaleString()}
-                            </span>
-                            <span className="text-muted-foreground mx-1">→</span>
-                            <span className="text-destructive">
-                              {summary.max_outlier.toLocaleString()}
-                            </span>
+                          <TableCell>
+                            {summary.upper_outliers ? (
+                              <div className="flex flex-col gap-1">
+                                <div className="font-mono text-sm">
+                                  <span className="text-destructive">
+                                    {summary.upper_outliers.min.toLocaleString()}
+                                  </span>
+                                  <span className="text-muted-foreground mx-1">→</span>
+                                  <span className="text-destructive">
+                                    {summary.upper_outliers.max.toLocaleString()}
+                                  </span>
+                                  <span className="text-muted-foreground ml-2">
+                                    ({summary.upper_outliers.count} values)
+                                  </span>
+                                </div>
+                                <Badge 
+                                  variant={
+                                    summary.upper_outliers.recommendation === "Remove" ? "destructive" :
+                                    summary.upper_outliers.recommendation === "Cap" ? "default" :
+                                    summary.upper_outliers.recommendation === "Ignore" ? "outline" :
+                                    "secondary"
+                                  }
+                                  className="text-xs w-fit"
+                                >
+                                  {summary.upper_outliers.recommendation === "Ignore" ? "Keep" : summary.upper_outliers.recommendation}
+                                </Badge>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
-                              <Badge 
-                                variant={
-                                  summary.recommendation === "Remove" ? "destructive" :
-                                  summary.recommendation === "Cap" ? "default" :
-                                  summary.recommendation === "Transform" ? "secondary" :
-                                  summary.recommendation === "Ignore" ? "outline" :
-                                  "secondary"
-                                }
-                                className="text-xs w-fit"
-                              >
-                                {summary.recommendation === "Ignore" ? "Keep" : summary.recommendation}
-                              </Badge>
-                              {isLoadingRecommendations ? (
+                              {summary.ai_recommendation && (
+                                <Badge variant="outline" className="text-xs w-fit">
+                                  {summary.ai_recommendation.is_ai_recommendation ? "AI" : "Rule-based"}
+                                </Badge>
+                              )}
+                              {isLoadingRecommendations && (
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Loader2 className="w-3 h-3 animate-spin" />
-                                  Getting AI recommendation...
+                                  Loading...
                                 </span>
-                              ) : summary.ai_recommendation ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {summary.ai_recommendation.is_ai_recommendation ? "AI recommendation" : "Rule-based suggestion"}
-                                </span>
-                              ) : null}
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -464,19 +635,58 @@ export function OutlierHandlingPage() {
                 {columnSummaries.length > 0 && (
                   <div className="mt-6 space-y-3">
                     <h4 className="text-sm font-medium text-foreground mb-2">Recommendations</h4>
-                    {columnSummaries.map((summary) => (
-                      <div key={`explanation-${summary.column_name}`} className="p-3 bg-muted/50 rounded-lg">
-                        <div className="flex items-start justify-between mb-1">
-                          <p className="text-sm font-medium text-foreground">{summary.column_name}</p>
-                          {summary.ai_recommendation && (
-                            <Badge variant="outline" className="text-xs">
-                              {summary.ai_recommendation.is_ai_recommendation ? "AI" : "Rule-based"}
-                            </Badge>
-                          )}
+                    {columnSummaries.map((summary) => {
+                      // Build explanation text in the required format
+                      const parts: string[] = []
+                      
+                      if (summary.lower_outliers) {
+                        const lowerAction = summary.lower_outliers.recommendation === "Ignore" ? "kept" :
+                                          summary.lower_outliers.recommendation === "Remove" ? "removed" :
+                                          summary.lower_outliers.recommendation === "Cap" ? "capped" :
+                                          summary.lower_outliers.recommendation === "Transform" ? "transformed" :
+                                          "reviewed"
+                        // Format: "lower-bound outliers from <min> to <max> should be <action>"
+                        let lowerText = `lower-bound outliers from ${summary.lower_outliers.min.toLocaleString()} to ${summary.lower_outliers.max.toLocaleString()} should be ${lowerAction}`
+                        // Append AI reason if available
+                        if (summary.ai_recommendation?.lower_reason) {
+                          lowerText += `. ${summary.ai_recommendation.lower_reason}`
+                        }
+                        parts.push(lowerText)
+                      }
+                      
+                      if (summary.upper_outliers) {
+                        const upperAction = summary.upper_outliers.recommendation === "Ignore" ? "kept" :
+                                          summary.upper_outliers.recommendation === "Remove" ? "removed" :
+                                          summary.upper_outliers.recommendation === "Cap" ? "capped" :
+                                          summary.upper_outliers.recommendation === "Transform" ? "transformed" :
+                                          "reviewed"
+                        // Format: "upper-bound outliers from <min> to <max> should be <action>"
+                        let upperText = `upper-bound outliers from ${summary.upper_outliers.min.toLocaleString()} to ${summary.upper_outliers.max.toLocaleString()} should be ${upperAction}`
+                        // Append AI reason if available
+                        if (summary.ai_recommendation?.upper_reason) {
+                          upperText += `. ${summary.ai_recommendation.upper_reason}`
+                        }
+                        parts.push(upperText)
+                      }
+                      
+                      const explanation = parts.length > 0 
+                        ? `In ${summary.column_name}:\n- ${parts.join("\n- ")}`
+                        : `In ${summary.column_name}: No outliers detected.`
+                      
+                      return (
+                        <div key={`explanation-${summary.column_name}`} className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-start justify-between mb-1">
+                            <p className="text-sm font-medium text-foreground">{summary.column_name}</p>
+                            {summary.ai_recommendation && (
+                              <Badge variant="outline" className="text-xs">
+                                {summary.ai_recommendation.is_ai_recommendation ? "AI" : "Rule-based"}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground whitespace-pre-line">{explanation}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground">{summary.explanation}</p>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </>

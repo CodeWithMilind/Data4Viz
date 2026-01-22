@@ -16,9 +16,10 @@ import json
 import logging
 import shutil
 from datetime import datetime
-from app.config import get_workspace_dir, get_workspace_datasets_dir, get_workspace_logs_dir, get_workspace_files_dir, WORKSPACES_DIR
+from app.config import get_workspace_dir, get_workspace_datasets_dir, get_workspace_logs_dir, get_workspace_files_dir, WORKSPACES_DIR, get_outlier_analysis_file_path
 from app.services.dataset_loader import list_workspace_datasets, list_workspace_files, load_dataset, save_dataset, dataset_exists
 from app.services.outliers import detect_outliers_for_dataset
+from app.services.insight_storage import compute_dataset_hash
 from app.services.file_registry import (
     delete_workspace_files,
     cleanup_orphan_files,
@@ -991,7 +992,7 @@ class OutlierDetectionResponse(BaseModel):
 
 
 @router.get("/{workspace_id}/datasets/{dataset_id}/outliers", response_model=OutlierDetectionResponse)
-async def detect_outliers(workspace_id: str, dataset_id: str, method: str = "zscore", threshold: float = 3.0):
+async def detect_outliers(workspace_id: str, dataset_id: str, method: str = "zscore", threshold: float = 3.0, force_recompute: bool = False):
     """
     Detect outliers in numeric columns of a dataset.
     
@@ -1012,7 +1013,7 @@ async def detect_outliers(workspace_id: str, dataset_id: str, method: str = "zsc
         - row_index: Row index where outlier was found
         - suggested_action: Rule-based suggestion (Review/Cap/Remove)
     """
-    logger.info(f"[detect_outliers] Request received - workspace_id={workspace_id}, dataset_id={dataset_id}, method={method}")
+    logger.info(f"[detect_outliers] Request received - workspace_id={workspace_id}, dataset_id={dataset_id}, method={method}, force_recompute={force_recompute}")
     
     try:
         # Validate method
@@ -1029,21 +1030,70 @@ async def detect_outliers(workspace_id: str, dataset_id: str, method: str = "zsc
                 detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
             )
         
+        # Check for cached outlier analysis (unless force_recompute is True)
+        if not force_recompute:
+            outlier_file_path = get_outlier_analysis_file_path(workspace_id, dataset_id)
+            if outlier_file_path.exists():
+                try:
+                    with open(outlier_file_path, "r") as f:
+                        cached_analysis = json.load(f)
+                    
+                    # Verify dataset hash matches (dataset hasn't changed)
+                    current_hash = compute_dataset_hash(workspace_id, dataset_id)
+                    stored_hash = cached_analysis.get("dataset_hash")
+                    
+                    if stored_hash == current_hash and cached_analysis.get("method") == method.lower():
+                        logger.info(f"[detect_outliers] Using cached outlier analysis from {outlier_file_path}")
+                        return OutlierDetectionResponse(
+                            workspace_id=workspace_id,
+                            dataset_id=dataset_id,
+                            method=cached_analysis.get("method", method.lower()),
+                            outliers=cached_analysis.get("outliers", []),
+                            total_outliers=cached_analysis.get("total_outliers", 0)
+                        )
+                    else:
+                        logger.info(f"[detect_outliers] Dataset changed or method mismatch, recomputing outliers")
+                except Exception as e:
+                    logger.warning(f"[detect_outliers] Failed to load cached analysis: {e}, recomputing")
+        
         df = load_dataset(dataset_id, workspace_id)
         
-        if df.empty:
-            return OutlierDetectionResponse(
-                workspace_id=workspace_id,
-                dataset_id=dataset_id,
-                method=method.lower(),
-                outliers=[],
-                total_outliers=0
-            )
-        
         # Detect outliers
-        outliers = detect_outliers_for_dataset(df, method.lower(), threshold)
+        outliers = detect_outliers_for_dataset(df, method.lower(), threshold) if not df.empty else []
         
         logger.info(f"[detect_outliers] Detected {len(outliers)} outliers in dataset '{dataset_id}'")
+        
+        # Compute dataset hash for cache invalidation
+        dataset_hash = compute_dataset_hash(workspace_id, dataset_id)
+        
+        # Save outlier analysis to file for caching (even if no outliers found)
+        outlier_analysis = {
+            "workspace_id": workspace_id,
+            "dataset_id": dataset_id,
+            "dataset_hash": dataset_hash,
+            "method": method.lower(),
+            "threshold": threshold,
+            "timestamp": datetime.now().isoformat(),
+            "outliers": outliers,
+            "total_outliers": len(outliers),
+        }
+        
+        outlier_file_path = get_outlier_analysis_file_path(workspace_id, dataset_id)
+        outlier_file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(outlier_file_path, "w") as f:
+            json.dump(outlier_analysis, f, indent=2, default=str)
+        
+        logger.info(f"[detect_outliers] Saved outlier analysis to {outlier_file_path}")
+        
+        # Register file in registry
+        from app.services.file_registry import register_file
+        register_file(
+            file_path=str(outlier_file_path),
+            workspace_id=workspace_id,
+            file_type="overview",  # Use "overview" type so it appears in Files page as "Generated by: Outlier Analysis"
+            is_protected=False,  # Outlier analysis files can be deleted
+        )
         
         return OutlierDetectionResponse(
             workspace_id=workspace_id,
@@ -1060,4 +1110,64 @@ async def detect_outliers(workspace_id: str, dataset_id: str, method: str = "zsc
         raise HTTPException(
             status_code=500,
             detail=f"Failed to detect outliers: {str(e)}"
+        )
+
+
+@router.get("/{workspace_id}/datasets/{dataset_id}/outliers/cached")
+async def get_cached_outlier_analysis(workspace_id: str, dataset_id: str):
+    """
+    Get cached outlier analysis if it exists and is valid.
+    
+    This endpoint checks if a cached outlier analysis exists and if the dataset
+    hasn't changed (hash match). Returns cached results if valid, otherwise 404.
+    
+    Args:
+        workspace_id: Workspace identifier
+        dataset_id: Dataset filename (e.g., "sample.csv")
+    
+    Returns:
+        Cached outlier analysis if valid, 404 if not found or invalid
+    """
+    logger.info(f"[get_cached_outlier_analysis] Request received - workspace_id={workspace_id}, dataset_id={dataset_id}")
+    
+    try:
+        # Check if cached file exists
+        outlier_file_path = get_outlier_analysis_file_path(workspace_id, dataset_id)
+        if not outlier_file_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="No cached outlier analysis found"
+            )
+        
+        # Load cached analysis
+        with open(outlier_file_path, "r") as f:
+            cached_analysis = json.load(f)
+        
+        # Verify dataset hash matches (dataset hasn't changed)
+        current_hash = compute_dataset_hash(workspace_id, dataset_id)
+        stored_hash = cached_analysis.get("dataset_hash")
+        
+        if stored_hash != current_hash:
+            logger.info(f"[get_cached_outlier_analysis] Dataset hash mismatch, cache invalid")
+            raise HTTPException(
+                status_code=404,
+                detail="Cached analysis is invalid (dataset has changed)"
+            )
+        
+        logger.info(f"[get_cached_outlier_analysis] Returning cached analysis")
+        return OutlierDetectionResponse(
+            workspace_id=workspace_id,
+            dataset_id=dataset_id,
+            method=cached_analysis.get("method", "zscore"),
+            outliers=cached_analysis.get("outliers", []),
+            total_outliers=cached_analysis.get("total_outliers", 0)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[get_cached_outlier_analysis] Error loading cached analysis: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to load cached outlier analysis: {str(e)}"
         )
