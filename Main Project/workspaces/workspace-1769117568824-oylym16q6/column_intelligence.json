@@ -1,0 +1,491 @@
+{
+  "columns": [
+    {
+      "name": "Id",
+      "data_type": "identifier",
+      "meaning": "Row identifier or index column used to uniquely identify each record in the dataset.",
+      "why_used": "Used as a unique identifier to reference specific rows and maintain data integrity."
+    },
+    {
+      "name": "MSSubClass",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 15 distinct values. Common values: 20, 30, 40.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "MSZoning",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: RL, RM, FV.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "LotFrontage",
+      "data_type": "numeric",
+      "meaning": "Age in years, representing the age of individuals in the dataset.",
+      "why_used": "Used for demographic segmentation, age-based customer profiling, and age-related trend analysis."
+    },
+    {
+      "name": "LotArea",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "Street",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 2 distinct values. Common values: Pave, Grvl.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Alley",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 2 distinct values. Common values: Grvl, Pave.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "LotShape",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: Reg, IR1, IR2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "LandContour",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: Lvl, Bnk, HLS.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Utilities",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 2 distinct values. Common values: AllPub, NoSeWa.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "LotConfig",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: Inside, Corner, CulDSac.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "LandSlope",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: Gtl, Mod, Sev.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Neighborhood",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 25 distinct values. Common values: NAmes, CollgCr, OldTown.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Condition1",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 9 distinct values. Common values: Norm, Feedr, Artery.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Condition2",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 8 distinct values. Common values: Norm, Feedr, Artery.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BldgType",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: 1Fam, TwnhsE, Duplex.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "HouseStyle",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 8 distinct values. Common values: 1Story, 2Story, 1.5Fin.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "OverallQual",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "OverallCond",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 9 distinct values. Common values: 1, 2, 3.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "YearBuilt",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "YearRemodAdd",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "RoofStyle",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 6 distinct values. Common values: Gable, Hip, Flat.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "RoofMatl",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 8 distinct values. Common values: CompShg, Tar&Grv, WdShngl.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Exterior1st",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 15 distinct values. Common values: VinylSd, HdBoard, MetalSd.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Exterior2nd",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 16 distinct values. Common values: VinylSd, MetalSd, HdBoard.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "MasVnrType",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: BrkFace, Stone, BrkCmn.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "MasVnrArea",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "ExterQual",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: TA, Gd, Ex.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "ExterCond",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: TA, Gd, Fa.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Foundation",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 6 distinct values. Common values: PConc, CBlock, BrkTil.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BsmtQual",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: TA, Gd, Ex.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BsmtCond",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: TA, Gd, Fa.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BsmtExposure",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: No, Av, Gd.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BsmtFinType1",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 6 distinct values. Common values: Unf, GLQ, ALQ.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BsmtFinSF1",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "BsmtFinType2",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 6 distinct values. Common values: Unf, Rec, LwQ.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BsmtFinSF2",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "BsmtUnfSF",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "TotalBsmtSF",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "Heating",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 6 distinct values. Common values: GasA, GasW, Grav.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "HeatingQC",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: Ex, TA, Gd.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "CentralAir",
+      "data_type": "boolean",
+      "meaning": "Boolean flag indicating true/false or yes/no values (e.g., Y, N).",
+      "why_used": "Used for binary classification, filtering, and conditional segmentation in predictive modeling."
+    },
+    {
+      "name": "Electrical",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: SBrkr, FuseA, FuseF.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "1stFlrSF",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "2ndFlrSF",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "LowQualFinSF",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "GrLivArea",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "BsmtFullBath",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BsmtHalfBath",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "FullBath",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "HalfBath",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "BedroomAbvGr",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 8 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "KitchenAbvGr",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "KitchenQual",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: TA, Gd, Ex.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "TotRmsAbvGrd",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "Functional",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 7 distinct values. Common values: Typ, Min2, Min1.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Fireplaces",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "FireplaceQu",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: Gd, TA, Fa.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "GarageType",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 6 distinct values. Common values: Attchd, Detchd, BuiltIn.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "GarageYrBlt",
+      "data_type": "numeric",
+      "meaning": "Age in years, representing the age of individuals in the dataset.",
+      "why_used": "Used for demographic segmentation, age-based customer profiling, and age-related trend analysis."
+    },
+    {
+      "name": "GarageFinish",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: Unf, RFn, Fin.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "GarageCars",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "GarageArea",
+      "data_type": "numeric",
+      "meaning": "Age in years, representing the age of individuals in the dataset.",
+      "why_used": "Used for demographic segmentation, age-based customer profiling, and age-related trend analysis."
+    },
+    {
+      "name": "GarageQual",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: TA, Fa, Gd.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "GarageCond",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: TA, Fa, Gd.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "PavedDrive",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: Y, N, P.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "WoodDeckSF",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "OpenPorchSF",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "EnclosedPorch",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "3SsnPorch",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "ScreenPorch",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "PoolArea",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "PoolQC",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: Gd, Ex, Fa.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Fence",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: MnPrv, GdPrv, GdWo.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "MiscFeature",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 4 distinct values. Common values: Shed, Gar2, Othr.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "MiscVal",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "MoSold",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "YrSold",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "SaleType",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 9 distinct values. Common values: WD, New, COD.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "SaleCondition",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 6 distinct values. Common values: Normal, Partial, Abnorml.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "SalePrice",
+      "data_type": "numeric",
+      "meaning": "Monetary or quantitative amount in currency or unit terms.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    }
+  ],
+  "generated_at": 1769117754495
+}
