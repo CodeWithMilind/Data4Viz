@@ -1,0 +1,59 @@
+{
+  "columns": [
+    {
+      "name": "Release_Date",
+      "data_type": "datetime",
+      "meaning": "Date information for temporal analysis and time-based filtering.",
+      "why_used": "Used for time-series analysis, temporal filtering, date-based aggregations, and trend identification."
+    },
+    {
+      "name": "Title",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 9523 distinct values. Common values: Beauty and the Beast, Alice in Wonderland, Batman.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Overview",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 9832 distinct values. Common values: Alien pods come to Earth and, naturally, start taking over Human Hosts. One such pod only manages to take over one human's, Shin Izumi, right arm. Together they grow and co-exist, all the while the other aliens are making meals of other humans; Shin feels he must put a stop to it all, but his alien, Migi, doesn't see why., The Kingdom of the People of the Earth once ruled over the land, but now all that remains is the Sword of the Earth. in the city of Eindoak. Satoshi, Iris, and Dent arrive in Eindoak during a harvest festival's Pokémon Tournament and meet the legendary Pokémon Victini who wishes to share its powers of victory to someone. Elsewhere in the city, a descendant of the People of the Earth named Dred Grangil has arrived who seeks to revive the kingdom's power with the Sword of the Earth, bringing them back into power over the land, and Satoshi and his friends must stop him before he destroys the land along with Victini., Wilbur the pig is scared of the end of the season, because he knows that come that time, he will end up on the dinner table. He hatches a plan with Charlotte, a spider that lives in his pen, to ensure that this will never happen..",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Popularity",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "Vote_Count",
+      "data_type": "numeric",
+      "meaning": "Count or quantity representing the number of occurrences.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "Vote_Average",
+      "data_type": "numeric",
+      "meaning": "Age in years, representing the age of individuals in the dataset.",
+      "why_used": "Used for demographic segmentation, age-based customer profiling, and age-related trend analysis."
+    },
+    {
+      "name": "Original_Language",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 46 distinct values. Common values: en, ja, es.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Genre",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 2334 distinct values. Common values: Drama, Comedy, Drama, Romance.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "Poster_Url",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 9819 distinct values. Common values: https://image.tmdb.org/t/p/original/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg, https://image.tmdb.org/t/p/original/74xTEgt7R36Fpooo50r9T25onhq.jpg, https://image.tmdb.org/t/p/original/vDHsLnOWKlPGmWs0kGfuhNF4w5l.jpg.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    }
+  ],
+  "generated_at": 1769065852693
+}
