@@ -11,8 +11,42 @@ export interface ParsedCSV {
 }
 
 /**
+ * Detect CSV delimiter by analyzing the header row
+ * Returns ',' or ';' based on which appears more frequently (outside quotes)
+ */
+function detectDelimiter(headerLine: string): string {
+  let commaCount = 0
+  let semicolonCount = 0
+  let inQuotes = false
+
+  for (let i = 0; i < headerLine.length; i++) {
+    const char = headerLine[i]
+    const nextChar = headerLine[i + 1]
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote
+        i++ // Skip next quote
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes
+      }
+    } else if (!inQuotes) {
+      if (char === ',') {
+        commaCount++
+      } else if (char === ';') {
+        semicolonCount++
+      }
+    }
+  }
+
+  // Return the delimiter with more occurrences, default to comma
+  return semicolonCount > commaCount ? ';' : ','
+}
+
+/**
  * Parse CSV text into structured data
- * Simple CSV parser that handles basic CSV format
+ * Auto-detects delimiter (comma or semicolon) from header row
  */
 export function parseCSV(csvText: string): ParsedCSV {
   const lines = csvText.trim().split(/\r?\n/)
@@ -20,9 +54,23 @@ export function parseCSV(csvText: string): ParsedCSV {
     throw new Error("CSV file is empty")
   }
 
-  // Parse header row
-  const headers = parseCSVLine(lines[0])
-  const columnCount = headers.length
+  // Detect delimiter from header row
+  let delimiter = detectDelimiter(lines[0])
+
+  // Parse header row with detected delimiter
+  let headers = parseCSVLine(lines[0], delimiter)
+  let columnCount = headers.length
+
+  // Fallback: If only one column detected with comma, try semicolon
+  if (columnCount === 1 && delimiter === ',') {
+    const semicolonHeaders = parseCSVLine(lines[0], ';')
+    if (semicolonHeaders.length > 1) {
+      // Semicolon delimiter detected - use semicolon instead
+      delimiter = ';'
+      headers = semicolonHeaders
+      columnCount = semicolonHeaders.length
+    }
+  }
 
   // Parse data rows
   const data: Record<string, any>[] = []
@@ -30,7 +78,7 @@ export function parseCSV(csvText: string): ParsedCSV {
     const line = lines[i].trim()
     if (!line) continue // Skip empty lines
 
-    const values = parseCSVLine(line)
+    const values = parseCSVLine(line, delimiter)
     if (values.length !== columnCount) {
       // Handle rows with mismatched column counts by padding or truncating
       const paddedValues = [...values]
@@ -64,8 +112,10 @@ export function parseCSV(csvText: string): ParsedCSV {
 
 /**
  * Parse a single CSV line, handling quoted fields
+ * @param line The CSV line to parse
+ * @param delimiter The delimiter to use (',' or ';')
  */
-function parseCSVLine(line: string): string[] {
+function parseCSVLine(line: string, delimiter: string = ','): string[] {
   const values: string[] = []
   let current = ""
   let inQuotes = false
@@ -83,7 +133,7 @@ function parseCSVLine(line: string): string[] {
         // Toggle quote state
         inQuotes = !inQuotes
       }
-    } else if (char === "," && !inQuotes) {
+    } else if (char === delimiter && !inQuotes) {
       // Field separator
       values.push(current.trim())
       current = ""

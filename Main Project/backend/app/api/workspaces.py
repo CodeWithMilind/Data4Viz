@@ -18,6 +18,7 @@ import shutil
 from datetime import datetime
 from app.config import get_workspace_dir, get_workspace_datasets_dir, get_workspace_logs_dir, get_workspace_files_dir, WORKSPACES_DIR
 from app.services.dataset_loader import list_workspace_datasets, list_workspace_files, load_dataset, save_dataset, dataset_exists
+from app.services.outliers import detect_outliers_for_dataset
 from app.services.file_registry import (
     delete_workspace_files,
     cleanup_orphan_files,
@@ -195,7 +196,18 @@ async def download_workspace_file(workspace_id: str, file_id: str):
             media_type = "application/x-ipynb+json"
         elif suffix == ".csv":
             # For CSV files, read with pandas to ensure proper formatting
-            df = pd.read_csv(file_path)
+            # Try auto-detecting delimiter first
+            df = pd.read_csv(file_path, sep=None, engine="python", on_bad_lines="skip")
+            
+            # Fallback: If only one column detected, try semicolon delimiter
+            if len(df.columns) == 1:
+                try:
+                    df_semicolon = pd.read_csv(file_path, sep=";", engine="python", on_bad_lines="skip")
+                    if len(df_semicolon.columns) > 1:
+                        df = df_semicolon
+                except Exception:
+                    # If semicolon parsing also fails, keep original
+                    pass
             output = io.StringIO()
             df.to_csv(output, index=False)
             output.seek(0)
@@ -252,9 +264,24 @@ async def upload_dataset_to_workspace(
         if not file.filename.endswith('.csv'):
             raise HTTPException(status_code=400, detail="Only CSV files are supported")
         
-        # Read CSV content
+        # Read CSV content with auto-detection of delimiter
         contents = await file.read()
-        df = pd.read_csv(io.BytesIO(contents))
+        try:
+            # Try auto-detecting delimiter first (pandas can detect comma, semicolon, tab, etc.)
+            df = pd.read_csv(io.BytesIO(contents), sep=None, engine="python", on_bad_lines="skip")
+            
+            # Fallback: If only one column detected, try semicolon delimiter
+            if len(df.columns) == 1:
+                try:
+                    # Create new BytesIO for second attempt (BytesIO is consumed after first read)
+                    df_semicolon = pd.read_csv(io.BytesIO(contents), sep=";", engine="python", on_bad_lines="skip")
+                    if len(df_semicolon.columns) > 1:
+                        df = df_semicolon
+                except Exception:
+                    # If semicolon parsing also fails, keep original
+                    pass
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to parse CSV file: {str(e)}")
         
         # Save to workspace storage
         datasets_dir = get_workspace_datasets_dir(workspace_id)
@@ -951,4 +978,86 @@ async def cleanup_orphans():
         raise HTTPException(
             status_code=500,
             detail=f"Failed to cleanup orphan files: {str(e)}"
+        )
+
+
+class OutlierDetectionResponse(BaseModel):
+    """Response model for outlier detection."""
+    workspace_id: str
+    dataset_id: str
+    method: str
+    outliers: List[Dict[str, Any]]
+    total_outliers: int
+
+
+@router.get("/{workspace_id}/datasets/{dataset_id}/outliers", response_model=OutlierDetectionResponse)
+async def detect_outliers(workspace_id: str, dataset_id: str, method: str = "zscore", threshold: float = 3.0):
+    """
+    Detect outliers in numeric columns of a dataset.
+    
+    This endpoint only detects outliers - it does NOT modify the dataset.
+    Purpose is understanding + local handling (no auto-clean).
+    
+    Args:
+        workspace_id: Workspace identifier
+        dataset_id: Dataset filename (e.g., "sample.csv")
+        method: Detection method ("zscore" or "iqr", default: "zscore")
+        threshold: Z-score threshold (only used for zscore method, default: 3.0)
+    
+    Returns:
+        List of detected outliers with:
+        - column_name: Name of the column
+        - detected_value: The outlier value
+        - outlier_score: Z-score or IQR flag
+        - row_index: Row index where outlier was found
+        - suggested_action: Rule-based suggestion (Review/Cap/Remove)
+    """
+    logger.info(f"[detect_outliers] Request received - workspace_id={workspace_id}, dataset_id={dataset_id}, method={method}")
+    
+    try:
+        # Validate method
+        if method.lower() not in ["zscore", "iqr"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid method '{method}'. Use 'zscore' or 'iqr'"
+            )
+        
+        # Load dataset from workspace
+        if not dataset_exists(dataset_id, workspace_id):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
+            )
+        
+        df = load_dataset(dataset_id, workspace_id)
+        
+        if df.empty:
+            return OutlierDetectionResponse(
+                workspace_id=workspace_id,
+                dataset_id=dataset_id,
+                method=method.lower(),
+                outliers=[],
+                total_outliers=0
+            )
+        
+        # Detect outliers
+        outliers = detect_outliers_for_dataset(df, method.lower(), threshold)
+        
+        logger.info(f"[detect_outliers] Detected {len(outliers)} outliers in dataset '{dataset_id}'")
+        
+        return OutlierDetectionResponse(
+            workspace_id=workspace_id,
+            dataset_id=dataset_id,
+            method=method.lower(),
+            outliers=outliers,
+            total_outliers=len(outliers)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[detect_outliers] Error detecting outliers: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to detect outliers: {str(e)}"
         )

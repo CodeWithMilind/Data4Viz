@@ -18,5 +18,15 @@
     "file": "column_intelligence.json",
     "type": "data",
     "summary": "Contains: columns, generated_at"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1769065921995_6z730tacf.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1769065921995_6z730tacf.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
   }
 ]

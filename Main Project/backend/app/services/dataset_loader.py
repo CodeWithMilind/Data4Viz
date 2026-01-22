@@ -43,7 +43,19 @@ def load_dataset(dataset_id: str, workspace_id: Optional[str] = None) -> pd.Data
         raise FileNotFoundError(f"Dataset '{dataset_id}' not found in {location}")
 
     try:
-        df = pd.read_csv(dataset_path)
+        # Try auto-detecting delimiter first (pandas can detect comma, semicolon, tab, etc.)
+        df = pd.read_csv(dataset_path, sep=None, engine="python", on_bad_lines="skip")
+        
+        # Fallback: If only one column detected, try semicolon delimiter
+        if len(df.columns) == 1:
+            try:
+                df_semicolon = pd.read_csv(dataset_path, sep=";", engine="python", on_bad_lines="skip")
+                if len(df_semicolon.columns) > 1:
+                    df = df_semicolon
+            except Exception:
+                # If semicolon parsing also fails, keep original
+                pass
+        
         return df
     except Exception as e:
         raise ValueError(f"Failed to load dataset '{dataset_id}': {str(e)}")
@@ -163,7 +175,19 @@ def list_workspace_datasets(workspace_id: str) -> list[dict]:
     for csv_file in datasets_dir.glob("*.csv"):
         if csv_file.is_file():
             try:
-                df = pd.read_csv(csv_file)
+                # Try auto-detecting delimiter first
+                df = pd.read_csv(csv_file, sep=None, engine="python", on_bad_lines="skip")
+                
+                # Fallback: If only one column detected, try semicolon delimiter
+                if len(df.columns) == 1:
+                    try:
+                        df_semicolon = pd.read_csv(csv_file, sep=";", engine="python", on_bad_lines="skip")
+                        if len(df_semicolon.columns) > 1:
+                            df = df_semicolon
+                    except Exception:
+                        # If semicolon parsing also fails, keep original
+                        pass
+                
                 datasets.append({
                     "id": csv_file.name,
                     "rows": len(df),

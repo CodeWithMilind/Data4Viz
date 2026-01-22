@@ -12,5 +12,26 @@
     "file_type": "csv",
     "is_protected": true,
     "created_at": "2026-01-22T20:51:52.515433"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1768943304622-bcdajk87r\\datasets\\bank-additional-full.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1768943304622-bcdajk87r\\datasets\\bank-additional-full.csv",
+    "workspace_id": "workspace-1768943304622-bcdajk87r",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-22T20:59:09.985355"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1768943304622-bcdajk87r\\files\\bank-additional-full_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1768943304622-bcdajk87r\\files\\bank-additional-full_overview.json",
+    "workspace_id": "workspace-1768943304622-bcdajk87r",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-22T21:02:15.870116"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1768943304622-bcdajk87r\\datasets\\itsm_dataset.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1768943304622-bcdajk87r\\datasets\\itsm_dataset.csv",
+    "workspace_id": "workspace-1768943304622-bcdajk87r",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-22T21:10:41.881337"
   }
 }

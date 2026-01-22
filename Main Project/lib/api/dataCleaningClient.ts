@@ -92,6 +92,22 @@ export interface CleaningResponse {
   success: boolean;
 }
 
+export interface DetectedOutlier {
+  column_name: string;
+  detected_value: number | null;
+  outlier_score: number;
+  row_index: number;
+  suggested_action: "Review" | "Cap" | "Remove";
+}
+
+export interface OutlierDetectionResponse {
+  workspace_id: string;
+  dataset_id: string;
+  method: string;
+  outliers: DetectedOutlier[];
+  total_outliers: number;
+}
+
 /**
  * Fetch list of available datasets from workspace
  * 
@@ -725,6 +741,49 @@ export async function deleteWorkspace(workspaceId: string): Promise<{ message: s
     return data;
   } catch (error) {
     console.error("Error deleting workspace:", error);
+    throw error;
+  }
+}
+
+/**
+ * Detect outliers in numeric columns of a dataset.
+ * 
+ * This function only detects outliers - it does NOT modify the dataset.
+ * Purpose is understanding + local handling (no auto-clean).
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetId Dataset filename (e.g., "sample.csv")
+ * @param method Detection method ("zscore" or "iqr", default: "zscore")
+ * @param threshold Z-score threshold (only used for zscore method, default: 3.0)
+ * @returns Outlier detection response with list of detected outliers
+ * @throws Error if API call fails
+ */
+export async function detectOutliers(
+  workspaceId: string,
+  datasetId: string,
+  method: string = "zscore",
+  threshold: number = 3.0
+): Promise<OutlierDetectionResponse> {
+  const requestUrl = `${BASE_URL}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/outliers?method=${encodeURIComponent(method)}&threshold=${threshold}`;
+
+  console.log(`[detectOutliers] Request URL: ${requestUrl}`);
+
+  try {
+    const response = await fetch(requestUrl, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => response.statusText);
+      console.error(`[detectOutliers] Error ${response.status}: ${errorText}`);
+      throw new Error(`Failed to detect outliers: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`[detectOutliers] Success – detected ${data.total_outliers} outliers`);
+    return data;
+  } catch (error) {
+    console.error("Error detecting outliers:", error);
     throw error;
   }
 }
