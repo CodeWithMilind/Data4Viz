@@ -28,6 +28,8 @@ export function SettingsPage() {
   const [uiAnimations, setUiAnimations] = useState(true)
   const [keyInput, setKeyInput] = useState("")
   const [keySaved, setKeySaved] = useState(false)
+  const [theme, setTheme] = useState<"light" | "gray">("light")
+  const [displayName, setDisplayName] = useState("John Doe")
 
   const { provider, model, setProvider, setModel, setApiKey, apiKey, modelAutoUpdated } = useAIConfigStore()
 
@@ -71,6 +73,17 @@ export function SettingsPage() {
     }
   }, [provider, model, setModel])
 
+  // Apply theme on mount
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (theme === "gray") {
+        document.documentElement.classList.add("theme-gray")
+      } else {
+        document.documentElement.classList.remove("theme-gray")
+      }
+    }
+  }, [theme])
+
   const handleProviderChange = (p: string) => {
     setProvider(p as "groq" | "openai" | "anthropic" | "google" | "meta" | "mistral")
     setModel(p === "groq" ? GROQ_DEFAULT_MODEL : providerModels[p][0].id)
@@ -81,6 +94,18 @@ export function SettingsPage() {
     setKeyInput("")
     setKeySaved(true)
     setTimeout(() => setKeySaved(false), 2000)
+  }
+
+  const handleThemeChange = (newTheme: "light" | "gray") => {
+    setTheme(newTheme)
+    // UI-only change: apply theme class to document root
+    if (typeof document !== "undefined") {
+      if (newTheme === "gray") {
+        document.documentElement.classList.add("theme-gray")
+      } else {
+        document.documentElement.classList.remove("theme-gray")
+      }
+    }
   }
 
   return (
@@ -105,33 +130,38 @@ export function SettingsPage() {
               General
             </h2>
             <div className="bg-card border border-border rounded-lg p-4 space-y-4">
-              {/* Theme - Display Only */}
+              {/* Theme - Light/Gray Toggle */}
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm font-medium">Theme</Label>
                   <p className="text-xs text-muted-foreground">Application color theme</p>
                 </div>
-                <div className="px-3 py-1.5 bg-secondary rounded-md text-sm text-muted-foreground">Light</div>
+                <Select value={theme} onValueChange={(value) => handleThemeChange(value as "light" | "gray")}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Light</SelectItem>
+                    <SelectItem value="gray">Gray</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <Separator />
 
-              {/* Language - Static Dropdown */}
+              {/* Language - Fixed to English (Disabled) */}
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-sm font-medium">Language</Label>
                   <p className="text-xs text-muted-foreground">Select your preferred language</p>
                 </div>
-                <Select defaultValue="en">
-                  <SelectTrigger className="w-[140px]">
+                <Select value="en" disabled>
+                  <SelectTrigger className="w-[140px] opacity-60 cursor-not-allowed">
                     <Globe className="w-4 h-4 mr-2" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="es">Spanish</SelectItem>
-                    <SelectItem value="fr">French</SelectItem>
-                    <SelectItem value="de">German</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -145,24 +175,33 @@ export function SettingsPage() {
               Account
             </h2>
             <div className="bg-card border border-border rounded-lg p-4 space-y-4">
-              {/* Name - Static Text */}
-              <div className="flex items-center justify-between">
+              {/* Name - Editable Input */}
+              <div className="space-y-2">
                 <div>
                   <Label className="text-sm font-medium">Name</Label>
                   <p className="text-xs text-muted-foreground">Your display name</p>
                 </div>
-                <span className="text-sm text-foreground">John Doe</span>
+                <Input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Enter your display name"
+                  className="max-w-[280px]"
+                />
               </div>
 
               <Separator />
 
-              {/* Username - Static Text */}
-              <div className="flex items-center justify-between">
+              {/* Username - Read-only (Disabled) */}
+              <div className="space-y-2">
                 <div>
                   <Label className="text-sm font-medium">Username</Label>
-                  <p className="text-xs text-muted-foreground">Your unique identifier</p>
+                  <p className="text-xs text-muted-foreground">Your unique identifier (cannot be changed)</p>
                 </div>
-                <span className="text-sm text-muted-foreground">@johndoe</span>
+                <Input
+                  value="@johndoe"
+                  disabled
+                  className="max-w-[280px] opacity-60 cursor-not-allowed"
+                />
               </div>
             </div>
           </section>
