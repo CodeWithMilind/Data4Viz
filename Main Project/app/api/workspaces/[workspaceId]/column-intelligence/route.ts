@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getDatasetOverviewFromFile, type OverviewResponse } from "@/lib/api/dataCleaningClient"
+import type { OverviewResponse } from "@/lib/api/dataCleaningClient"
 import {
   saveColumnIntelligence,
   getColumnIntelligence,
   deleteColumnIntelligence,
+  loadDatasetOverviewFromFile,
 } from "@/lib/workspace-files"
 import type { ColumnIntelligence } from "@/lib/workspace-files"
 
@@ -449,8 +450,8 @@ export async function POST(
       return NextResponse.json({ error: "datasetId required" }, { status: 400 })
     }
 
-    // Get overview from file
-    const overview = await getDatasetOverviewFromFile(workspaceId, datasetId)
+    // Get overview from file (SERVER-SIDE: reads from filesystem, not fetch)
+    const overview = await loadDatasetOverviewFromFile(workspaceId, datasetId)
     if (!overview) {
       return NextResponse.json({ error: "Dataset overview not found. Please generate overview first." }, { status: 404 })
     }

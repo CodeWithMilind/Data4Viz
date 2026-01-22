@@ -313,46 +313,50 @@ export function OverviewPage() {
     }
   }, [schema, overviewData, selectedColumn])
 
-  // Load column intelligence when workspace/dataset changes
-  useEffect(() => {
-    if (!activeWorkspaceId) {
-      setColumnIntelligence(null)
+  // Load column intelligence ONLY when user explicitly requests it (not automatically)
+  // Removed automatic fetch to prevent 500 errors and ensure it only runs on user action
+  // Column intelligence will be loaded when user clicks "Generate Intelligence" button
+
+  // Handle generate/regenerate column intelligence
+  // This is the ONLY place column intelligence should be fetched - on explicit user action
+  // CLIENT-SIDE ONLY: This function must only be called from user interactions (button clicks)
+  const handleGenerateIntelligence = async (regenerate: boolean = false) => {
+    // Client-side readiness check - ensure we're in browser environment
+    if (typeof window === "undefined") {
+      console.warn('[handleGenerateIntelligence] Skipped: Called in server environment')
       return
     }
 
-    let cancelled = false
-    setIsLoadingIntelligence(true)
-    setIntelligenceError(null)
-
-    getColumnIntelligence(activeWorkspaceId)
-      .then((intelligence) => {
-        if (cancelled) return
-        setColumnIntelligence(intelligence)
-        setIntelligenceError(null)
-        setIsLoadingIntelligence(false)
-      })
-      .catch((error) => {
-        if (cancelled) return
-        const errorMessage = error instanceof Error ? error.message : "Failed to load column intelligence"
-        setIntelligenceError(errorMessage)
-        setColumnIntelligence(null)
-        setIsLoadingIntelligence(false)
-        console.error("Error fetching column intelligence:", error)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [activeWorkspaceId])
-
-  // Handle generate/regenerate column intelligence
-  const handleGenerateIntelligence = async (regenerate: boolean = false) => {
     if (!activeWorkspaceId || !selectedDataset?.fileName) return
 
     setIsGeneratingIntelligence(true)
+    setIsLoadingIntelligence(true)
     setIntelligenceError(null)
 
     try {
+      // First try to get existing intelligence if not regenerating
+      if (!regenerate) {
+        try {
+          const existing = await getColumnIntelligence(activeWorkspaceId)
+          if (existing) {
+            setColumnIntelligence(existing)
+            setIntelligenceError(null)
+            setIsLoadingIntelligence(false)
+            setIsGeneratingIntelligence(false)
+            return
+          }
+        } catch (e) {
+          // If fetch fails (including client-only guard), continue to generate new one
+          // Silently handle server-side execution attempts
+          if (e instanceof Error && e.message.includes('client-side only')) {
+            console.log("Client-side guard triggered, will generate new intelligence on client")
+          } else {
+            console.log("No existing intelligence found, will generate new")
+          }
+        }
+      }
+
+      // Generate new intelligence (only runs in browser)
       const intelligence = await generateColumnIntelligence(
         activeWorkspaceId,
         selectedDataset.fileName,
@@ -361,11 +365,18 @@ export function OverviewPage() {
       setColumnIntelligence(intelligence)
       setIntelligenceError(null)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to generate column intelligence"
-      setIntelligenceError(errorMessage)
-      console.error("Error generating column intelligence:", error)
+      // Handle client-only errors silently (no-op behavior)
+      if (error instanceof Error && error.message.includes('client-side only')) {
+        console.warn('[handleGenerateIntelligence] Client-side guard triggered, skipping execution')
+        setIntelligenceError(null) // Don't show error for server-side execution attempts
+      } else {
+        const errorMessage = error instanceof Error ? error.message : "Failed to generate column intelligence"
+        setIntelligenceError(errorMessage)
+        console.error("Error generating column intelligence:", error)
+      }
     } finally {
       setIsGeneratingIntelligence(false)
+      setIsLoadingIntelligence(false)
     }
   }
 

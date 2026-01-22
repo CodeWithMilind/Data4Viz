@@ -70,10 +70,18 @@ def compute_decision_eda_stats(
     if decision_metric not in df.columns:
         raise ValueError(f"Column '{decision_metric}' not found in dataset")
     
-    # STEP 1: Attempt numeric coercion BEFORE any aggregation
-    coerced = pd.to_numeric(df[decision_metric], errors="coerce")
+    # STEP 1: Clean and prepare data for numeric coercion
+    # Trim whitespace from string values and convert empty strings to NaN
+    series = df[decision_metric].copy()
+    if series.dtype == 'object':
+        # Trim whitespace and convert empty strings to NaN
+        series = series.astype(str).str.strip().replace(['', 'nan', 'None', 'null'], pd.NA)
     
-    # Validate: Check if all values are NaN OR if valid numeric values < 90%
+    # STEP 2: Attempt numeric coercion AFTER cleaning
+    coerced = pd.to_numeric(series, errors="coerce")
+    
+    # STEP 3: Validate - Check if all values are NaN OR if valid numeric values < 90%
+    # Ignore null/empty rows in validation (they're already NaN after coercion)
     valid_count = coerced.notna().sum()
     total_count = len(coerced)
     valid_ratio = valid_count / total_count if total_count > 0 else 0.0
@@ -92,8 +100,8 @@ def compute_decision_eda_stats(
     df_valid = df[valid_mask].copy()
     decision_valid = decision_series[valid_mask]
     
-    # Ensure we're working with numeric data
-    if not pd.api.types.is_numeric_dtype(decision_valid):
+    # Ensure we're working with numeric data (should always pass after coercion, but double-check)
+    if len(decision_valid) > 0 and not pd.api.types.is_numeric_dtype(decision_valid):
         raise ValueError(
             "The selected metric contains non-numeric values and cannot be analyzed. "
             "Please clean or convert this column to numeric values."

@@ -325,6 +325,52 @@ export async function updateChat(
   await saveChatIndex(workspaceId, index)
 }
 
+/**
+ * SERVER-ONLY: Load dataset overview from workspace file (reads from filesystem)
+ * 
+ * This is the server-side equivalent of getDatasetOverviewFromFile from dataCleaningClient.
+ * Use this in API routes and server components.
+ * 
+ * IMPORTANT: This reads from the backend workspace directory structure.
+ * Format: backend/workspaces/{workspaceId}/files/{dataset_name}_overview.json
+ * 
+ * @param workspaceId Workspace identifier
+ * @param datasetId Dataset filename (e.g., "sample.csv")
+ * @returns Overview data or null if file doesn't exist
+ */
+export async function loadDatasetOverviewFromFile(
+  workspaceId: string,
+  datasetId: string
+): Promise<any | null> {
+  try {
+    // Overview files are stored in backend workspace directory
+    // Backend structure: backend/workspaces/{workspaceId}/files/{dataset_name}_overview.json
+    // Next.js process.cwd() is project root, so backend/ is a subdirectory
+    const backendWorkspacesDir = path.join(process.cwd(), "backend", "workspaces")
+    const workspaceDir = path.join(backendWorkspacesDir, workspaceId)
+    const filesDir = path.join(workspaceDir, "files")
+    
+    // Remove .csv extension and add _overview.json
+    // Example: "sample.csv" -> "sample_overview.json"
+    const datasetName = path.parse(datasetId).name
+    const overviewFilename = `${datasetName}_overview.json`
+    const overviewPath = path.join(filesDir, overviewFilename)
+    
+    if (!existsSync(overviewPath)) {
+      console.log(`[loadDatasetOverviewFromFile] Overview file not found: ${overviewPath}`)
+      return null
+    }
+    
+    const fileContent = await fs.readFile(overviewPath, "utf-8")
+    const overview = JSON.parse(fileContent)
+    console.log(`[loadDatasetOverviewFromFile] Successfully loaded overview from ${overviewPath}`)
+    return overview
+  } catch (error) {
+    console.error(`[loadDatasetOverviewFromFile] Error loading overview for ${datasetId} in workspace ${workspaceId}:`, error)
+    return null
+  }
+}
+
 export async function generateDatasetIntelligence(
   workspaceId: string,
   overview: any,

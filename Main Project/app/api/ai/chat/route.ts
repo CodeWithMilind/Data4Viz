@@ -13,7 +13,8 @@ import {
   type DatasetIntelligenceSnapshot,
 } from "@/lib/workspace-files"
 import type { WorkspaceContext } from "@/lib/workspace-context"
-import { getDatasetOverviewFromFile, type OverviewResponse } from "@/lib/api/dataCleaningClient"
+import type { OverviewResponse } from "@/lib/api/dataCleaningClient"
+import { loadDatasetOverviewFromFile } from "@/lib/workspace-files"
 import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
 import { promises as fs } from "fs"
 import path from "path"

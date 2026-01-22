@@ -1,0 +1,47 @@
+{
+  "columns": [
+    {
+      "name": "user_id",
+      "data_type": "identifier",
+      "meaning": "Row identifier or index column used to uniquely identify each record in the dataset.",
+      "why_used": "Used as a unique identifier to reference specific rows and maintain data integrity."
+    },
+    {
+      "name": "age",
+      "data_type": "numeric",
+      "meaning": "Age in years, representing the age of individuals in the dataset.",
+      "why_used": "Used for demographic segmentation, age-based customer profiling, and age-related trend analysis."
+    },
+    {
+      "name": "income",
+      "data_type": "numeric",
+      "meaning": "Monetary compensation amount in currency units.",
+      "why_used": "Used for income-based segmentation, financial capacity analysis, and economic profiling."
+    },
+    {
+      "name": "monthly_spend",
+      "data_type": "categorical",
+      "meaning": "Month of the year Examples: 3000.0, 4500.0, 6000.0.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "credit_score",
+      "data_type": "numeric",
+      "meaning": "Numerical score or rating value for evaluation.",
+      "why_used": "Used for performance evaluation, quality assessment, and comparative ranking analysis."
+    },
+    {
+      "name": "work_hours",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "transactions",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    }
+  ],
+  "generated_at": 1769117404200
+}

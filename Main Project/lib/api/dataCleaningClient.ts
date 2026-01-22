@@ -554,10 +554,11 @@ export async function generateDatasetIntelligenceSnapshot(
   workspaceId: string,
   datasetId: string
 ): Promise<void> {
-  // Guard: Only execute in browser environment
-  if (typeof window === 'undefined') {
+  // CLIENT-ONLY GUARD: Hard check to prevent server-side execution
+  // Return early silently (no-op) to prevent errors during SSR/pre-render
+  if (typeof window === "undefined") {
     console.warn('[generateDatasetIntelligenceSnapshot] Skipped: Called in server environment. This function must be called client-side only.');
-    return; // Silently skip on server - not an error, just not applicable
+    return; // Silent no-op - return void instead of throwing
   }
 
   const requestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/workspaces/${workspaceId}/dataset-intelligence`;
@@ -615,9 +616,13 @@ export async function generateColumnIntelligence(
   datasetId: string,
   regenerate: boolean = false
 ): Promise<ColumnIntelligence> {
-  // Guard: Only execute in browser environment
-  if (typeof window === 'undefined') {
+  // CLIENT-ONLY GUARD: Hard check to prevent server-side execution
+  // Return early with a rejected promise that resolves to a safe fallback
+  // This prevents "Fetch is not available" errors during SSR/pre-render
+  if (typeof window === "undefined") {
     console.warn('[generateColumnIntelligence] Skipped: Called in server environment. This function must be called client-side only.');
+    // Return a rejected promise with a client-only error
+    // The caller should handle this gracefully (silent no-op in most cases)
     throw new Error('generateColumnIntelligence must be called client-side only');
   }
 
@@ -664,10 +669,11 @@ export async function generateColumnIntelligence(
 export async function getColumnIntelligence(
   workspaceId: string
 ): Promise<ColumnIntelligence | null> {
-  // Guard: Only execute in browser environment
-  if (typeof window === 'undefined') {
+  // CLIENT-ONLY GUARD: Hard check to prevent server-side execution
+  // Return null silently (no-op) to prevent errors during SSR/pre-render
+  if (typeof window === "undefined") {
     console.warn('[getColumnIntelligence] Skipped: Called in server environment. This function must be called client-side only.');
-    return null; // Return null on server - not an error, just no data available
+    return null; // Silent no-op - return null instead of throwing
   }
 
   const requestUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/workspaces/${workspaceId}/column-intelligence`;

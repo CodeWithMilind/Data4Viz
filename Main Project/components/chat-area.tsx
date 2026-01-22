@@ -255,7 +255,8 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
   )
 
   const handleSendMessage = (content: string) => {
-    const userMsg: Message = { id: Date.now().toString(), role: "user", content }
+    // Use crypto.randomUUID() for stable client-side ID generation (prevents hydration mismatch)
+    const userMsg: Message = { id: crypto.randomUUID(), role: "user", content }
     setMessages((prev) => [...prev, userMsg])
     runFetch(content)
   }
