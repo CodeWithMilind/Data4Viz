@@ -3,6 +3,7 @@ import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
 import { promises as fs } from "fs"
 import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
 import { resolveApiKey, callGroq, isDecommissionError } from "@/lib/ai/getAiClient"
+import { setDatasetAnalysisState } from "@/lib/workspace-files"
 
 /**
  * ISOLATED Auto Summarize Code Generation (V2)
@@ -83,9 +84,10 @@ function inferColumnType(sampleValues: any[]): string {
 }
 
 export async function POST(req: NextRequest) {
+  let workspaceId: string | undefined
   try {
     const body = await req.json()
-    const { workspaceId, datasetId, provider, model, apiKey: bodyKey, dataExposurePercentage } = body as {
+    const { workspaceId: bodyWorkspaceId, datasetId, provider, model, apiKey: bodyKey, dataExposurePercentage } = body as {
       workspaceId?: string
       datasetId?: string
       provider?: string
@@ -93,6 +95,7 @@ export async function POST(req: NextRequest) {
       apiKey?: string
       dataExposurePercentage?: number
     }
+    workspaceId = bodyWorkspaceId
 
     // Validation
     if (provider !== "groq") {
@@ -120,6 +123,9 @@ export async function POST(req: NextRequest) {
         error: "Please configure AI API key in Settings" 
       }, { status: 400 })
     }
+
+    // Set state to "processing" immediately when auto-summarize starts
+    await setDatasetAnalysisState(workspaceId, "processing")
 
     // Resolve dataset file path (read-only, isolated)
     const datasetPath = getDatasetFilePath(workspaceId, datasetId)
@@ -397,6 +403,10 @@ ${datasetContextJson}`
       pythonCode = pythonCode.trim()
     }
 
+    // Keep state as "processing" - insights will be saved by backend after code execution
+    // The state will be updated to "ready" when insights are actually saved (checked by chat route)
+    // Don't set to "ready" here - code generation is just the first step
+
     // Return code as-is (no validation, no parsing, no file writes)
     return NextResponse.json({
       success: true,
@@ -404,6 +414,16 @@ ${datasetContextJson}`
     })
   } catch (e: any) {
     console.error("[auto-summarize-code] Unexpected error:", e)
+    
+    // Set state to "failed" on error
+    try {
+      await setDatasetAnalysisState(workspaceId, "failed", {
+        error: e.message || "Network error"
+      })
+    } catch (stateError) {
+      console.error("[auto-summarize-code] Failed to update state:", stateError)
+    }
+    
     return NextResponse.json({ 
       success: false, 
       error: e.message || "Network error" 

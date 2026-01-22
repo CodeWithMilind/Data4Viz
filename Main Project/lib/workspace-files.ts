@@ -469,6 +469,75 @@ export async function deleteColumnIntelligence(
   }
 }
 
+// ============================================================================
+// DATASET ANALYSIS STATE MANAGEMENT
+// ============================================================================
+
+export type DatasetAnalysisState = "not_started" | "processing" | "ready" | "failed"
+
+export interface DatasetAnalysisStateData {
+  state: DatasetAnalysisState
+  startedAt?: number
+  completedAt?: number
+  error?: string
+  insightsPath?: string
+}
+
+/**
+ * Get dataset analysis state for a workspace
+ * Returns "not_started" if no state file exists
+ */
+export async function getDatasetAnalysisState(
+  workspaceId: string
+): Promise<DatasetAnalysisStateData> {
+  try {
+    const stateFile = getFilePath(workspaceId, "dataset_analysis_state.json")
+    if (!existsSync(stateFile)) {
+      return { state: "not_started" }
+    }
+    const content = await fs.readFile(stateFile, "utf-8")
+    const data = JSON.parse(content) as DatasetAnalysisStateData
+    return data
+  } catch (error) {
+    console.error(`[getDatasetAnalysisState] Error reading state for ${workspaceId}:`, error)
+    return { state: "not_started" }
+  }
+}
+
+/**
+ * Set dataset analysis state for a workspace
+ */
+export async function setDatasetAnalysisState(
+  workspaceId: string,
+  state: DatasetAnalysisState,
+  options?: {
+    error?: string
+    insightsPath?: string
+  }
+): Promise<void> {
+  try {
+    await ensureWorkspaceDir(workspaceId)
+    const stateFile = getFilePath(workspaceId, "dataset_analysis_state.json")
+    
+    const now = Date.now()
+    const currentState = await getDatasetAnalysisState(workspaceId)
+    
+    const stateData: DatasetAnalysisStateData = {
+      state,
+      startedAt: currentState.startedAt || (state === "processing" ? now : undefined),
+      completedAt: state === "ready" || state === "failed" ? now : currentState.completedAt,
+      error: options?.error,
+      insightsPath: options?.insightsPath,
+    }
+    
+    await fs.writeFile(stateFile, JSON.stringify(stateData, null, 2), "utf-8")
+    console.log(`[setDatasetAnalysisState] Set state to "${state}" for workspace ${workspaceId}`)
+  } catch (error) {
+    console.error(`[setDatasetAnalysisState] Error setting state for ${workspaceId}:`, error)
+    throw error
+  }
+}
+
 export async function deleteChat(workspaceId: string, chatId: string): Promise<void> {
   const index = await getChatIndex(workspaceId)
   const chat = index.chats.find((c) => c.chatId === chatId)

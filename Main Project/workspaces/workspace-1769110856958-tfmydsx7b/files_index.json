@@ -8,5 +8,20 @@
     "file": "files_index.json",
     "type": "data",
     "summary": "Index of workspace files"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1769118176954_8ckhs6mo2.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1769118176954_8ckhs6mo2.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/index.json",
+    "type": "conversation",
+    "summary": "Contains: chats"
   }
 ]

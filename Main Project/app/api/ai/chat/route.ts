@@ -8,6 +8,8 @@ import {
   getRelevantFiles,
   getChatIndex,
   getDatasetIntelligence,
+  getDatasetAnalysisState,
+  setDatasetAnalysisState,
   readWorkspaceFile,
   type ChatMessage,
   type DatasetIntelligenceSnapshot,
@@ -665,6 +667,29 @@ export async function POST(req: NextRequest) {
           console.error("Failed to load dataset intelligence:", e)
         }
       }
+      
+      // Sync analysis state with reality (insights/intelligence existence)
+      const analysisState = await getDatasetAnalysisState(workspaceId!)
+      
+      // If insights exist, state should be "ready"
+      if (insights && analysisState.state !== "ready") {
+        await setDatasetAnalysisState(workspaceId!, "ready", {
+          insightsPath: `insights/auto_summary.json`
+        })
+      }
+      
+      // If state is "ready" but insights don't exist, verify state matches reality
+      if (analysisState.state === "ready" && !insights && !isValidDatasetIntelligence(datasetIntelligence)) {
+        // State says ready but data doesn't exist - reset to not_started
+        await setDatasetAnalysisState(workspaceId!, "not_started")
+      }
+      
+      // If state is "processing" but insights exist, update to ready
+      if (analysisState.state === "processing" && insights) {
+        await setDatasetAnalysisState(workspaceId!, "ready", {
+          insightsPath: `insights/auto_summary.json`
+        })
+      }
 
       // V2: Sample dataset rows for chat context (up to 20%, max 5,000 rows)
       try {
@@ -706,14 +731,78 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // SINGLE HARD GATE: Block AI call if dataset exists but no insights/intelligence available
+    // STATE-BASED GATING: Use explicit analysis state instead of null checks
     const lowerMessage = userMessage.toLowerCase()
     const isAnalysisIntent = lowerMessage.includes("summarize") || lowerMessage.includes("analyze") || lowerMessage.includes("explore") || lowerMessage.includes("overview") || lowerMessage.includes("dataset")
     
-    if (hasDataset && isAnalysisIntent && !insights && !isValidDatasetIntelligence(datasetIntelligence)) {
-      return NextResponse.json({
-        error: "Dataset is still processing or no analysis available. Use 'Auto Summarize Dataset' to generate insights.",
-      }, { status: 200 })
+    if (hasDataset && isAnalysisIntent) {
+      const analysisState = await getDatasetAnalysisState(workspaceId!)
+      
+      // If state is "processing", show processing message (not an error)
+      if (analysisState.state === "processing") {
+        return NextResponse.json({
+          error: "Dataset analysis is in progress. Please wait for it to complete.",
+        }, { status: 200 })
+      }
+      
+      // If state is "not_started", auto-trigger summarize once
+      if (analysisState.state === "not_started") {
+        // Auto-trigger summarize (non-blocking)
+        // Note: This is a fire-and-forget operation - the user will need to retry after it completes
+        try {
+          // Get first dataset from workspace
+          const datasetsDir = path.join(process.cwd(), "workspaces", workspaceId!, "datasets")
+          let datasetFileName: string | null = null
+          if (existsSync(datasetsDir)) {
+            const files = await fs.readdir(datasetsDir)
+            const csvFile = files.find(f => f.endsWith(".csv"))
+            if (csvFile) {
+              datasetFileName = csvFile
+            }
+          }
+          
+          if (datasetFileName) {
+            // Trigger auto-summarize in background (don't await)
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/ai/auto-summarize-code`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                workspaceId,
+                datasetId: datasetFileName,
+                provider: "groq",
+                model: model || "llama-3.1-70b-versatile",
+                apiKey: bodyKey,
+                dataExposurePercentage,
+              }),
+            }).catch(err => {
+              console.error("[chat] Failed to auto-trigger summarize:", err)
+            })
+            
+            // Set state to processing immediately
+            await setDatasetAnalysisState(workspaceId!, "processing")
+            
+            return NextResponse.json({
+              error: "Starting dataset analysis. Please wait a moment and try again.",
+            }, { status: 200 })
+          }
+        } catch (triggerError) {
+          console.error("[chat] Error auto-triggering summarize:", triggerError)
+        }
+      }
+      
+      // If state is "failed", show error message
+      if (analysisState.state === "failed") {
+        return NextResponse.json({
+          error: analysisState.error || "Dataset analysis failed. Please try 'Auto Summarize Dataset' again.",
+        }, { status: 200 })
+      }
+      
+      // If state is "ready" but no insights/intelligence, allow chat (might be metadata-only)
+      // Only block if explicitly no data AND state says ready (shouldn't happen, but handle gracefully)
+      if (analysisState.state === "ready" && !insights && !isValidDatasetIntelligence(datasetIntelligence)) {
+        // This shouldn't happen, but if it does, allow chat to proceed with limited context
+        console.warn("[chat] State is 'ready' but no insights/intelligence found - proceeding with limited context")
+      }
     }
 
     const systemPrompt = buildSystemPrompt(
