@@ -247,6 +247,36 @@ export function FilesPage() {
     fetchFiles()
   }, [fetchFiles])
 
+  // Clear files immediately when workspace is deleted or becomes null
+  useEffect(() => {
+    if (!activeWorkspaceId) {
+      // No workspace selected - clear files immediately
+      setFiles([])
+      setError(null)
+      setLoading(false)
+    }
+    // Note: When activeWorkspaceId changes to a valid workspace, 
+    // the fetchFiles useEffect will handle fetching files
+  }, [activeWorkspaceId])
+
+  // Listen for workspace deletion events to clear files immediately
+  useEffect(() => {
+    const handleWorkspaceDeleted = (event: CustomEvent) => {
+      const { workspaceId } = event.detail
+      // Clear files if the deleted workspace was the active one, or if no workspace is active
+      if (!activeWorkspaceId || activeWorkspaceId === workspaceId) {
+        invalidateForWorkspace(workspaceId)
+        setFiles([])
+        setError(null)
+        setLoading(false)
+      }
+    }
+    window.addEventListener("workspaceDeleted", handleWorkspaceDeleted as EventListener)
+    return () => {
+      window.removeEventListener("workspaceDeleted", handleWorkspaceDeleted as EventListener)
+    }
+  }, [activeWorkspaceId])
+
   // Listen for refresh events from other components (e.g., after cleaning operations, chat messages)
   // Force refresh when files are modified
   useEffect(() => {

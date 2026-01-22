@@ -5,5 +5,12 @@
     "file_type": "overview",
     "is_protected": false,
     "created_at": "2026-01-22T01:48:18.177666"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1768943304622-bcdajk87r\\datasets\\smoke (1).csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1768943304622-bcdajk87r\\datasets\\smoke (1).csv",
+    "workspace_id": "workspace-1768943304622-bcdajk87r",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-22T20:51:52.515433"
   }
 }

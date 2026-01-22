@@ -187,7 +187,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (currentWorkspace?.id === id) {
           setCurrentWorkspace(null)
           workspaceStore.setActiveWorkspace(null)
+          setActiveWorkspaceIdState(null)
         }
+        
+        // Dispatch event to notify components (e.g., Files page) that workspace was deleted
+        window.dispatchEvent(new CustomEvent("workspaceDeleted", { detail: { workspaceId: id } }))
       } catch (error) {
         console.error("Failed to delete workspace:", error)
         throw error
