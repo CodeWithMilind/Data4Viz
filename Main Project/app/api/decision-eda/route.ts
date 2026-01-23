@@ -5,7 +5,7 @@ import type { AIMessage } from "@/lib/ai/getAiClient"
 import fs from "fs"
 import path from "path"
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
 
 /**
  * Validate and filter insights based on strict eligibility rules.

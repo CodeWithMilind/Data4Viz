@@ -1,0 +1,317 @@
+{
+  "version": "1",
+  "workspace_id": "workspace-1769117568824-oylym16q6",
+  "dataset_id": "data.csv",
+  "decision_metric": "YearBuilt",
+  "dataset_hash": "2d342ecce86fa8a9cd11de603d12ee637f554b5d0ddc86585eed3959c5ee4fb5",
+  "created_at": "2026-01-23T18:27:59.167682",
+  "backend_stats": {
+    "decision_metric": "YearBuilt",
+    "total_rows": 1460,
+    "valid_rows": 1460,
+    "missing_percentage": 0,
+    "outlier_count": 7,
+    "outlier_percentage": 0.48,
+    "top_factors": [
+      {
+        "factor": "GarageYrBlt",
+        "impact_score": 82.57,
+        "type": "numeric",
+        "correlation": 0.8257,
+        "abs_correlation": 0.8257
+      },
+      {
+        "factor": "YearRemodAdd",
+        "impact_score": 59.29,
+        "type": "numeric",
+        "correlation": 0.5929,
+        "abs_correlation": 0.5929
+      },
+      {
+        "factor": "OverallQual",
+        "impact_score": 57.23,
+        "type": "numeric",
+        "correlation": 0.5723,
+        "abs_correlation": 0.5723
+      },
+      {
+        "factor": "GarageCars",
+        "impact_score": 53.79,
+        "type": "numeric",
+        "correlation": 0.5379,
+        "abs_correlation": 0.5379
+      },
+      {
+        "factor": "SalePrice",
+        "impact_score": 52.29,
+        "type": "numeric",
+        "correlation": 0.5229,
+        "abs_correlation": 0.5229
+      }
+    ],
+    "all_correlations": [
+      {
+        "factor": "YearRemodAdd",
+        "correlation": 0.5929,
+        "abs_correlation": 0.5929,
+        "type": "numeric"
+      },
+      {
+        "factor": "OverallQual",
+        "correlation": 0.5723,
+        "abs_correlation": 0.5723,
+        "type": "numeric"
+      },
+      {
+        "factor": "OverallCond",
+        "correlation": -0.376,
+        "abs_correlation": 0.376,
+        "type": "numeric"
+      },
+      {
+        "factor": "MasVnrArea",
+        "correlation": 0.3157,
+        "abs_correlation": 0.3157,
+        "type": "numeric"
+      },
+      {
+        "factor": "BsmtFinSF1",
+        "correlation": 0.2495,
+        "abs_correlation": 0.2495,
+        "type": "numeric"
+      },
+      {
+        "factor": "BsmtUnfSF",
+        "correlation": 0.149,
+        "abs_correlation": 0.149,
+        "type": "numeric"
+      },
+      {
+        "factor": "LotFrontage",
+        "correlation": 0.1233,
+        "abs_correlation": 0.1233,
+        "type": "numeric"
+      },
+      {
+        "factor": "BsmtFinSF2",
+        "correlation": -0.0491,
+        "abs_correlation": 0.0491,
+        "type": "numeric"
+      },
+      {
+        "factor": "MSSubClass",
+        "correlation": 0.0279,
+        "abs_correlation": 0.0279,
+        "type": "numeric"
+      },
+      {
+        "factor": "LotArea",
+        "correlation": 0.0142,
+        "abs_correlation": 0.0142,
+        "type": "numeric"
+      }
+    ],
+    "all_segment_impacts": [
+      {
+        "factor": "Neighborhood",
+        "mean_difference": 82.7904,
+        "relative_impact_pct": 4.2,
+        "top_segments": {
+          "NridgHt": 2005.6753,
+          "Blmngtn": 2005.2353,
+          "Somerst": 2004.9884
+        },
+        "bottom_segments": {
+          "OldTown": 1922.885,
+          "SWISU": 1925.24,
+          "IDOTRR": 1927.9459
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "MSZoning",
+        "mean_difference": 80.4077,
+        "relative_impact_pct": 4.08,
+        "top_segments": {
+          "FV": 2004.5077,
+          "RL": 1975.4613,
+          "RH": 1945.6875
+        },
+        "bottom_segments": {
+          "C (all)": 1924.1,
+          "RM": 1943.2569,
+          "RH": 1945.6875
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "Condition1",
+        "mean_difference": 59.9167,
+        "relative_impact_pct": 3.04,
+        "top_segments": {
+          "RRNe": 1993,
+          "RRAe": 1979.6364,
+          "RRNn": 1978.8
+        },
+        "bottom_segments": {
+          "Artery": 1933.0833,
+          "Feedr": 1954.2716,
+          "PosA": 1968.375
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "Alley",
+        "mean_difference": 48.5771,
+        "relative_impact_pct": 2.46,
+        "top_segments": {
+          "Pave": 1968.3171,
+          "Grvl": 1919.74
+        },
+        "bottom_segments": {
+          "Grvl": 1919.74,
+          "Pave": 1968.3171
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "LandContour",
+        "mean_difference": 38.6051,
+        "relative_impact_pct": 1.96,
+        "top_segments": {
+          "HLS": 1979.24,
+          "Lvl": 1972.4722,
+          "Low": 1969.9444
+        },
+        "bottom_segments": {
+          "Bnk": 1940.6349,
+          "Low": 1969.9444,
+          "Lvl": 1972.4722
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "LotShape",
+        "mean_difference": 21.9168,
+        "relative_impact_pct": 1.11,
+        "top_segments": {
+          "IR3": 1987.8,
+          "IR2": 1985.2683,
+          "IR1": 1980.031
+        },
+        "bottom_segments": {
+          "Reg": 1965.8832,
+          "IR1": 1980.031,
+          "IR2": 1985.2683
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "LotConfig",
+        "mean_difference": 18.3193,
+        "relative_impact_pct": 0.93,
+        "top_segments": {
+          "CulDSac": 1984.1064,
+          "FR2": 1983.2766,
+          "FR3": 1981.75
+        },
+        "bottom_segments": {
+          "Corner": 1965.7871,
+          "Inside": 1970.9144,
+          "FR3": 1981.75
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "LandSlope",
+        "mean_difference": 13.6392,
+        "relative_impact_pct": 0.69,
+        "top_segments": {
+          "Gtl": 1971.7931,
+          "Mod": 1962.7231,
+          "Sev": 1958.1538
+        },
+        "bottom_segments": {
+          "Sev": 1958.1538,
+          "Mod": 1962.7231,
+          "Gtl": 1971.7931
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "Utilities",
+        "mean_difference": 13.2769,
+        "relative_impact_pct": 0.67,
+        "top_segments": {
+          "AllPub": 1971.2769,
+          "NoSeWa": 1958
+        },
+        "bottom_segments": {
+          "NoSeWa": 1958,
+          "AllPub": 1971.2769
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "Street",
+        "mean_difference": 9.9755,
+        "relative_impact_pct": 0.51,
+        "top_segments": {
+          "Pave": 1971.3088,
+          "Grvl": 1961.3333
+        },
+        "bottom_segments": {
+          "Grvl": 1961.3333,
+          "Pave": 1971.3088
+        },
+        "type": "categorical"
+      }
+    ],
+    "decision_metric_stats": {
+      "mean": 1971.2678,
+      "median": 1973,
+      "std": 30.2029,
+      "min": 1872,
+      "max": 2010
+    }
+  },
+  "insights": {
+    "decision_metric": "YearBuilt",
+    "top_insights": [
+      {
+        "rank": 1,
+        "factor": "GarageYrBlt",
+        "why_it_matters": "appears correlated with YearBuilt",
+        "evidence": "0.8257 absolute correlation",
+        "confidence": "high",
+        "confidence_explanation": "High confidence \u2014 based on large sample size."
+      },
+      {
+        "rank": 2,
+        "factor": "YearRemodAdd",
+        "why_it_matters": "appears correlated with YearBuilt",
+        "evidence": "0.5929 absolute correlation",
+        "confidence": "high",
+        "confidence_explanation": "High confidence \u2014 based on large sample size."
+      },
+      {
+        "rank": 3,
+        "factor": "OverallQual",
+        "why_it_matters": "appears correlated with YearBuilt",
+        "evidence": "0.5723 absolute correlation",
+        "confidence": "high",
+        "confidence_explanation": "High confidence \u2014 based on large sample size."
+      },
+      {
+        "rank": 4,
+        "factor": "GarageCars",
+        "why_it_matters": "appears correlated with YearBuilt",
+        "evidence": "0.5379 absolute correlation",
+        "confidence": "high",
+        "confidence_explanation": "High confidence \u2014 based on large sample size."
+      }
+    ],
+    "data_risks": [],
+    "limitations": ""
+  }
+}

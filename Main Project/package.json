@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:frontend\"",
+    "dev:frontend": "next dev",
+    "dev:backend": "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 3001 --reload",
     "lint": "eslint .",
     "start": "next start",
     "test": "jest",
@@ -74,6 +76,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.0",
     "jest": "^29.7.0",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
