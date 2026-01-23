@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intent-Based Chart Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .controls {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 0 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .insight {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-left: 4px solid #4CAF50;
+            font-style: italic;
+        }
+        #chart {
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+        .customize-btn {
+            margin-top: 20px;
+            background-color: #2196F3;
+        }
+        .customize-btn:hover {
+            background-color: #0b7dda;
+        }
+        .chart-controls {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .chart-controls.active {
+            display: block;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .ai-default {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+            margin-top: 3px;
+        }
+        .apply-btn {
+            background-color: #4CAF50;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Intent-Based Chart Generator</h1>
+    <p><em>Backend decides chart type based on your intent, not your selection.</em></p>
+    
+    <div class="controls">
+        <button onclick="generateChart('compare')">Compare</button>
+        <button onclick="generateChart('trend')">Trend</button>
+        <button onclick="generateChart('distribution')">Distribution</button>
+    </div>
+    
+    <div id="insight" class="insight" style="display: none;"></div>
+    <div id="chart"></div>
+    <div style="text-align: center;">
+        <button id="customizeBtn" class="customize-btn" onclick="toggleCustomize()" style="display: none;">Customize chart</button>
+    </div>
+    
+    <div id="chartControls" class="chart-controls">
+        <h3>Chart Controls</h3>
+        
+        <div class="control-group">
+            <label>Chart Type</label>
+            <select id="chartType">
+                <option value="bar">Bar</option>
+                <option value="line">Line</option>
+                <option value="area">Area</option>
+                <option value="histogram">Histogram</option>
+            </select>
+            <div class="ai-default" id="aiChartType"></div>
+        </div>
+        
+        <div class="control-group" id="xAxisGroup">
+            <label>X-Axis Column</label>
+            <select id="xAxis"></select>
+            <div class="ai-default" id="aiXAxis"></div>
+        </div>
+        
+        <div class="control-group" id="yAxisGroup">
+            <label>Y-Axis Column</label>
+            <select id="yAxis"></select>
+            <div class="ai-default" id="aiYAxis"></div>
+        </div>
+        
+        <div class="control-group" id="aggGroup">
+            <label>Aggregation</label>
+            <select id="aggregation">
+                <option value="sum">Sum</option>
+                <option value="avg">Average</option>
+                <option value="count">Count</option>
+            </select>
+            <div class="ai-default" id="aiAggregation"></div>
+        </div>
+        
+        <div class="control-group" id="paramsGroup" style="display: none;">
+            <label>Chart Parameters</label>
+            <div id="paramsContainer"></div>
+        </div>
+        
+        <button class="apply-btn" onclick="applyCustomization()">Apply Changes</button>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:8000';
+        let currentGoal = null;
+        let currentAiDefaults = null;
+        let columnMetadata = null;
+        
+        // Fetch column metadata on load
+        async function loadColumnMetadata() {
+            try {
+                const response = await fetch(`${API_URL}/columns`);
+                columnMetadata = await response.json();
+            } catch (error) {
+                console.error('Failed to load column metadata:', error);
+            }
+        }
+        
+        // Load metadata on page load
+        loadColumnMetadata();
+        
+        function toggleCustomize() {
+            const controls = document.getElementById('chartControls');
+            controls.classList.toggle('active');
+        }
+        
+        function updateControlsForChartType() {
+            const chartType = document.getElementById('chartType').value;
+            const paramsContainer = document.getElementById('paramsContainer');
+            const paramsGroup = document.getElementById('paramsGroup');
+            const xAxisGroup = document.getElementById('xAxisGroup');
+            const aggGroup = document.getElementById('aggGroup');
+            
+            paramsContainer.innerHTML = '';
+            
+            // Histogram doesn't use X-axis or aggregation
+            if (chartType === 'histogram') {
+                xAxisGroup.style.display = 'none';
+                aggGroup.style.display = 'none';
+                paramsGroup.style.display = 'block';
+                paramsContainer.innerHTML = `
+                    <label style="display: block; margin-top: 10px;">Number of Bins</label>
+                    <input type="number" id="param_bins" min="5" max="50" value="15">
+                `;
+            } else {
+                xAxisGroup.style.display = 'block';
+                aggGroup.style.display = 'block';
+                
+                if (chartType === 'bar') {
+                    paramsGroup.style.display = 'block';
+                    paramsContainer.innerHTML = `
+                        <label style="display: block; margin-top: 10px;">Orientation</label>
+                        <select id="param_orientation">
+                            <option value="vertical">Vertical</option>
+                            <option value="horizontal">Horizontal</option>
+                        </select>
+                        <label style="display: block; margin-top: 10px;">Sort Order</label>
+                        <select id="param_sort">
+                            <option value="desc">Descending</option>
+                            <option value="asc">Ascending</option>
+                        </select>
+                        <label style="display: block; margin-top: 10px;">Top N (leave empty for all)</label>
+                        <input type="number" id="param_top_n" min="1" placeholder="e.g., 5">
+                    `;
+                } else {
+                    paramsGroup.style.display = 'none';
+                }
+            }
+        }
+        
+        function populateColumnSelectors() {
+            if (!columnMetadata) return;
+            
+            const xAxisSelect = document.getElementById('xAxis');
+            const yAxisSelect = document.getElementById('yAxis');
+            
+            // X-axis: categorical or date columns
+            xAxisSelect.innerHTML = '';
+            [...columnMetadata.categorical, ...columnMetadata.date].forEach(col => {
+                const option = document.createElement('option');
+                option.value = col;
+                option.textContent = col;
+                xAxisSelect.appendChild(option);
+            });
+            
+            // Y-axis: numeric columns
+            yAxisSelect.innerHTML = '';
+            columnMetadata.numeric.forEach(col => {
+                const option = document.createElement('option');
+                option.value = col;
+                option.textContent = col;
+                yAxisSelect.appendChild(option);
+            });
+        }
+        
+        function updateControlsWithAiDefaults(aiDefaults) {
+            currentAiDefaults = aiDefaults;
+            
+            // Set AI defaults as labels
+            document.getElementById('aiChartType').textContent = `AI Recommended: ${aiDefaults.chart_type}`;
+            document.getElementById('aiXAxis').textContent = `AI Recommended: ${aiDefaults.x}`;
+            document.getElementById('aiYAxis').textContent = `AI Recommended: ${aiDefaults.y}`;
+            document.getElementById('aiAggregation').textContent = `AI Recommended: ${aiDefaults.aggregation}`;
+            
+            // Set current values to AI defaults
+            document.getElementById('chartType').value = aiDefaults.chart_type;
+            document.getElementById('xAxis').value = aiDefaults.x;
+            document.getElementById('yAxis').value = aiDefaults.y;
+            document.getElementById('aggregation').value = aiDefaults.aggregation;
+            
+            // Update UI for chart type first (creates param inputs)
+            updateControlsForChartType();
+            
+            // Then set param values if they exist
+            if (aiDefaults.params) {
+                if (aiDefaults.params.orientation) {
+                    const orientationSelect = document.getElementById('param_orientation');
+                    if (orientationSelect) orientationSelect.value = aiDefaults.params.orientation;
+                }
+                if (aiDefaults.params.sort) {
+                    const sortSelect = document.getElementById('param_sort');
+                    if (sortSelect) sortSelect.value = aiDefaults.params.sort;
+                }
+                if (aiDefaults.params.bins) {
+                    const binsInput = document.getElementById('param_bins');
+                    if (binsInput) binsInput.value = aiDefaults.params.bins;
+                }
+            }
+        }
+        
+        async function generateChart(goal, overrides = null) {
+            currentGoal = goal;
+            
+            // Disable buttons during request
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            // Hide customize button and controls
+            document.getElementById('customizeBtn').style.display = 'none';
+            document.getElementById('chartControls').classList.remove('active');
+            
+            // Show loading
+            document.getElementById('chart').innerHTML = '<div class="loading">Generating chart...</div>';
+            document.getElementById('insight').style.display = 'none';
+            
+            try {
+                const requestBody = { goal: goal };
+                if (overrides) {
+                    requestBody.overrides = overrides;
+                }
+                
+                const response = await fetch(`${API_URL}/generate-chart`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display insight
+                document.getElementById('insight').textContent = data.insight_text;
+                document.getElementById('insight').style.display = 'block';
+                
+                // Render Vega-Lite chart
+                vegaEmbed('#chart', data.vega_lite_spec, {
+                    actions: false
+                });
+                
+                // Update controls with AI defaults and show customize button
+                updateControlsWithAiDefaults(data.ai_defaults);
+                populateColumnSelectors();
+                document.getElementById('customizeBtn').style.display = 'inline-block';
+                
+            } catch (error) {
+                document.getElementById('chart').innerHTML = 
+                    `<div style="color: red;">Error: ${error.message}<br>Make sure the backend is running on ${API_URL}</div>`;
+            } finally {
+                // Re-enable buttons
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+        
+        function applyCustomization() {
+            if (!currentGoal) return;
+            
+            const chartType = document.getElementById('chartType').value;
+            const yAxis = document.getElementById('yAxis').value;
+            
+            // Build params object
+            const params = {};
+            if (chartType === 'bar') {
+                const orientation = document.getElementById('param_orientation');
+                const sort = document.getElementById('param_sort');
+                const topN = document.getElementById('param_top_n');
+                if (orientation) params.orientation = orientation.value;
+                if (sort) params.sort = sort.value;
+                if (topN && topN.value) params.top_n = parseInt(topN.value);
+            } else if (chartType === 'histogram') {
+                const bins = document.getElementById('param_bins');
+                if (bins) params.bins = parseInt(bins.value);
+            }
+            
+            // Build overrides object (only include if different from AI defaults)
+            const overrides = {};
+            if (chartType !== currentAiDefaults.chart_type) {
+                overrides.chart_type = chartType;
+            }
+            
+            // For histogram, only y-axis matters
+            if (chartType === 'histogram') {
+                if (yAxis !== currentAiDefaults.y) {
+                    overrides.y = yAxis;
+                }
+            } else {
+                // For other chart types, include x-axis and aggregation
+                const xAxis = document.getElementById('xAxis').value;
+                const aggregation = document.getElementById('aggregation').value;
+                
+                if (xAxis !== currentAiDefaults.x) {
+                    overrides.x = xAxis;
+                }
+                if (yAxis !== currentAiDefaults.y) {
+                    overrides.y = yAxis;
+                }
+                if (aggregation !== currentAiDefaults.aggregation) {
+                    overrides.aggregation = aggregation;
+                }
+            }
+            
+            // Check if params differ
+            const paramsChanged = Object.keys(params).some(key => {
+                return params[key] !== currentAiDefaults.params[key];
+            });
+            if (paramsChanged) {
+                overrides.params = params;
+            }
+            
+            // Only send overrides if there are actual changes
+            const hasOverrides = Object.keys(overrides).length > 0;
+            generateChart(currentGoal, hasOverrides ? overrides : null);
+        }
+        
+        // Update controls when chart type changes
+        document.getElementById('chartType').addEventListener('change', updateControlsForChartType);
+    </script>
+</body>
+</html>

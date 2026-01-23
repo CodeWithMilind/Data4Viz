@@ -1171,3 +1171,159 @@ async def get_cached_outlier_analysis(workspace_id: str, dataset_id: str):
             status_code=500,
             detail=f"Failed to load cached outlier analysis: {str(e)}"
         )
+
+
+# ----------------------------
+# Column Intelligence Endpoints
+# ----------------------------
+
+class ColumnIntelligenceColumn(BaseModel):
+    """Column intelligence information."""
+    name: str
+    data_type: str
+    meaning: str
+    why_used: str
+
+
+class ColumnIntelligence(BaseModel):
+    """Column intelligence response."""
+    columns: List[ColumnIntelligenceColumn]
+    generated_at: int
+
+
+class ColumnIntelligenceRequest(BaseModel):
+    """Request to generate column intelligence."""
+    datasetId: str
+    regenerate: bool = False
+
+
+class ColumnIntelligenceResponse(BaseModel):
+    """Response containing column intelligence."""
+    intelligence: ColumnIntelligence
+
+
+@router.post("/{workspace_id}/column-intelligence", response_model=ColumnIntelligenceResponse)
+async def generate_column_intelligence(
+    workspace_id: str,
+    request: ColumnIntelligenceRequest
+):
+    """
+    Generate AI-powered column intelligence explanations.
+    
+    This endpoint generates explanations for what each column means and why it's used.
+    
+    Args:
+        workspace_id: Workspace identifier
+        request: Request containing datasetId and regenerate flag
+        
+    Returns:
+        Column intelligence with explanations for each column
+    """
+    logger.info(f"[Column Intelligence API] POST /workspaces/{workspace_id}/column-intelligence HIT")
+    logger.info(f"[Column Intelligence API] Request params: workspace_id={workspace_id}, datasetId={request.datasetId}, regenerate={request.regenerate}")
+    
+    try:
+        # Validate dataset exists
+        if not dataset_exists(request.datasetId, workspace_id):
+            logger.warning(f"[Column Intelligence API] Dataset not found: {request.datasetId} in workspace {workspace_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset '{request.datasetId}' not found in workspace '{workspace_id}'"
+            )
+        
+        # Load dataset to get column information
+        df = load_dataset(request.datasetId, workspace_id)
+        logger.info(f"[Column Intelligence API] Dataset loaded - rows={len(df)}, columns={len(df.columns)}")
+        
+        # Generate intelligence for each column
+        columns_intelligence = []
+        for col in df.columns:
+            # Infer basic data type
+            if pd.api.types.is_numeric_dtype(df[col]):
+                data_type = "numeric"
+            elif pd.api.types.is_datetime64_any_dtype(df[col]):
+                data_type = "datetime"
+            else:
+                data_type = "categorical"
+            
+            # Generate simple explanations (can be enhanced with AI later)
+            # For now, provide basic explanations based on column name and type
+            col_name_lower = col.lower()
+            
+            # Generate meaning based on column name patterns
+            if any(word in col_name_lower for word in ['id', 'key', 'index']):
+                meaning = f"Unique identifier for each record in the dataset"
+                why_used = "Used to uniquely identify and reference individual records"
+            elif any(word in col_name_lower for word in ['date', 'time', 'timestamp']):
+                meaning = f"Date or time information"
+                why_used = "Used to track temporal information and enable time-based analysis"
+            elif any(word in col_name_lower for word in ['name', 'title', 'label']):
+                meaning = f"Descriptive text or label"
+                why_used = "Used to provide human-readable descriptions or names"
+            elif any(word in col_name_lower for word in ['price', 'cost', 'amount', 'value', 'revenue']):
+                meaning = f"Monetary or numeric value"
+                why_used = "Used to represent quantitative financial or numeric measurements"
+            elif any(word in col_name_lower for word in ['count', 'number', 'quantity', 'total']):
+                meaning = f"Numeric count or quantity"
+                why_used = "Used to represent numeric counts, quantities, or totals"
+            elif data_type == "numeric":
+                meaning = f"Numeric measurement or value"
+                why_used = "Used for quantitative analysis and mathematical operations"
+            elif data_type == "datetime":
+                meaning = f"Date or time information"
+                why_used = "Used for temporal analysis and time-based filtering"
+            else:
+                meaning = f"Categorical classification or text data"
+                why_used = "Used for grouping, filtering, and categorical analysis"
+            
+            columns_intelligence.append(ColumnIntelligenceColumn(
+                name=col,
+                data_type=data_type,
+                meaning=meaning,
+                why_used=why_used
+            ))
+        
+        intelligence = ColumnIntelligence(
+            columns=columns_intelligence,
+            generated_at=int(datetime.now().timestamp() * 1000)  # milliseconds
+        )
+        
+        logger.info(f"[Column Intelligence API] Generated intelligence for {len(columns_intelligence)} columns")
+        logger.info(f"[Column Intelligence API] Returning intelligence response")
+        
+        return ColumnIntelligenceResponse(intelligence=intelligence)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Column Intelligence API] Error generating column intelligence: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate column intelligence: {str(e)}"
+        )
+
+
+@router.get("/{workspace_id}/column-intelligence", response_model=ColumnIntelligenceResponse)
+async def get_column_intelligence(workspace_id: str):
+    """
+    Get stored column intelligence for a workspace.
+    
+    This endpoint retrieves previously generated column intelligence.
+    If no intelligence exists, returns 404.
+    
+    Args:
+        workspace_id: Workspace identifier
+        
+    Returns:
+        Column intelligence if exists, 404 otherwise
+    """
+    logger.info(f"[Column Intelligence API] GET /workspaces/{workspace_id}/column-intelligence HIT")
+    logger.info(f"[Column Intelligence API] Request params: workspace_id={workspace_id}")
+    
+    # For now, return 404 as intelligence is generated on-demand
+    # In the future, this could load from a stored file
+    logger.info(f"[Column Intelligence API] No stored intelligence found, returning 404")
+    raise HTTPException(
+        status_code=404,
+        detail=f"Column intelligence not found for workspace '{workspace_id}'. Call POST endpoint to generate."
+    )

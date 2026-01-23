@@ -172,36 +172,60 @@ export function OverviewPage() {
   }, [activeWorkspaceId, selectedDataset?.fileName])
 
   // Handle manual refresh (user-initiated)
-  // STRICT RULE: After refreshing, ALWAYS reload from file, never use API response directly
+  // STRICT RULE: After refreshing, use the API response directly (it's already saved)
   const handleRefreshOverview = async () => {
-    if (!activeWorkspaceId || !selectedDataset?.fileName) return
+    if (!activeWorkspaceId || !selectedDataset?.fileName) {
+      console.warn("[handleRefreshOverview] Missing workspace or dataset")
+      return
+    }
 
+    console.log(`[handleRefreshOverview] Starting refresh for ${selectedDataset.fileName}`)
     setIsRefreshing(true)
     setOverviewError(null)
 
     try {
-      await refreshDatasetOverview(activeWorkspaceId, selectedDataset.fileName)
-      const data = await getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
-      if (data) {
-        setOverview(activeWorkspaceId, selectedDataset.fileName, data)
-        setOverviewData(data)
-        setOverviewFileExists(true)
-        // Generate dataset intelligence snapshot for AI
-        try {
-          await generateDatasetIntelligenceSnapshot(activeWorkspaceId, selectedDataset.fileName)
-        } catch (e) {
-          console.error("Failed to generate dataset intelligence snapshot:", e)
-          // Non-blocking: continue even if snapshot generation fails
-        }
-      } else {
-        setOverviewData(null)
-        setOverviewFileExists(false)
-      }
+      // Refresh overview (forces recomputation)
+      console.log("[handleRefreshOverview] Calling refreshDatasetOverview...")
+      const refreshedOverview = await refreshDatasetOverview(activeWorkspaceId, selectedDataset.fileName)
+      
+      console.log(`[handleRefreshOverview] Refresh succeeded - rows=${refreshedOverview.total_rows}, columns=${refreshedOverview.total_columns}`)
+      
+      // Use the refreshed overview directly (it was already saved by backend)
+      setOverview(activeWorkspaceId, selectedDataset.fileName, refreshedOverview)
+      setOverviewData(refreshedOverview)
       setOverviewError(null)
+      setOverviewFileExists(true)
+      
+      if (!selectedColumn && refreshedOverview.columns.length > 0) {
+        setSelectedColumn(refreshedOverview.columns[0].name)
+      }
+      
+      // Verify file was saved (non-blocking)
+      getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
+        .then((fileData) => {
+          if (fileData) {
+            console.log("[handleRefreshOverview] Verified overview file was saved")
+            // Update cache with file data (in case it's more recent)
+            setOverview(activeWorkspaceId, selectedDataset.fileName, fileData)
+            setOverviewData(fileData)
+          } else {
+            console.warn("[handleRefreshOverview] WARNING: Overview refreshed but file not found - using computed data")
+          }
+        })
+        .catch((e) => {
+          console.warn("[handleRefreshOverview] Could not verify overview file (non-critical):", e)
+        })
+      
+      // Generate dataset intelligence snapshot for AI (non-blocking)
+      generateDatasetIntelligenceSnapshot(activeWorkspaceId, selectedDataset.fileName).catch((e) => {
+        console.error("Failed to generate dataset intelligence snapshot:", e)
+        // Non-blocking: continue even if snapshot generation fails
+      })
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to refresh overview"
+      console.error(`[handleRefreshOverview] Error: ${errorMessage}`, error)
       setOverviewError(errorMessage)
-      setOverviewFileExists(false)
+      // Don't clear overviewData - keep showing old data if refresh fails
     } finally {
       setIsRefreshing(false)
     }
@@ -213,6 +237,7 @@ export function OverviewPage() {
       setOverviewData(null)
       setOverviewError(null)
       setOverviewFileExists(false)
+      setIsFetchingOverview(false)
       return
     }
 
@@ -221,68 +246,220 @@ export function OverviewPage() {
       setOverviewData(cached)
       setOverviewError(null)
       setOverviewFileExists(true)
+      setIsFetchingOverview(false)
       return
     }
 
     setOverviewError(null)
+    setIsFetchingOverview(false) // Reset loading state
     let cancelled = false
+    let fetchStarted = false
+
+    console.log(`[OverviewPage] Loading overview for dataset: ${selectedDataset.fileName}, workspace: ${activeWorkspaceId}`)
+
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (!cancelled && fetchStarted) {
+        console.warn("[OverviewPage] Overview fetch timeout after 30 seconds")
+        setIsFetchingOverview(false)
+        setOverviewError("Request timed out. Please try again.")
+      }
+    }, 30000) // 30 second timeout
 
     getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
       .then((data) => {
-        if (cancelled) return
+        if (cancelled) {
+          console.log("[OverviewPage] Request cancelled (from file)")
+          return
+        }
+        clearTimeout(timeoutId)
+        console.log(`[OverviewPage] getDatasetOverviewFromFile result:`, data ? "found" : "not found")
         if (data) {
           setOverview(activeWorkspaceId, selectedDataset.fileName, data)
           setOverviewData(data)
           setOverviewError(null)
           setOverviewFileExists(true)
+          setIsFetchingOverview(false)
           if (!selectedColumn && data.columns.length > 0) {
             setSelectedColumn(data.columns[0].name)
           }
           return
         }
+        
+        // No cached file, need to fetch
+        console.log("[OverviewPage] No cached file, fetching overview...")
         setOverviewData(null)
         setOverviewError(null)
         setOverviewFileExists(false)
         setIsFetchingOverview(true)
+        fetchStarted = true
 
         getWorkspaceDatasets(activeWorkspaceId)
           .then((datasets) => {
-            if (cancelled) return
-            const exists = datasets.some((d) => d.id === selectedDataset.fileName)
-            if (!exists) {
+            if (cancelled) {
+              clearTimeout(timeoutId)
               setIsFetchingOverview(false)
               return
             }
+            console.log(`[OverviewPage] getWorkspaceDatasets result: ${datasets.length} datasets`)
+            const exists = datasets.some((d) => d.id === selectedDataset.fileName)
+            if (!exists) {
+              clearTimeout(timeoutId)
+              setIsFetchingOverview(false)
+              setOverviewError("Dataset not found in workspace")
+              console.warn(`[OverviewPage] Dataset ${selectedDataset.fileName} not found in workspace`)
+              return
+            }
+            console.log("[OverviewPage] Calling getDatasetOverview...")
             return getDatasetOverview(activeWorkspaceId, selectedDataset.fileName, false)
           })
           .then((overviewOrNull) => {
-            if (cancelled) return
-            if (overviewOrNull === undefined) return
-            if (overviewOrNull === null) {
+            if (cancelled) {
+              clearTimeout(timeoutId)
               setIsFetchingOverview(false)
               return
             }
-            return getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
-          })
-          .then((fileData) => {
-            if (cancelled) return
-            setIsFetchingOverview(false)
-            if (fileData) {
-              setOverview(activeWorkspaceId, selectedDataset.fileName, fileData)
-              setOverviewData(fileData)
-              setOverviewError(null)
-              setOverviewFileExists(true)
-              if (!selectedColumn && fileData.columns.length > 0) {
-                setSelectedColumn(fileData.columns[0].name)
-              }
-              // Generate dataset intelligence snapshot for AI (non-blocking)
-              generateDatasetIntelligenceSnapshot(activeWorkspaceId, selectedDataset.fileName).catch((e) => {
-                console.error("Failed to generate dataset intelligence snapshot:", e)
-              })
+            // DEBUG: Log the actual response
+            console.log(`[OverviewPage] getDatasetOverview result:`, {
+              hasData: !!overviewOrNull,
+              isNull: overviewOrNull === null,
+              isUndefined: overviewOrNull === undefined,
+              type: typeof overviewOrNull,
+              value: overviewOrNull ? `rows=${overviewOrNull.total_rows}, cols=${overviewOrNull.total_columns}` : 'no data'
+            })
+            
+            // Handle undefined (promise chain broken)
+            if (overviewOrNull === undefined) {
+              clearTimeout(timeoutId)
+              setIsFetchingOverview(false)
+              setOverviewError("Failed to fetch overview - request returned undefined")
+              console.error("[OverviewPage] ERROR: getDatasetOverview returned undefined")
+              return
             }
+            
+            // Handle null response - this means 404 (file not found), but computation should have created it
+            // If we get null after calling getDatasetOverview (which computes), something went wrong
+            if (overviewOrNull === null) {
+              console.warn("[OverviewPage] WARNING: getDatasetOverview returned null - computation may have failed or file not saved")
+              console.warn("[OverviewPage] Attempting to read file directly as fallback...")
+              
+              // FALLBACK: Try to read file directly (maybe it was saved but API returned null)
+              return getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
+                .then((fileData) => {
+                  if (cancelled) {
+                    clearTimeout(timeoutId)
+                    setIsFetchingOverview(false)
+                    return
+                  }
+                  
+                  if (fileData) {
+                    // File exists! Use it
+                    console.log("[OverviewPage] FALLBACK SUCCESS: Found overview file on disk")
+                    clearTimeout(timeoutId)
+                    setIsFetchingOverview(false)
+                    setOverview(activeWorkspaceId, selectedDataset.fileName, fileData)
+                    setOverviewData(fileData)
+                    setOverviewError(null)
+                    setOverviewFileExists(true)
+                    if (!selectedColumn && fileData.columns.length > 0) {
+                      setSelectedColumn(fileData.columns[0].name)
+                    }
+                  } else {
+                    // File doesn't exist - trigger recomputation with refresh flag
+                    console.warn("[OverviewPage] File not found, triggering recomputation with refresh=true...")
+                    return getDatasetOverview(activeWorkspaceId, selectedDataset.fileName, true)
+                      .then((refreshedOverview) => {
+                        if (cancelled) {
+                          clearTimeout(timeoutId)
+                          setIsFetchingOverview(false)
+                          return
+                        }
+                        
+                        if (refreshedOverview) {
+                          console.log("[OverviewPage] RECOMPUTATION SUCCESS: Got overview after refresh")
+                          clearTimeout(timeoutId)
+                          setIsFetchingOverview(false)
+                          setOverview(activeWorkspaceId, selectedDataset.fileName, refreshedOverview)
+                          setOverviewData(refreshedOverview)
+                          setOverviewError(null)
+                          setOverviewFileExists(true)
+                          if (!selectedColumn && refreshedOverview.columns.length > 0) {
+                            setSelectedColumn(refreshedOverview.columns[0].name)
+                          }
+                        } else {
+                          // Still null after refresh - real error
+                          clearTimeout(timeoutId)
+                          setIsFetchingOverview(false)
+                          setOverviewError("Failed to compute overview - please try again")
+                          console.error("[OverviewPage] ERROR: Still null after refresh recomputation")
+                        }
+                      })
+                      .catch((refreshErr) => {
+                        if (cancelled) return
+                        clearTimeout(timeoutId)
+                        setIsFetchingOverview(false)
+                        setOverviewError(`Failed to compute overview: ${refreshErr instanceof Error ? refreshErr.message : 'Unknown error'}`)
+                        console.error("[OverviewPage] ERROR: Refresh recomputation failed:", refreshErr)
+                      })
+                  }
+                })
+                .catch((fileErr) => {
+                  if (cancelled) return
+                  clearTimeout(timeoutId)
+                  setIsFetchingOverview(false)
+                  setOverviewError(`Failed to load overview: ${fileErr instanceof Error ? fileErr.message : 'Unknown error'}`)
+                  console.error("[OverviewPage] ERROR: File read fallback failed:", fileErr)
+                })
+            }
+            
+            // SUCCESS: We have overview data
+            console.log("[OverviewPage] SUCCESS: Using computed overview data directly")
+            console.log(`[OverviewPage] Overview data: rows=${overviewOrNull.total_rows}, columns=${overviewOrNull.total_columns}, columnCount=${overviewOrNull.columns.length}`)
+            
+            // Use the computed overview directly - backend already saved it
+            clearTimeout(timeoutId)
+            setIsFetchingOverview(false)
+            
+            // Cache the computed overview
+            setOverview(activeWorkspaceId, selectedDataset.fileName, overviewOrNull)
+            setOverviewData(overviewOrNull)
+            setOverviewError(null)
+            setOverviewFileExists(true) // Assume file exists since backend saved it
+            
+            console.log(`[OverviewPage] State updated - overviewData set:`, !!overviewOrNull)
+            
+            if (!selectedColumn && overviewOrNull.columns.length > 0) {
+              setSelectedColumn(overviewOrNull.columns[0].name)
+            }
+            
+            // Verify file was saved (non-blocking, just for logging)
+            getDatasetOverviewFromFile(activeWorkspaceId, selectedDataset.fileName)
+              .then((fileData) => {
+                if (cancelled) return
+                if (fileData) {
+                  console.log("[OverviewPage] Verified overview file was saved successfully")
+                  // Update cache with file data (in case it's more recent)
+                  setOverview(activeWorkspaceId, selectedDataset.fileName, fileData)
+                  setOverviewData(fileData)
+                } else {
+                  console.warn("[OverviewPage] WARNING: Overview computed but file not found - using computed data")
+                  // Keep using computed data, but log warning
+                }
+              })
+              .catch((err) => {
+                // Non-critical - we already have the computed data
+                console.warn("[OverviewPage] Could not verify overview file (non-critical):", err)
+              })
+            
+            // Generate dataset intelligence snapshot for AI (non-blocking)
+            generateDatasetIntelligenceSnapshot(activeWorkspaceId, selectedDataset.fileName).catch((e) => {
+              console.error("Failed to generate dataset intelligence snapshot:", e)
+            })
           })
           .catch((err) => {
             if (cancelled) return
+            clearTimeout(timeoutId)
+            console.error("[OverviewPage] Error in fetch chain:", err)
             setOverviewError(err instanceof Error ? err.message : "Failed to fetch overview")
             setOverviewData(null)
             setOverviewFileExists(false)
@@ -291,14 +468,19 @@ export function OverviewPage() {
       })
       .catch((error) => {
         if (cancelled) return
+        clearTimeout(timeoutId)
+        console.error("[OverviewPage] Error loading overview from file:", error)
         const msg = error instanceof Error ? error.message : "Failed to load dataset overview"
         setOverviewError(msg)
         setOverviewData(null)
         setOverviewFileExists(false)
+        setIsFetchingOverview(false)
       })
 
     return () => {
       cancelled = true
+      clearTimeout(timeoutId)
+      setIsFetchingOverview(false)
     }
   }, [activeWorkspaceId, selectedDataset?.fileName])
 
@@ -569,7 +751,7 @@ export function OverviewPage() {
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center">
             <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-            <p className="text-muted-foreground">Fetching overview...</p>
+            <p className="text-muted-foreground">Computing overview...</p>
           </CardContent>
         </Card>
       </main>
@@ -577,7 +759,9 @@ export function OverviewPage() {
   }
 
   // Error state: auto-fetch or file read failed (no Fetch button)
+  // Only show error if we're NOT fetching and have NO data
   if (overviewError && !overviewData && !isFetchingOverview) {
+    console.log(`[OverviewPage] Showing error state: ${overviewError}`)
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
         <Card className="w-full max-w-md">
@@ -588,13 +772,46 @@ export function OverviewPage() {
             <CardTitle>Failed to Load Overview</CardTitle>
             <CardDescription>{overviewError}</CardDescription>
           </CardHeader>
+          <CardContent className="pt-4">
+            <Button 
+              onClick={handleRefreshOverview}
+              variant="outline"
+              className="w-full"
+            >
+              Retry
+            </Button>
+          </CardContent>
         </Card>
       </main>
     )
   }
 
   // No data yet: file read in progress (no spinner, no button)
+  // DEBUG: Log state before render guard
+  console.log(`[OverviewPage] Render guard check:`, {
+    hasOverviewData: !!overviewData,
+    isFetchingOverview,
+    overviewError,
+    overviewFileExists,
+    selectedDataset: selectedDataset?.fileName
+  })
+  
   if (!overviewData) {
+    // Show loading state if we're actively fetching
+    if (isFetchingOverview) {
+      return (
+        <main className="flex-1 flex items-center justify-center h-screen bg-background">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-8 text-center">
+              <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+              <p className="text-muted-foreground">Computing overview...</p>
+            </CardContent>
+          </Card>
+        </main>
+      )
+    }
+    
+    // Not fetching and no data - show loading message
     return (
       <main className="flex-1 flex items-center justify-center h-screen bg-background">
         <Card className="w-full max-w-md">

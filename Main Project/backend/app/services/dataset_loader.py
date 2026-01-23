@@ -9,8 +9,11 @@ import pandas as pd
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
+import logging
 from app.config import DATA_DIR, get_workspace_datasets_dir, get_workspace_files_dir, get_workspace_logs_dir
 from app.services.file_registry import register_file, unregister_file, get_file_metadata, verify_file_ownership, is_file_protected
+
+logger = logging.getLogger(__name__)
 
 
 def load_dataset(dataset_id: str, workspace_id: Optional[str] = None) -> pd.DataFrame:
@@ -40,25 +43,69 @@ def load_dataset(dataset_id: str, workspace_id: Optional[str] = None) -> pd.Data
 
     if not dataset_path.exists():
         location = f"workspace '{workspace_id}'" if workspace_id else "data directory"
-        raise FileNotFoundError(f"Dataset '{dataset_id}' not found in {location}")
+        error_msg = f"Dataset '{dataset_id}' not found in {location}"
+        logger.error(f"[load_dataset] {error_msg}, path: {dataset_path}")
+        raise FileNotFoundError(error_msg)
+
+    # Check file size
+    try:
+        file_size = dataset_path.stat().st_size
+        logger.info(f"[load_dataset] File size: {file_size} bytes")
+        
+        if file_size == 0:
+            error_msg = f"Dataset '{dataset_id}' is empty (0 bytes)"
+            logger.error(f"[load_dataset] {error_msg}")
+            raise ValueError(error_msg)
+    except Exception as e:
+        logger.warning(f"[load_dataset] Could not get file size: {e}")
 
     try:
         # Try auto-detecting delimiter first (pandas can detect comma, semicolon, tab, etc.)
+        logger.info(f"[load_dataset] Attempting to read CSV with auto-detection...")
         df = pd.read_csv(dataset_path, sep=None, engine="python", on_bad_lines="skip")
+        logger.info(f"[load_dataset] CSV read successful - rows: {len(df)}, columns: {len(df.columns)}")
+        
+        # Validate DataFrame
+        if len(df) == 0:
+            logger.warning(f"[load_dataset] Dataset '{dataset_id}' has 0 rows after loading")
+        if len(df.columns) == 0:
+            error_msg = f"Dataset '{dataset_id}' has 0 columns - file may be corrupted"
+            logger.error(f"[load_dataset] {error_msg}")
+            raise ValueError(error_msg)
         
         # Fallback: If only one column detected, try semicolon delimiter
         if len(df.columns) == 1:
+            logger.info(f"[load_dataset] Only 1 column detected, trying semicolon delimiter...")
             try:
                 df_semicolon = pd.read_csv(dataset_path, sep=";", engine="python", on_bad_lines="skip")
                 if len(df_semicolon.columns) > 1:
+                    logger.info(f"[load_dataset] Semicolon delimiter worked - rows: {len(df_semicolon)}, columns: {len(df_semicolon.columns)}")
                     df = df_semicolon
-            except Exception:
+            except Exception as e:
+                logger.warning(f"[load_dataset] Semicolon delimiter failed: {e}")
                 # If semicolon parsing also fails, keep original
                 pass
         
+        logger.info(f"[load_dataset] Successfully loaded dataset '{dataset_id}' - final shape: {df.shape}")
         return df
+        
+    except pd.errors.EmptyDataError as e:
+        error_msg = f"Dataset '{dataset_id}' is empty or has no valid data"
+        logger.error(f"[load_dataset] {error_msg}: {e}")
+        raise ValueError(error_msg) from e
+    except pd.errors.ParserError as e:
+        error_msg = f"Failed to parse dataset '{dataset_id}' as CSV: {str(e)}"
+        logger.error(f"[load_dataset] {error_msg}")
+        raise ValueError(error_msg) from e
+    except UnicodeDecodeError as e:
+        error_msg = f"Failed to decode dataset '{dataset_id}': encoding issue - {str(e)}"
+        logger.error(f"[load_dataset] {error_msg}")
+        raise ValueError(error_msg) from e
     except Exception as e:
-        raise ValueError(f"Failed to load dataset '{dataset_id}': {str(e)}")
+        error_msg = f"Failed to load dataset '{dataset_id}': {str(e)}"
+        logger.error(f"[load_dataset] {error_msg}", exc_info=True)
+        logger.error(f"[load_dataset] Exception type: {type(e).__name__}")
+        raise ValueError(error_msg) from e
 
 
 def save_dataset(

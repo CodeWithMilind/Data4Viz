@@ -117,10 +117,17 @@ export async function safeFetch(
       // Absolute URL
       fullUrl = url;
     } else {
-      // Relative URL - need base URL
+      // Relative URL - check if baseUrl is provided
       const apiBaseUrl = baseUrl || process.env.NEXT_PUBLIC_API_URL;
-      const validBaseUrl = getValidBaseUrl(apiBaseUrl);
-      fullUrl = `${validBaseUrl}${url.startsWith('/') ? url : `/${url}`}`;
+      
+      // If baseUrl is empty, use relative URL (will be proxied by Next.js)
+      if (!apiBaseUrl || apiBaseUrl === "") {
+        fullUrl = url.startsWith('/') ? url : `/${url}`;
+      } else {
+        // Use provided baseUrl
+        const validBaseUrl = getValidBaseUrl(apiBaseUrl);
+        fullUrl = `${validBaseUrl}${url.startsWith('/') ? url : `/${url}`}`;
+      }
     }
   } catch (error) {
     if (error instanceof FetchError) {

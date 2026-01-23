@@ -222,60 +222,90 @@ def compute_schema(workspace_id: str, dataset_id: str, use_current: bool = True)
     Returns:
         Schema dictionary with columns and metadata, or None if dataset not in cache
     """
+    logger.info(f"[compute_schema] Starting - dataset_id='{dataset_id}', workspace_id='{workspace_id}', use_current={use_current}")
+    
     # Get the appropriate DataFrame
     if use_current:
         df = get_current_df(workspace_id, dataset_id)
+        logger.info(f"[compute_schema] get_current_df returned: {df is not None}, shape: {df.shape if df is not None else 'N/A'}")
     else:
         df = get_raw_df(workspace_id, dataset_id)
+        logger.info(f"[compute_schema] get_raw_df returned: {df is not None}, shape: {df.shape if df is not None else 'N/A'}")
     
     if df is None:
+        logger.info(f"[compute_schema] DataFrame is None, attempting to load into cache...")
         # Try to load into cache
-        if not load_dataset_to_cache(workspace_id, dataset_id):
+        load_success = load_dataset_to_cache(workspace_id, dataset_id)
+        logger.info(f"[compute_schema] load_dataset_to_cache returned: {load_success}")
+        
+        if not load_success:
+            logger.error(f"[compute_schema] Failed to load dataset '{dataset_id}' into cache")
             return None
+            
         df = get_current_df(workspace_id, dataset_id) if use_current else get_raw_df(workspace_id, dataset_id)
+        logger.info(f"[compute_schema] After loading, DataFrame is: {df is not None}, shape: {df.shape if df is not None else 'N/A'}")
+        
         if df is None:
+            logger.error(f"[compute_schema] DataFrame is still None after loading into cache")
             return None
     
+    # Validate DataFrame
+    if len(df) == 0:
+        logger.warning(f"[compute_schema] Dataset '{dataset_id}' has 0 rows")
+    if len(df.columns) == 0:
+        logger.error(f"[compute_schema] Dataset '{dataset_id}' has 0 columns - cannot compute schema")
+        return None
+    
+    logger.info(f"[compute_schema] Computing schema for {len(df.columns)} columns...")
     total_rows = len(df)
     columns_schema = []
     
-    for col in df.columns:
-        series = df[col]
-        canonical_type = get_canonical_type(series)
-        pandas_dtype = str(series.dtype)
+    try:
+        for col in df.columns:
+            series = df[col]
+            canonical_type = get_canonical_type(series)
+            pandas_dtype = str(series.dtype)
+            
+            missing_count = int(series.isna().sum())
+            missing_percentage = round((missing_count / total_rows * 100) if total_rows > 0 else 0.0, 2)
+            
+            unique_count = int(series.nunique(dropna=True))
+            
+            column_info = {
+                "name": col,
+                "canonical_type": canonical_type,
+                "pandas_dtype": pandas_dtype,
+                "total_rows": total_rows,
+                "missing_count": missing_count,
+                "missing_percentage": missing_percentage,
+                "unique_count": unique_count,
+            }
+            
+            # Add numeric stats if applicable
+            if canonical_type == "numeric":
+                numeric_stats = get_numeric_stats(series)
+                if numeric_stats:
+                    column_info["numeric_stats"] = numeric_stats
+            
+            columns_schema.append(column_info)
         
-        missing_count = int(series.isna().sum())
-        missing_percentage = round((missing_count / total_rows * 100) if total_rows > 0 else 0.0, 2)
-        
-        unique_count = int(series.nunique(dropna=True))
-        
-        column_info = {
-            "name": col,
-            "canonical_type": canonical_type,
-            "pandas_dtype": pandas_dtype,
+        schema_result = {
+            "workspace_id": workspace_id,
+            "dataset_id": dataset_id,
             "total_rows": total_rows,
-            "missing_count": missing_count,
-            "missing_percentage": missing_percentage,
-            "unique_count": unique_count,
+            "total_columns": len(df.columns),
+            "columns": columns_schema,
+            "computed_at": datetime.now().isoformat(),
+            "using_current": use_current
         }
         
-        # Add numeric stats if applicable
-        if canonical_type == "numeric":
-            numeric_stats = get_numeric_stats(series)
-            if numeric_stats:
-                column_info["numeric_stats"] = numeric_stats
+        logger.info(f"[compute_schema] Schema computed successfully - {len(columns_schema)} columns")
+        return schema_result
         
-        columns_schema.append(column_info)
-    
-    return {
-        "workspace_id": workspace_id,
-        "dataset_id": dataset_id,
-        "total_rows": total_rows,
-        "total_columns": len(df.columns),
-        "columns": columns_schema,
-        "computed_at": datetime.now().isoformat(),
-        "using_current": use_current
-    }
+    except Exception as e:
+        logger.error(f"[compute_schema] Error computing schema for column: {e}", exc_info=True)
+        logger.error(f"[compute_schema] Exception type: {type(e).__name__}, message: {str(e)}")
+        return None
 
 
 def clear_cache(workspace_id: Optional[str] = None, dataset_id: Optional[str] = None):

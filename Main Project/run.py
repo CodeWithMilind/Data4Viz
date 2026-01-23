@@ -85,7 +85,7 @@ def start_backend():
     global backend_process
     
     print("\n🚀 Starting backend server...")
-    print("   Backend will be available at: http://localhost:8000")
+    print("   Backend will be available at: http://localhost:3001 (proxied through port 3000)")
     
     try:
         backend_process = subprocess.Popen(
@@ -94,7 +94,7 @@ def start_backend():
                 "app.main:app",
                 "--reload",
                 "--host", "0.0.0.0",
-                "--port", "8000"
+                "--port", "3001"
             ],
             cwd=BACKEND_DIR,
             stdout=subprocess.PIPE,
@@ -190,11 +190,12 @@ def main():
     print("\n" + "=" * 60)
     print("  ✅ Both servers are running!")
     print("=" * 60)
-    print("  Backend:  http://localhost:8000")
     print("  Frontend: http://localhost:3000")
-    print("  API Docs: http://localhost:8000/docs")
+    print("  Backend:  http://localhost:3001 (proxied through port 3000)")
+    print("  API Docs: http://localhost:3001/docs")
     print("=" * 60)
-    print("\n  Press Ctrl+C to stop both servers\n")
+    print("\n  All requests go through port 3000!")
+    print("  Press Ctrl+C to stop both servers\n")
     
     # Wait for processes to complete (or be interrupted)
     try:

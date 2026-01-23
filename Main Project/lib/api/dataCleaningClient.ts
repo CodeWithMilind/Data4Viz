@@ -10,26 +10,19 @@
  */
 
 import { safeFetch, safeFetchJson, FetchError } from "./safe-fetch";
+import { DEMO_MODE, getMockChartResponse } from "../demo-mode";
 
 // Get base URL with validation (lazy evaluation to avoid errors during module load)
 function getBaseUrlSafe(): string {
   // Only access process.env in browser/client context
   if (typeof window === 'undefined') {
-    // SSR - return default, will be validated on first use
-    return "http://localhost:8000";
+    // SSR - use relative path, will be proxied by Next.js
+    return "";
   }
   
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-  // Validate it's not file:// and is a valid HTTP(S) URL
-  if (baseUrl.startsWith('file://')) {
-    console.error('Cannot use file:// protocol for API calls. Please use http://localhost:8000');
-    return "http://localhost:8000"; // Fallback to default
-  }
-  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
-    console.error(`Invalid API base URL: ${baseUrl}. Must start with http:// or https://`);
-    return "http://localhost:8000"; // Fallback to default
-  }
-  return baseUrl.replace(/\/+$/, ''); // Remove trailing slashes
+  // In browser, use relative paths - Next.js rewrites will proxy to backend
+  // Backend runs on port 3001 internally, but proxied through port 3000
+  return "";
 }
 
 // Schema types
@@ -472,18 +465,40 @@ export async function getDatasetOverview(
       timeout: 30000,
     }, getBaseUrlSafe());
 
+    console.log(`[getDatasetOverview] Response status: ${response.status}, ok: ${response.ok}`);
+
     if (response.status === 404) {
+      console.warn(`[getDatasetOverview] 404 - Overview not found for ${datasetId}`);
       return null;
     }
 
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`[getDatasetOverview] Non-OK response (${response.status}): ${errorText}`);
+      throw new Error(`API returned ${response.status}: ${errorText}`);
+    }
+
     const data: OverviewResponse = await response.json();
+    
+    // Validate response structure
+    if (!data || typeof data !== 'object') {
+      console.error(`[getDatasetOverview] Invalid response format:`, data);
+      throw new Error('Invalid overview response format');
+    }
+    
+    if (!data.total_rows && data.total_rows !== 0) {
+      console.error(`[getDatasetOverview] Missing total_rows in response:`, data);
+      throw new Error('Invalid overview response: missing total_rows');
+    }
+    
     console.log(
-      `[getDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
+      `[getDatasetOverview] SUCCESS – rows=${data.total_rows}, columns=${data.total_columns}, columnCount=${data.columns?.length || 0}`
     );
 
     return data;
   } catch (error) {
     if (error instanceof FetchError && error.status === 404) {
+      console.warn(`[getDatasetOverview] FetchError 404 - Overview not found`);
       return null;
     }
     const errorMessage = error instanceof FetchError 
@@ -491,13 +506,16 @@ export async function getDatasetOverview(
       : error instanceof Error 
         ? error.message 
         : String(error);
-    console.error(`[getDatasetOverview] Error: ${errorMessage}`);
+    console.error(`[getDatasetOverview] Error: ${errorMessage}`, error);
     throw new Error(`Failed to fetch dataset overview: ${errorMessage}`);
   }
 }
 
 /**
  * Force refresh/recompute overview and save to workspace file.
+ * 
+ * Uses GET /api/overview with refresh=true instead of POST /refresh
+ * This is more reliable and consistent with the main endpoint.
  * 
  * @param workspaceId Workspace identifier (required)
  * @param datasetId Dataset filename (required)
@@ -508,23 +526,50 @@ export async function refreshDatasetOverview(
   workspaceId: string,
   datasetId: string
 ): Promise<OverviewResponse> {
+  // Use GET endpoint with refresh=true instead of POST /refresh
+  // This is more reliable and consistent
   const requestUrl =
-    `${getBaseUrlSafe()}/api/overview/refresh?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
+    `${getBaseUrlSafe()}/api/overview?workspace_id=${workspaceId}&dataset_id=${datasetId}&refresh=true`;
 
   console.log(`[refreshDatasetOverview] Request URL: ${requestUrl}`);
 
   try {
-    const data = await safeFetchJson<OverviewResponse>(
-      requestUrl,
-      {
-        method: "POST",
-        timeout: 60000, // Longer timeout for refresh operations
-      },
-      getBaseUrlSafe()
-    );
+    const response = await safeFetch(requestUrl, {
+      method: "GET",
+      timeout: 60000, // Longer timeout for refresh operations
+    }, getBaseUrlSafe());
+
+    console.log(`[refreshDatasetOverview] Response status: ${response.status}, ok: ${response.ok}`);
+
+    if (response.status === 404) {
+      const errorText = await response.text().catch(() => 'Not Found');
+      console.error(`[refreshDatasetOverview] 404 - Dataset or workspace not found`);
+      throw new Error(`Dataset or workspace not found: ${errorText}`);
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`[refreshDatasetOverview] Non-OK response (${response.status}): ${errorText}`);
+      throw new Error(`API returned ${response.status}: ${errorText}`);
+    }
+
+    const data: OverviewResponse = await response.json();
+    
+    // Validate response structure
+    if (!data || typeof data !== 'object') {
+      console.error(`[refreshDatasetOverview] Invalid response format:`, data);
+      throw new Error('Invalid overview response format');
+    }
+    
+    if (!data.total_rows && data.total_rows !== 0) {
+      console.error(`[refreshDatasetOverview] Missing total_rows in response:`, data);
+      throw new Error('Invalid overview response: missing total_rows');
+    }
+    
     console.log(
-      `[refreshDatasetOverview] Success – rows=${data.total_rows}, columns=${data.total_columns}`
+      `[refreshDatasetOverview] SUCCESS – rows=${data.total_rows}, columns=${data.total_columns}, columnCount=${data.columns?.length || 0}`
     );
+
     return data;
   } catch (error) {
     const errorMessage = error instanceof FetchError 
@@ -532,7 +577,7 @@ export async function refreshDatasetOverview(
       : error instanceof Error 
         ? error.message 
         : String(error);
-    console.error(`[refreshDatasetOverview] Error: ${errorMessage}`);
+    console.error(`[refreshDatasetOverview] Error: ${errorMessage}`, error);
     throw new Error(`Failed to refresh dataset overview: ${errorMessage}`);
   }
 }
@@ -928,5 +973,109 @@ export async function detectOutliers(
         ? error.message 
         : String(error);
     throw new Error(`Failed to detect outliers: ${errorMessage}`);
+  }
+}
+
+/**
+ * Chart generation types
+ */
+export type ChartIntent = "compare" | "trend" | "distribution";
+
+export interface ChartOverrides {
+  chart_type?: string;
+  x?: string;
+  y?: string;
+  aggregation?: "sum" | "avg" | "count";
+  params?: {
+    sort?: "asc" | "desc";
+    top_n?: number;
+    orientation?: "vertical" | "horizontal";
+    time_granularity?: string;
+    smoothing?: boolean;
+    bins?: number;
+  };
+}
+
+export interface ChartGenerationRequest {
+  workspace_id: string;
+  dataset_id: string;
+  goal: ChartIntent;
+  overrides?: ChartOverrides;
+}
+
+export interface ChartGenerationResponse {
+  insight_text: string;
+  vega_lite_spec: Record<string, any>;
+  ai_defaults: {
+    chart_type: string;
+    x: string;
+    y: string;
+    aggregation: "sum" | "avg" | "count";
+    params?: Record<string, any>;
+  };
+}
+
+/**
+ * Generate a chart with AI-first approach
+ * 
+ * Backend decides chart type, columns, and aggregation.
+ * Frontend can optionally provide overrides.
+ * 
+ * @param workspaceId Workspace identifier (required)
+ * @param datasetId Dataset filename (required)
+ * @param goal Visualization intent (compare, trend, distribution)
+ * @param overrides Optional overrides for chart customization
+ * @returns Chart response with insight text, Vega-Lite spec, and AI defaults
+ * @throws Error if API call fails
+ */
+export async function generateChart(
+  workspaceId: string,
+  datasetId: string,
+  goal: ChartIntent,
+  overrides?: ChartOverrides
+): Promise<ChartGenerationResponse> {
+  // DEMO MODE: Return mock data immediately
+  if (DEMO_MODE) {
+    console.log(`[generateChart] DEMO MODE - returning mock chart`);
+    // Simulate async delay for realistic behavior
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return getMockChartResponse(goal, overrides);
+  }
+
+  const requestUrl = `${getBaseUrlSafe()}/workspaces/${encodeURIComponent(workspaceId)}/datasets/${encodeURIComponent(datasetId)}/chart`;
+
+  console.log(`[generateChart] Request URL: ${requestUrl}`);
+  console.log(`[generateChart] Goal: ${goal}, Overrides:`, overrides);
+
+  try {
+    const requestBody: ChartGenerationRequest = {
+      workspace_id: workspaceId,
+      dataset_id: datasetId,
+      goal,
+      ...(overrides && { overrides }),
+    };
+
+    const data = await safeFetchJson<ChartGenerationResponse>(
+      requestUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+        timeout: 60000, // Longer timeout for AI chart generation
+      },
+      getBaseUrlSafe()
+    );
+    console.log(`[generateChart] Success – chart_type=${data.ai_defaults.chart_type}`);
+    return data;
+  } catch (error) {
+    console.error("Error generating chart:", error);
+    const errorMessage = error instanceof FetchError 
+      ? error.message 
+      : error instanceof Error 
+        ? error.message 
+        : String(error);
+    throw new Error(`Failed to generate chart: ${errorMessage}`);
   }
 }

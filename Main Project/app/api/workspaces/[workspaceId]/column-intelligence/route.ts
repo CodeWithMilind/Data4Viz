@@ -440,41 +440,59 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ workspaceId: string }> | { workspaceId: string } },
 ) {
+  const params = await Promise.resolve(context.params)
+  const { workspaceId } = params
+  
+  console.log(`[Column Intelligence API HIT] POST /api/workspaces/${workspaceId}/column-intelligence`)
+  
   try {
-    const params = await Promise.resolve(context.params)
-    const { workspaceId } = params
     const body = await req.json()
     const { datasetId, regenerate } = body as { datasetId?: string; regenerate?: boolean }
 
+    console.log(`[Column Intelligence API] Request body: datasetId=${datasetId}, regenerate=${regenerate}`)
+
     if (!datasetId) {
+      console.error(`[Column Intelligence API] Missing datasetId`)
       return NextResponse.json({ error: "datasetId required" }, { status: 400 })
     }
 
     // Get overview from file (SERVER-SIDE: reads from filesystem, not fetch)
+    console.log(`[Column Intelligence API] Loading overview for dataset: ${datasetId}`)
     const overview = await loadDatasetOverviewFromFile(workspaceId, datasetId)
     if (!overview) {
+      console.error(`[Column Intelligence API] Overview not found for dataset: ${datasetId}`)
       return NextResponse.json({ error: "Dataset overview not found. Please generate overview first." }, { status: 404 })
     }
+
+    console.log(`[Column Intelligence API] Overview loaded - rows=${overview.total_rows}, columns=${overview.total_columns}`)
 
     // Get previous intelligence if regenerating
     let previousIntelligence: ColumnIntelligence | null = null
     if (regenerate) {
+      console.log(`[Column Intelligence API] Regenerating - fetching previous intelligence`)
       previousIntelligence = await getColumnIntelligence(workspaceId)
       // Delete old intelligence file
       if (previousIntelligence) {
+        console.log(`[Column Intelligence API] Deleting previous intelligence`)
         await deleteColumnIntelligence(workspaceId)
       }
     }
 
     // Generate new intelligence
+    console.log(`[Column Intelligence API] Generating column intelligence...`)
     const intelligence = generateColumnIntelligence(overview, previousIntelligence, regenerate)
+    
+    console.log(`[Column Intelligence API] Generated intelligence for ${intelligence.columns.length} columns`)
     
     // Save to workspace
     await saveColumnIntelligence(workspaceId, intelligence)
+    console.log(`[Column Intelligence API] Saved intelligence to workspace`)
 
-    return NextResponse.json({ success: true, intelligence })
+    // Return response matching frontend expectations: { intelligence: ColumnIntelligence }
+    return NextResponse.json({ intelligence })
   } catch (e: any) {
-    console.error("Error generating column intelligence:", e)
+    console.error(`[Column Intelligence API] Error generating column intelligence:`, e)
+    console.error(`[Column Intelligence API] Error stack:`, e?.stack)
     return NextResponse.json({ error: e?.message || "Failed to generate column intelligence" }, { status: 500 })
   }
 }
@@ -483,18 +501,23 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ workspaceId: string }> | { workspaceId: string } },
 ) {
-  try {
-    const params = await Promise.resolve(context.params)
-    const { workspaceId } = params
+  const params = await Promise.resolve(context.params)
+  const { workspaceId } = params
 
+  console.log(`[Column Intelligence API HIT] GET /api/workspaces/${workspaceId}/column-intelligence`)
+
+  try {
     const intelligence = await getColumnIntelligence(workspaceId)
     if (!intelligence) {
+      console.log(`[Column Intelligence API] Intelligence not found for workspace: ${workspaceId}`)
       return NextResponse.json({ error: "Column intelligence not found" }, { status: 404 })
     }
 
+    console.log(`[Column Intelligence API] Returning intelligence for ${intelligence.columns.length} columns`)
     return NextResponse.json({ intelligence })
   } catch (e: any) {
-    console.error("Error fetching column intelligence:", e)
+    console.error(`[Column Intelligence API] Error fetching column intelligence:`, e)
+    console.error(`[Column Intelligence API] Error stack:`, e?.stack)
     return NextResponse.json({ error: e?.message || "Failed to fetch column intelligence" }, { status: 500 })
   }
 }
