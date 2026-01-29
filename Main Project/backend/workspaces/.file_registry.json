@@ -187,5 +187,103 @@
     "file_type": "insight",
     "is_protected": false,
     "created_at": "2026-01-23T23:57:59.232591"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\datasets\\data.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\datasets\\data.csv",
+    "workspace_id": "workspace-1769678749907-6d1q567f9",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-29T15:01:15.656691"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\files\\data_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\files\\data_overview.json",
+    "workspace_id": "workspace-1769678749907-6d1q567f9",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:01:19.740309"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\files\\data_outlier_analysis.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\files\\data_outlier_analysis.json",
+    "workspace_id": "workspace-1769678749907-6d1q567f9",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:02:10.928438"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\datasets\\Before Encoding.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\datasets\\Before Encoding.csv",
+    "workspace_id": "workspace-1769678749907-6d1q567f9",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-29T15:03:42.009819"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\datasets\\bank-additional-full.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\datasets\\bank-additional-full.csv",
+    "workspace_id": "workspace-1769678749907-6d1q567f9",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-29T15:04:03.763665"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\files\\bank-additional-full_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\files\\bank-additional-full_overview.json",
+    "workspace_id": "workspace-1769678749907-6d1q567f9",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:04:09.408490"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\files\\bank-additional-full_outlier_analysis.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769678749907-6d1q567f9\\files\\bank-additional-full_outlier_analysis.json",
+    "workspace_id": "workspace-1769678749907-6d1q567f9",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:04:18.369328"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\datasets\\raw_data_for_eda.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\datasets\\raw_data_for_eda.csv",
+    "workspace_id": "workspace-1769679531712-meadsds6k",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-01-29T15:09:05.898656"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\files\\raw_data_for_eda_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\files\\raw_data_for_eda_overview.json",
+    "workspace_id": "workspace-1769679531712-meadsds6k",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:09:07.594552"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\files\\raw_data_for_eda_outlier_analysis.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\files\\raw_data_for_eda_outlier_analysis.json",
+    "workspace_id": "workspace-1769679531712-meadsds6k",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:15:53.473705"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\insights\\raw_data_for_eda.csv_id_v1.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\insights\\raw_data_for_eda.csv_id_v1.json",
+    "workspace_id": "workspace-1769679531712-meadsds6k",
+    "file_type": "insight",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:16:59.625878"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\insights\\raw_data_for_eda.csv_id_latest.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\insights\\raw_data_for_eda.csv_id_latest.json",
+    "workspace_id": "workspace-1769679531712-meadsds6k",
+    "file_type": "insight",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:16:59.625878"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\insights\\raw_data_for_eda.csv_age_v1.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\insights\\raw_data_for_eda.csv_age_v1.json",
+    "workspace_id": "workspace-1769679531712-meadsds6k",
+    "file_type": "insight",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:17:06.239279"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\insights\\raw_data_for_eda.csv_age_latest.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1769679531712-meadsds6k\\insights\\raw_data_for_eda.csv_age_latest.json",
+    "workspace_id": "workspace-1769679531712-meadsds6k",
+    "file_type": "insight",
+    "is_protected": false,
+    "created_at": "2026-01-29T15:17:06.239279"
   }
 }

@@ -1,0 +1,10 @@
+{
+  "workspace_id": "workspace-1769679531712-meadsds6k",
+  "dataset_id": "raw_data_for_eda.csv",
+  "dataset_hash": "708a7c998a12d170580bf5bc98cec614db802b313d7cb1188a55174e02910b49",
+  "method": "zscore",
+  "threshold": 3.0,
+  "timestamp": "2026-01-29T15:15:53.473705",
+  "outliers": [],
+  "total_outliers": 0
+}

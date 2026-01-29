@@ -1,0 +1,11 @@
+{
+  "chats": [
+    {
+      "chatId": "chat_1769679141184_6irj69zy0",
+      "title": "CHAT1",
+      "createdAt": 1769679141184,
+      "updatedAt": 1769679141184,
+      "isDeleted": false
+    }
+  ]
+}

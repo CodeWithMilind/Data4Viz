@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "hi"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! I'm here to assist you with your dataset. You've uploaded a dataset called \"raw_data_for_eda.csv\". I'll be working with the provided 1% exposure (20 rows) to ensure strict compliance with the configuration panel's data access policy.\n\nTo start, what would you like to do with this dataset? Would you like me to \"summarize\" it for you or \"explore\" it to identify potential insights?"
+    }
+  ]
+}
