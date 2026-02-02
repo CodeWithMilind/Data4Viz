@@ -71,7 +71,7 @@ interface SidebarProps {
 const navItems = [
   { id: "welcome", icon: Home, label: "Dashboard" },
   { id: "dataset", icon: Database, label: "Dataset" },
-  { id: "overview", icon: LayoutGrid, label: "Overview" },
+  { id: "overview", icon: LayoutGrid, label: "Dataset Overview" },
   { id: "cleaning", icon: Wrench, label: "Data Cleaning" },
   { id: "outlier", icon: AlertTriangle, label: "Outlier Handling" },
   { id: "agent", icon: Bot, label: "AI Agent" },
@@ -494,10 +494,10 @@ export function Sidebar({
           <DropdownMenuTrigger asChild>
             <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors" suppressHydrationWarning>
               <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center" suppressHydrationWarning>
-                <span className="text-sm font-semibold text-primary-foreground">JD</span>
+                <span className="text-sm font-semibold text-primary-foreground">M</span>
               </div>
               <div className="flex-1 min-w-0 text-left" suppressHydrationWarning>
-                <div className="font-medium text-sm text-sidebar-foreground truncate" suppressHydrationWarning>John Doe</div>
+                <div className="font-medium text-sm text-sidebar-foreground truncate" suppressHydrationWarning>Milind</div>
                 <div className="text-xs text-muted-foreground" suppressHydrationWarning>Free Plan</div>
               </div>
               <ChevronDown className="w-4 h-4 text-muted-foreground" />

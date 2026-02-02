@@ -29,7 +29,7 @@ export function SettingsPage() {
   const [keyInput, setKeyInput] = useState("")
   const [keySaved, setKeySaved] = useState(false)
   const [theme, setTheme] = useState<"light" | "gray">("light")
-  const [displayName, setDisplayName] = useState("John Doe")
+  const [displayName, setDisplayName] = useState("Milind")
 
   const { provider, model, setProvider, setModel, setApiKey, apiKey, modelAutoUpdated } = useAIConfigStore()
 
