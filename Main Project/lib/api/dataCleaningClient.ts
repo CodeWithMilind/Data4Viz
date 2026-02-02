@@ -131,10 +131,16 @@ export interface OutlierDetectionResponse {
  * No fake or global datasets are returned.
  * 
  * @param workspaceId Workspace identifier (required)
- * @returns List of dataset metadata (id, rows, columns)
+ * @returns List of dataset metadata (id, rows, columns), or empty array on error
  * @throws Error if API call fails
  */
 export async function getWorkspaceDatasets(workspaceId: string): Promise<DatasetInfo[]> {
+  // Defensive check: validate workspaceId
+  if (!workspaceId || workspaceId.trim() === "") {
+    console.warn("getWorkspaceDatasets called with empty workspaceId, returning empty array");
+    return [];
+  }
+
   try {
     const data: WorkspaceDatasetsResponse = await safeFetchJson<WorkspaceDatasetsResponse>(
       `/workspaces/${workspaceId}/datasets`,
@@ -147,13 +153,26 @@ export async function getWorkspaceDatasets(workspaceId: string): Promise<Dataset
       },
       getBaseUrlSafe()
     );
+    
+    // Defensive check: validate response structure
+    if (!data || typeof data !== 'object' || !Array.isArray(data.datasets)) {
+      console.warn("getWorkspaceDatasets returned invalid response structure:", data);
+      return [];
+    }
+    
     return data.datasets;
   } catch (error) {
     console.error("Error fetching workspace datasets:", error);
+    // Return empty array instead of throwing to prevent UI crash
+    // This allows the UI to gracefully handle missing/unavailable datasets
     if (error instanceof FetchError) {
-      throw new Error(`Failed to fetch workspace datasets: ${error.message}`);
+      if (error.status === 500) {
+        console.warn(`Backend returned HTTP 500 for workspace datasets. Dataset/file may not exist or be temporarily unavailable.`);
+      } else if (error.status === 404) {
+        console.warn(`Workspace not found (404). Returning empty dataset list.`);
+      }
     }
-    throw error;
+    return [];
   }
 }
 
@@ -392,16 +411,27 @@ export interface OverviewResponse {
  * 
  * WORKSPACE-CENTRIC: Reads from saved JSON file in workspace.
  * No computation - instant response if file exists.
+ * Gracefully handles missing files by returning null.
  * 
  * @param workspaceId Workspace identifier (required)
  * @param datasetId Dataset filename (required)
- * @returns Overview summary with all statistics
- * @throws Error if file doesn't exist or API call fails
+ * @returns Overview summary with all statistics, or null if file not found
  */
 export async function getDatasetOverviewFromFile(
   workspaceId: string,
   datasetId: string
 ): Promise<OverviewResponse | null> {
+  // Defensive checks: validate required parameters
+  if (!workspaceId || workspaceId.trim() === "") {
+    console.warn("getDatasetOverviewFromFile called with empty workspaceId, returning null");
+    return null;
+  }
+  
+  if (!datasetId || datasetId.trim() === "") {
+    console.warn("getDatasetOverviewFromFile called with empty datasetId, returning null");
+    return null;
+  }
+
   const requestUrl =
     `${getBaseUrlSafe()}/api/overview/file?workspace_id=${workspaceId}&dataset_id=${datasetId}`;
 
@@ -414,17 +444,42 @@ export async function getDatasetOverviewFromFile(
     }, getBaseUrlSafe());
 
     if (response.status === 404) {
+      console.warn(`[getDatasetOverviewFromFile] 404 - Overview file not found for ${datasetId}`);
+      return null;
+    }
+
+    // Handle 500 - file may be corrupted
+    if (response.status === 500) {
+      console.warn(`[getDatasetOverviewFromFile] Backend error (500) - File may be corrupted. Returning null.`);
+      return null;
+    }
+
+    if (!response.ok) {
+      console.warn(`[getDatasetOverviewFromFile] Non-OK response (${response.status}). Returning null.`);
       return null;
     }
 
     const data: OverviewResponse = await response.json();
+    
+    // Validate response structure
+    if (!data || typeof data !== 'object') {
+      console.warn(`[getDatasetOverviewFromFile] Invalid response format, returning null:`, data);
+      return null;
+    }
+    
+    if (typeof data.total_rows !== 'number') {
+      console.warn(`[getDatasetOverviewFromFile] Invalid total_rows, returning null:`, data);
+      return null;
+    }
+
     console.log(
       `[getDatasetOverviewFromFile] Success – rows=${data.total_rows}, columns=${data.total_columns}`
     );
 
     return data;
   } catch (error) {
-    if (error instanceof FetchError && error.status === 404) {
+    if (error instanceof FetchError && (error.status === 404 || error.status === 500)) {
+      console.warn(`[getDatasetOverviewFromFile] FetchError ${error.status} - Returning null`);
       return null;
     }
     const errorMessage = error instanceof FetchError 
@@ -432,8 +487,9 @@ export async function getDatasetOverviewFromFile(
       : error instanceof Error 
         ? error.message 
         : String(error);
-    console.error(`[getDatasetOverviewFromFile] Error: ${errorMessage}`);
-    throw new Error(`Failed to fetch dataset overview: ${errorMessage}`);
+    console.warn(`[getDatasetOverviewFromFile] Error: ${errorMessage}. Returning null gracefully.`);
+    // Return null instead of throwing to prevent UI crash
+    return null;
   }
 }
 
@@ -442,11 +498,12 @@ export async function getDatasetOverviewFromFile(
  * 
  * WORKSPACE-CENTRIC: Computes overview and saves to workspace file.
  * Use this only when file doesn't exist or user explicitly requests refresh.
+ * Gracefully handles missing datasets or backend errors by returning null.
  * 
  * @param workspaceId Workspace identifier (required)
  * @param datasetId Dataset filename (required)
  * @param refresh If true, force recomputation even if file exists
- * @returns Overview summary with all statistics
+ * @returns Overview summary with all statistics, or null if dataset/overview not available
  * @throws Error if API call fails
  */
 export async function getDatasetOverview(
@@ -454,6 +511,17 @@ export async function getDatasetOverview(
   datasetId: string,
   refresh: boolean = false
 ): Promise<OverviewResponse | null> {
+  // Defensive checks: validate required parameters
+  if (!workspaceId || workspaceId.trim() === "") {
+    console.warn("getDatasetOverview called with empty workspaceId, returning null");
+    return null;
+  }
+  
+  if (!datasetId || datasetId.trim() === "") {
+    console.warn("getDatasetOverview called with empty datasetId, returning null");
+    return null;
+  }
+
   const requestUrl =
     `${getBaseUrlSafe()}/api/overview?workspace_id=${workspaceId}&dataset_id=${datasetId}&refresh=${refresh}`;
 
@@ -472,23 +540,29 @@ export async function getDatasetOverview(
       return null;
     }
 
+    // Handle 500 - backend error (dataset file missing, deleted, or corrupted)
+    if (response.status === 500) {
+      console.warn(`[getDatasetOverview] Backend error (500) for dataset: ${datasetId}. Dataset file may not exist, be deleted, or be temporarily unavailable.`);
+      return null;
+    }
+
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`[getDatasetOverview] Non-OK response (${response.status}): ${errorText}`);
-      throw new Error(`API returned ${response.status}: ${errorText}`);
+      console.warn(`[getDatasetOverview] Non-OK response (${response.status}): ${errorText}. Returning null.`);
+      return null;
     }
 
     const data: OverviewResponse = await response.json();
     
     // Validate response structure
     if (!data || typeof data !== 'object') {
-      console.error(`[getDatasetOverview] Invalid response format:`, data);
-      throw new Error('Invalid overview response format');
+      console.warn(`[getDatasetOverview] Invalid response format, returning null:`, data);
+      return null;
     }
     
-    if (!data.total_rows && data.total_rows !== 0) {
-      console.error(`[getDatasetOverview] Missing total_rows in response:`, data);
-      throw new Error('Invalid overview response: missing total_rows');
+    if (typeof data.total_rows !== 'number') {
+      console.warn(`[getDatasetOverview] Missing or invalid total_rows, returning null:`, data);
+      return null;
     }
     
     console.log(
@@ -497,8 +571,8 @@ export async function getDatasetOverview(
 
     return data;
   } catch (error) {
-    if (error instanceof FetchError && error.status === 404) {
-      console.warn(`[getDatasetOverview] FetchError 404 - Overview not found`);
+    if (error instanceof FetchError && (error.status === 404 || error.status === 500)) {
+      console.warn(`[getDatasetOverview] FetchError ${error.status} - Returning null gracefully`);
       return null;
     }
     const errorMessage = error instanceof FetchError 
@@ -506,8 +580,9 @@ export async function getDatasetOverview(
       : error instanceof Error 
         ? error.message 
         : String(error);
-    console.error(`[getDatasetOverview] Error: ${errorMessage}`, error);
-    throw new Error(`Failed to fetch dataset overview: ${errorMessage}`);
+    console.warn(`[getDatasetOverview] Error: ${errorMessage}. Returning null gracefully.`);
+    // Return null instead of throwing to prevent UI crash
+    return null;
   }
 }
 
@@ -516,16 +591,45 @@ export async function getDatasetOverview(
  * 
  * Uses GET /api/overview with refresh=true instead of POST /refresh
  * This is more reliable and consistent with the main endpoint.
+ * Gracefully handles errors by returning a safe fallback response.
  * 
  * @param workspaceId Workspace identifier (required)
  * @param datasetId Dataset filename (required)
- * @returns Overview summary with all statistics
- * @throws Error if API call fails
+ * @returns Overview summary with all statistics, or safe fallback on error
  */
 export async function refreshDatasetOverview(
   workspaceId: string,
   datasetId: string
 ): Promise<OverviewResponse> {
+  // Defensive checks: validate required parameters
+  if (!workspaceId || workspaceId.trim() === "") {
+    console.warn("refreshDatasetOverview called with empty workspaceId, returning fallback");
+    return {
+      total_rows: 0,
+      total_columns: 0,
+      duplicate_row_count: 0,
+      numeric_column_count: 0,
+      categorical_column_count: 0,
+      datetime_column_count: 0,
+      columns: [],
+      column_insights: {},
+    };
+  }
+  
+  if (!datasetId || datasetId.trim() === "") {
+    console.warn("refreshDatasetOverview called with empty datasetId, returning fallback");
+    return {
+      total_rows: 0,
+      total_columns: 0,
+      duplicate_row_count: 0,
+      numeric_column_count: 0,
+      categorical_column_count: 0,
+      datetime_column_count: 0,
+      columns: [],
+      column_insights: {},
+    };
+  }
+
   // Use GET endpoint with refresh=true instead of POST /refresh
   // This is more reliable and consistent
   const requestUrl =
@@ -542,14 +646,19 @@ export async function refreshDatasetOverview(
     console.log(`[refreshDatasetOverview] Response status: ${response.status}, ok: ${response.ok}`);
 
     if (response.status === 404) {
-      const errorText = await response.text().catch(() => 'Not Found');
-      console.error(`[refreshDatasetOverview] 404 - Dataset or workspace not found`);
-      throw new Error(`Dataset or workspace not found: ${errorText}`);
+      console.warn(`[refreshDatasetOverview] 404 - Dataset or workspace not found`);
+      throw new Error(`Dataset or workspace not found`);
+    }
+
+    // Handle 500 - backend error
+    if (response.status === 500) {
+      console.warn(`[refreshDatasetOverview] Backend error (500) for dataset: ${datasetId}. Returning fallback.`);
+      throw new Error(`Backend error: Dataset file may not exist or be temporarily unavailable`);
     }
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`[refreshDatasetOverview] Non-OK response (${response.status}): ${errorText}`);
+      console.warn(`[refreshDatasetOverview] Non-OK response (${response.status}): ${errorText}. Returning fallback.`);
       throw new Error(`API returned ${response.status}: ${errorText}`);
     }
 
@@ -557,12 +666,12 @@ export async function refreshDatasetOverview(
     
     // Validate response structure
     if (!data || typeof data !== 'object') {
-      console.error(`[refreshDatasetOverview] Invalid response format:`, data);
+      console.warn(`[refreshDatasetOverview] Invalid response format, returning fallback:`, data);
       throw new Error('Invalid overview response format');
     }
     
-    if (!data.total_rows && data.total_rows !== 0) {
-      console.error(`[refreshDatasetOverview] Missing total_rows in response:`, data);
+    if (typeof data.total_rows !== 'number') {
+      console.warn(`[refreshDatasetOverview] Missing or invalid total_rows, returning fallback:`, data);
       throw new Error('Invalid overview response: missing total_rows');
     }
     
@@ -577,8 +686,18 @@ export async function refreshDatasetOverview(
       : error instanceof Error 
         ? error.message 
         : String(error);
-    console.error(`[refreshDatasetOverview] Error: ${errorMessage}`, error);
-    throw new Error(`Failed to refresh dataset overview: ${errorMessage}`);
+    console.warn(`[refreshDatasetOverview] Error: ${errorMessage}. Returning safe fallback.`, error);
+    // Return safe fallback instead of throwing to prevent UI crash
+    return {
+      total_rows: 0,
+      total_columns: 0,
+      duplicate_row_count: 0,
+      numeric_column_count: 0,
+      categorical_column_count: 0,
+      datetime_column_count: 0,
+      columns: [],
+      column_insights: {},
+    };
   }
 }
 
@@ -756,18 +875,30 @@ export async function getColumnIntelligence(
  * Get dataset schema from backend
  * 
  * Schema is the single source of truth for column metadata.
+ * Gracefully handles missing datasets or backend errors by returning null.
  * 
  * @param workspaceId Workspace identifier
  * @param datasetId Dataset filename
  * @param useCurrent If true, use current_df (modified); if false, use raw_df (original)
- * @returns Schema with column metadata
- * @throws Error if API call fails
+ * @returns Schema with column metadata, or null if dataset/schema not available
+ * @throws Error if API call fails (only after defensive checks)
  */
 export async function getDatasetSchema(
   workspaceId: string,
   datasetId: string,
   useCurrent: boolean = true
 ): Promise<SchemaResponse | null> {
+  // Defensive checks: validate required parameters
+  if (!workspaceId || workspaceId.trim() === "") {
+    console.warn("getDatasetSchema called with empty workspaceId, returning null");
+    return null;
+  }
+  
+  if (!datasetId || datasetId.trim() === "") {
+    console.warn("getDatasetSchema called with empty datasetId, returning null");
+    return null;
+  }
+
   try {
     const response = await safeFetch(
       `/dataset/${encodeURIComponent(datasetId)}/schema?workspace_id=${encodeURIComponent(workspaceId)}&use_current=${useCurrent}`,
@@ -781,23 +912,54 @@ export async function getDatasetSchema(
       getBaseUrlSafe()
     );
 
+    // Handle 404 - dataset or schema not found
     if (response.status === 404) {
+      console.warn(`Dataset or schema not found (404): workspace=${workspaceId}, dataset=${datasetId}`);
+      return null;
+    }
+
+    // Handle 500 - backend error (dataset file missing, deleted, or corrupted)
+    if (response.status === 500) {
+      console.warn(`Backend error (500) fetching schema: workspace=${workspaceId}, dataset=${datasetId}. Dataset file may not exist, be deleted, or be temporarily unavailable.`);
       return null;
     }
 
     const data: SchemaResponse = await response.json();
+    
+    // Defensive check: validate response structure
+    if (!data || typeof data !== 'object') {
+      console.warn("getDatasetSchema returned non-object response:", data);
+      return null;
+    }
+    
+    if (!Array.isArray(data.columns)) {
+      console.warn("getDatasetSchema response missing columns array:", data);
+      return null;
+    }
+
     return data;
   } catch (error) {
     console.error("Error fetching dataset schema:", error);
-    if (error instanceof FetchError && error.status === 404) {
-      return null;
+    
+    // Handle FetchError with specific status codes
+    if (error instanceof FetchError) {
+      if (error.status === 404 || error.status === 500) {
+        // These are expected errors when dataset is missing - return null gracefully
+        console.warn(`FetchError ${error.status}: ${error.message}`);
+        return null;
+      }
     }
+    
+    // For other errors, try to return null gracefully instead of throwing
+    // This prevents UI crashes when schema is unavailable
     const errorMessage = error instanceof FetchError 
       ? error.message 
       : error instanceof Error 
         ? error.message 
         : String(error);
-    throw new Error(`Failed to fetch dataset schema: ${errorMessage}`);
+    
+    console.warn(`Could not fetch schema, returning null: ${errorMessage}`);
+    return null;
   }
 }
 

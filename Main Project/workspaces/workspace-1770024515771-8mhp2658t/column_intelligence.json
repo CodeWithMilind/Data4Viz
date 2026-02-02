@@ -1,0 +1,53 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "data_type": "identifier",
+      "meaning": "Row identifier or index column used to uniquely identify each record in the dataset.",
+      "why_used": "Used as a unique identifier to reference specific rows and maintain data integrity."
+    },
+    {
+      "name": "age",
+      "data_type": "numeric",
+      "meaning": "Age in years, representing the age of individuals in the dataset.",
+      "why_used": "Used for demographic segmentation, age-based customer profiling, and age-related trend analysis."
+    },
+    {
+      "name": "salary",
+      "data_type": "numeric",
+      "meaning": "Monetary compensation amount in currency units.",
+      "why_used": "Used for income-based segmentation, financial capacity analysis, and economic profiling."
+    },
+    {
+      "name": "experience_years",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "department",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: IT, Marketing, Sales.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "performance_score",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 5 distinct values. Common values: 1.0, 5.0, 3.0.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "work_hours_per_week",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "attrition",
+      "data_type": "boolean",
+      "meaning": "Boolean flag indicating true/false or yes/no values (e.g., Yes, No).",
+      "why_used": "Used for binary classification, filtering, and conditional segmentation in predictive modeling."
+    }
+  ],
+  "generated_at": 1770024687948
+}

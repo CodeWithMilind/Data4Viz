@@ -1,0 +1,51 @@
+{
+  "total_rows": 1,
+  "total_columns": 3,
+  "duplicate_row_count": 0,
+  "numeric_column_count": 3,
+  "categorical_column_count": 0,
+  "datetime_column_count": 0,
+  "columns": [
+    {
+      "name": "a",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "b",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "c",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    }
+  ],
+  "column_insights": {
+    "a": {
+      "unique": 1,
+      "top_values": {
+        "1": 1
+      }
+    },
+    "b": {
+      "unique": 1,
+      "top_values": {
+        "2": 1
+      }
+    },
+    "c": {
+      "unique": 1,
+      "top_values": {
+        "3": 1
+      }
+    }
+  }
+}

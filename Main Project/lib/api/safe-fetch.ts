@@ -208,10 +208,16 @@ export async function safeFetch(
 /**
  * Safe fetch with JSON parsing
  * 
+ * Defensive JSON parsing with detailed error handling:
+ * - Catches and wraps JSON parsing errors
+ * - Validates response is actually JSON
+ * - Provides helpful error messages for debugging
+ * 
  * @param url Full URL or path
  * @param options Fetch options
  * @param baseUrl Optional base URL
  * @returns Parsed JSON data
+ * @throws FetchError on JSON parsing failure
  */
 export async function safeFetchJson<T = any>(
   url: string,
@@ -221,10 +227,30 @@ export async function safeFetchJson<T = any>(
   const response = await safeFetch(url, options, baseUrl);
   
   try {
-    return await response.json();
+    // Try to parse JSON
+    const data = await response.json();
+    
+    // Basic validation: ensure we got an object or array
+    if (data === null || (typeof data !== 'object' && !Array.isArray(data))) {
+      throw new Error(`Expected JSON object/array, got ${typeof data}`);
+    }
+    
+    return data as T;
   } catch (error) {
+    // Detailed error handling for JSON parsing
+    const contentType = response.headers?.get('content-type') || 'unknown';
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : String(error);
+    
+    // Provide helpful error message
+    let detailedMessage = `Failed to parse JSON response (${response.status}): ${errorMessage}`;
+    if (!contentType.includes('application/json')) {
+      detailedMessage += ` (Content-Type: ${contentType}, expected application/json)`;
+    }
+    
     throw new FetchError(
-      'Failed to parse JSON response',
+      detailedMessage,
       'NETWORK_ERROR',
       response.status,
       error

@@ -1,10 +1,10 @@
 {
   "version": "1",
-  "workspace_id": "workspace-1769679531712-meadsds6k",
+  "workspace_id": "workspace-1770024515771-8mhp2658t",
   "dataset_id": "raw_data_for_eda.csv",
   "decision_metric": "age",
   "dataset_hash": "708a7c998a12d170580bf5bc98cec614db802b313d7cb1188a55174e02910b49",
-  "created_at": "2026-01-29T09:47:06.233172",
+  "created_at": "2026-02-02T12:25:49.415239",
   "backend_stats": {
     "decision_metric": "age",
     "total_rows": 2000,
@@ -130,37 +130,40 @@
       {
         "rank": 2,
         "factor": "experience_years",
-        "why_it_matters": "appears correlated with the age of employees",
-        "evidence": "absolute correlation coefficient of 0.0236 between experience_years and age",
+        "why_it_matters": "shows a pattern with age",
+        "evidence": "weak correlation coefficient of 0.0236",
         "confidence": "low",
         "confidence_explanation": "Low confidence \u2014 based on weak association."
       },
       {
         "rank": 3,
         "factor": "salary",
-        "why_it_matters": "appears correlated with the age of employees",
-        "evidence": "absolute correlation coefficient of 0.0234 between salary and age",
+        "why_it_matters": "suggests a relationship with age",
+        "evidence": "weak correlation coefficient of 0.0234",
         "confidence": "low",
         "confidence_explanation": "Low confidence \u2014 based on weak association."
       },
       {
         "rank": 4,
         "factor": "performance_score",
-        "why_it_matters": "suggests a relationship with the age of employees",
-        "evidence": "absolute correlation coefficient of 0.0097 between performance_score and age",
+        "why_it_matters": "appears correlated with age",
+        "evidence": "weak correlation coefficient of 0.0097",
         "confidence": "low",
         "confidence_explanation": "Low confidence \u2014 based on weak association."
       },
       {
         "rank": 5,
         "factor": "work_hours_per_week",
-        "why_it_matters": "suggests a relationship with the age of employees",
-        "evidence": "absolute correlation coefficient of 0.0092 between work_hours_per_week and age",
+        "why_it_matters": "suggests a relationship with age",
+        "evidence": "weak correlation coefficient of 0.0092",
         "confidence": "low",
         "confidence_explanation": "Low confidence \u2014 based on weak association."
       }
     ],
-    "data_risks": [],
-    "limitations": ""
+    "data_risks": [
+      "Dataset is missing 2% of rows with 0 outliers",
+      "Top segments have a limited number of observations (>20 in all segments)"
+    ],
+    "limitations": "Insights are subject to the pre-computed statistics and might not reflect the underlying data distribution."
   }
 }

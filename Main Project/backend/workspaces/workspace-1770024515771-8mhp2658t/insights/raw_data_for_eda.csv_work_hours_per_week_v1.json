@@ -1,0 +1,157 @@
+{
+  "version": "1",
+  "workspace_id": "workspace-1770024515771-8mhp2658t",
+  "dataset_id": "raw_data_for_eda.csv",
+  "decision_metric": "work_hours_per_week",
+  "dataset_hash": "708a7c998a12d170580bf5bc98cec614db802b313d7cb1188a55174e02910b49",
+  "created_at": "2026-02-02T12:25:38.692952",
+  "backend_stats": {
+    "decision_metric": "work_hours_per_week",
+    "total_rows": 2000,
+    "valid_rows": 1956,
+    "missing_percentage": 2.2,
+    "outlier_count": 0,
+    "outlier_percentage": 0,
+    "top_factors": [
+      {
+        "factor": "department",
+        "impact_score": 4.74,
+        "type": "categorical",
+        "mean_difference": 2.339,
+        "top_segments": {
+          "Marketing": 50.2997,
+          "IT": 49.5818,
+          "HR": 49.4219
+        },
+        "bottom_segments": {
+          "Finance": 47.9607,
+          "Sales": 48.8585,
+          "HR": 49.4219
+        }
+      },
+      {
+        "factor": "performance_score",
+        "impact_score": 1.16,
+        "type": "numeric",
+        "correlation": 0.0116,
+        "abs_correlation": 0.0116
+      },
+      {
+        "factor": "age",
+        "impact_score": 0.92,
+        "type": "numeric",
+        "correlation": -0.0092,
+        "abs_correlation": 0.0092
+      },
+      {
+        "factor": "attrition",
+        "impact_score": 0.29,
+        "type": "categorical",
+        "mean_difference": 0.143,
+        "top_segments": {
+          "Yes": 49.4305,
+          "No": 49.2875
+        },
+        "bottom_segments": {
+          "No": 49.2875,
+          "Yes": 49.4305
+        }
+      },
+      {
+        "factor": "experience_years",
+        "impact_score": 0.05,
+        "type": "numeric",
+        "correlation": -0.0005,
+        "abs_correlation": 0.0005
+      }
+    ],
+    "all_correlations": [
+      {
+        "factor": "performance_score",
+        "correlation": 0.0116,
+        "abs_correlation": 0.0116,
+        "type": "numeric"
+      },
+      {
+        "factor": "age",
+        "correlation": -0.0092,
+        "abs_correlation": 0.0092,
+        "type": "numeric"
+      },
+      {
+        "factor": "experience_years",
+        "correlation": -0.0005,
+        "abs_correlation": 0.0005,
+        "type": "numeric"
+      },
+      {
+        "factor": "salary",
+        "correlation": 0,
+        "abs_correlation": 0,
+        "type": "numeric"
+      }
+    ],
+    "all_segment_impacts": [
+      {
+        "factor": "department",
+        "mean_difference": 2.339,
+        "relative_impact_pct": 4.74,
+        "top_segments": {
+          "Marketing": 50.2997,
+          "IT": 49.5818,
+          "HR": 49.4219
+        },
+        "bottom_segments": {
+          "Finance": 47.9607,
+          "Sales": 48.8585,
+          "HR": 49.4219
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "attrition",
+        "mean_difference": 0.143,
+        "relative_impact_pct": 0.29,
+        "top_segments": {
+          "Yes": 49.4305,
+          "No": 49.2875
+        },
+        "bottom_segments": {
+          "No": 49.2875,
+          "Yes": 49.4305
+        },
+        "type": "categorical"
+      }
+    ],
+    "decision_metric_stats": {
+      "mean": 49.3139,
+      "median": 49,
+      "std": 11.3353,
+      "min": 30,
+      "max": 69
+    }
+  },
+  "insights": {
+    "decision_metric": "work_hours_per_week",
+    "top_insights": [
+      {
+        "rank": 2,
+        "factor": "performance_score",
+        "why_it_matters": "appears correlated with work hours per week",
+        "evidence": "Correlation coefficient of 0.0116, indicating a weak positive relationship between performance score and work hours per week",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on weak association."
+      },
+      {
+        "rank": 3,
+        "factor": "age",
+        "why_it_matters": "appears correlated with work hours per week",
+        "evidence": "Correlation coefficient of 0.0092, indicating a weak negative relationship between age and work hours per week",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on weak association."
+      }
+    ],
+    "data_risks": [],
+    "limitations": "Insights are based on data with no missing values, outliers, or extreme values."
+  }
+}

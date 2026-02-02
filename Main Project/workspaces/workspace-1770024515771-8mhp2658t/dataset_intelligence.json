@@ -1,0 +1,65 @@
+{
+  "file_name": "raw_data_for_eda.csv",
+  "rows": 2000,
+  "columns": 8,
+  "schema": [
+    {
+      "name": "id",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "age",
+      "type": "numeric",
+      "missing": 40
+    },
+    {
+      "name": "salary",
+      "type": "numeric",
+      "missing": 11
+    },
+    {
+      "name": "experience_years",
+      "type": "numeric",
+      "missing": 45
+    },
+    {
+      "name": "department",
+      "type": "categorical",
+      "missing": 308
+    },
+    {
+      "name": "performance_score",
+      "type": "numeric",
+      "missing": 383
+    },
+    {
+      "name": "work_hours_per_week",
+      "type": "numeric",
+      "missing": 44
+    },
+    {
+      "name": "attrition",
+      "type": "categorical",
+      "missing": 663
+    }
+  ],
+  "numeric_summary": {},
+  "categorical_summary": {
+    "department": [
+      "IT",
+      "Marketing",
+      "Sales",
+      "Finance",
+      "HR"
+    ],
+    "attrition": [
+      "Yes",
+      "No"
+    ]
+  },
+  "data_quality": {
+    "missing_columns": 7,
+    "duplicate_rows": 0
+  }
+}

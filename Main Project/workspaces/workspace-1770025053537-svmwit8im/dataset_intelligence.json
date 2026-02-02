@@ -1,0 +1,28 @@
+{
+  "file_name": "a (2).csv",
+  "rows": 1,
+  "columns": 3,
+  "schema": [
+    {
+      "name": "a",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "b",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "c",
+      "type": "numeric",
+      "missing": 0
+    }
+  ],
+  "numeric_summary": {},
+  "categorical_summary": {},
+  "data_quality": {
+    "missing_columns": 0,
+    "duplicate_rows": 0
+  }
+}

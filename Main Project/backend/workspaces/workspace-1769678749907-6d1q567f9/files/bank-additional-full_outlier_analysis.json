@@ -4,7 +4,7 @@
   "dataset_hash": "4b8471ab0de26deecbeb3004553a30304f6b4f80b11dd0c0fb299260849a6060",
   "method": "zscore",
   "threshold": 3.0,
-  "timestamp": "2026-01-29T15:04:18.269702",
+  "timestamp": "2026-01-29T17:09:56.948866",
   "outliers": [
     {
       "column_name": "campaign",
