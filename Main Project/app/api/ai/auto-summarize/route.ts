@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
 import { getDatasetIntelligence, type DatasetIntelligenceSnapshot } from "@/lib/workspace-files"
 import type { WorkspaceContext } from "@/lib/workspace-context"
+import { compactColumnInfo, isWithinTokenLimit } from "@/lib/ai/token-reducer"
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
@@ -37,6 +38,17 @@ function buildCodeGenerationPrompt(
   datasetPath: string,
   schema: DatasetIntelligenceSnapshot,
 ): string {
+  // Limit columns to 25 for token efficiency (auto-summarize is less critical than recommendations)
+  const columnNames = Object.keys(schema.schema || {}).slice(0, 25)
+  const columnDtypes = columnNames.reduce(
+    (acc, col) => {
+      acc[col] = schema.schema[col]?.type || "unknown"
+      return acc
+    },
+    {} as Record<string, string>,
+  )
+  const compactSchema = compactColumnInfo(columnNames, columnDtypes)
+
   return `You are Data4Viz AI acting as a DATA ANALYSIS PLANNER.
 
 STRICT RULES:
@@ -55,8 +67,8 @@ Dataset Path: ${datasetPath}
 
 Dataset Schema:
 - Rows: ${schema.rows}
-- Columns: ${schema.columns}
-- Columns: ${JSON.stringify(schema.schema, null, 2)}
+- Columns: ${schema.columns}${columnNames.length < schema.columns ? ` (showing first ${columnNames.length})` : ""}
+- Column Details: ${compactSchema}
 
 Generate Python code that:
 1. Loads the dataset using pandas: df = pd.read_csv(dataset_path)
@@ -142,6 +154,12 @@ export async function POST(req: NextRequest) {
       { role: "system" as const, content: codePrompt },
       { role: "user" as const, content: "Generate the Python analysis code." },
     ]
+
+    // Check if prompt is within token limits
+    const fullPrompt = codePrompt + " Generate the Python analysis code."
+    if (!isWithinTokenLimit(fullPrompt, 3000)) {
+      console.warn("[auto-summarize] Prompt token limit exceeded, proceeding with caution")
+    }
 
     let codeResult = await callGroq(key, model, messages)
 

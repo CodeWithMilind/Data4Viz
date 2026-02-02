@@ -18,6 +18,7 @@ import type { WorkspaceContext } from "@/lib/workspace-context"
 import type { OverviewResponse } from "@/lib/api/dataCleaningClient"
 import { loadDatasetOverviewFromFile } from "@/lib/workspace-files"
 import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
+import { isWithinTokenLimit } from "@/lib/ai/token-reducer"
 import { promises as fs } from "fs"
 import path from "path"
 import { existsSync } from "fs"
@@ -441,16 +442,20 @@ Safety & UX Rules:
   }
 
   // Include dataset sample data with exposure level context
+  // TOKEN OPTIMIZATION: Limit sample rows to reduce prompt size
   if (datasetSample && "mode" in datasetSample && "exposure_percentage" in datasetSample) {
     const isFullData = datasetSample.mode === "FULL_DATA_MODE"
+    const maxSampleRows = isFullData ? 5 : 3; // Limit rows: 5 for full, 3 for limited
+    const limitedSamples = datasetSample.sample_rows.slice(0, maxSampleRows);
+    
     prompt += `\n\nDATASET DATA (${isFullData ? "FULL ACCESS" : `${datasetSample.exposure_percentage}% EXPOSURE`}):\n`
     prompt += `Metadata:\n${JSON.stringify(datasetSample.metadata, null, 2)}\n\n`
     if (isFullData) {
-      prompt += `All Rows (${datasetSample.sample_rows.length} total rows, 100% access):\n`
+      prompt += `Sample Rows (${limitedSamples.length} of ${datasetSample.sample_rows.length} total rows shown, 100% access):\n`
     } else {
-      prompt += `Sample Rows (${datasetSample.sample_rows.length} of ${datasetSample.metadata.rows} total rows, ${datasetSample.exposure_percentage}% exposure):\n`
+      prompt += `Sample Rows (${limitedSamples.length} sample, ${datasetSample.exposure_percentage}% exposure):\n`
     }
-    prompt += `${JSON.stringify(datasetSample.sample_rows, null, 2)}\n`
+    prompt += `${JSON.stringify(limitedSamples, null, 2)}\n`
     if (!isFullData) {
       prompt += `\nNote: This is a representative sample. Analysis is based on ${datasetSample.exposure_percentage}% of the dataset.\n`
     }
@@ -815,6 +820,14 @@ export async function POST(req: NextRequest) {
       chatSummary,
       recentChat.messages,
     )
+
+    // Token size check: warn if system prompt is too large
+    if (!isWithinTokenLimit(systemPrompt, 3000)) {
+      console.warn(
+        `[chat] System prompt exceeds recommended token limit (${Math.ceil(systemPrompt.length / 4)} tokens estimated). ` +
+        `Some context may not be included in the AI request.`
+      );
+    }
 
     const messages = [
       { role: "system" as const, content: systemPrompt },

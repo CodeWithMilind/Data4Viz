@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
 import { callGroq, isDecommissionError } from "@/lib/ai/getAiClient"
 import type { AIMessage } from "@/lib/ai/getAiClient"
+import { truncateArray, compactOutlierInfo, isWithinTokenLimit } from "@/lib/ai/token-reducer"
 
 interface OutlierColumnSummary {
   column_name: string
@@ -42,56 +43,63 @@ interface OutlierRecommendationResponse {
 
 /**
  * Build prompt for AI to recommend outlier handling actions
+ * 
+ * Token-optimized: Only includes essential fields, truncates large arrays
  */
 function buildRecommendationPrompt(columns: OutlierColumnSummary[]): string {
-  const columnsInfo = columns.map(col => {
-    let info = `Column: ${col.column_name}\n`
-    info += `- Type: ${col.type}\n`
+  // Compact outlier info and limit to 15 columns max to reduce token usage
+  const compactedColumns = compactOutlierInfo(columns);
+  const limitedColumns = truncateArray(compactedColumns, 15);
+  
+  const columnsInfo = limitedColumns.map(col => {
+    let info = `${col.column_name} (${col.type}):`;
     
     if (col.lower_outlier_count !== undefined && col.lower_outlier_count > 0) {
-      info += `- Lower-bound outliers: ${col.lower_outlier_count} values from ${col.lower_outlier_min} to ${col.lower_outlier_max}\n`
+      info += ` ${col.lower_outlier_count} lower outliers`;
     }
     
     if (col.upper_outlier_count !== undefined && col.upper_outlier_count > 0) {
-      info += `- Upper-bound outliers: ${col.upper_outlier_count} values from ${col.upper_outlier_min} to ${col.upper_outlier_max}\n`
+      if (col.lower_outlier_count !== undefined && col.lower_outlier_count > 0) {
+        info += `, ${col.upper_outlier_count} upper outliers`;
+      } else {
+        info += ` ${col.upper_outlier_count} upper outliers`;
+      }
     }
     
     if (col.mean !== undefined) {
-      info += `- Mean: ${col.mean}\n`
+      info += ` (mean: ${col.mean})`;
     }
     if (col.median !== undefined) {
-      info += `- Median: ${col.median}\n`
+      info += ` (median: ${col.median})`;
     }
-    return info
-  }).join("\n\n")
+    
+    return info;
+  }).join("\n");
 
-  return `You are a data quality expert. Analyze the following outlier information and recommend the BEST action for LOWER-BOUND and UPPER-BOUND outliers separately for each column.
+  const prompt = `You are a data quality expert. Analyze outliers and recommend action: Remove | Cap | Transform | Ignore
 
-For each column, recommend actions for:
-- Lower-bound outliers (values below the lower threshold)
-- Upper-bound outliers (values above the upper threshold)
+For each column with outliers, recommend separate actions for LOWER and UPPER bounds.
 
-For each type, recommend ONE of these actions:
-- "Remove": If outliers are clearly errors or will significantly harm analysis
-- "Cap": If outliers are valid but extreme, cap them to reasonable bounds
-- "Transform": If outliers indicate a need for log/box-cox transformation
-- "Ignore": If outliers are valid and should be kept
-
-Provide your response as a JSON array with this exact structure:
-[
-  {
-    "column_name": "column_name",
-    "lower_action": "Remove|Cap|Transform|Ignore" (only if lower outliers exist),
-    "lower_reason": "1-2 sentence explanation for lower outliers",
-    "upper_action": "Remove|Cap|Transform|Ignore" (only if upper outliers exist),
-    "upper_reason": "1-2 sentence explanation for upper outliers"
-  }
-]
-
-Outlier Information:
+COLUMNS WITH OUTLIERS:
 ${columnsInfo}
 
-Respond ONLY with valid JSON, no markdown, no code blocks.`
+RESPOND ONLY with valid JSON array (no markdown):
+[
+  {
+    "column_name": "string",
+    "lower_action": "Remove|Cap|Transform|Ignore",
+    "lower_reason": "1 sentence max",
+    "upper_action": "Remove|Cap|Transform|Ignore",
+    "upper_reason": "1 sentence max"
+  }
+]`;
+
+  // Warn if prompt exceeds token limit
+  if (!isWithinTokenLimit(prompt, 2000)) {
+    console.warn(`[outlier-recommendations] Prompt exceeds token limit (${prompt.length} chars)`);
+  }
+
+  return prompt;
 }
 
 /**

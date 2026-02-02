@@ -23,5 +23,15 @@
     "file": "ai_chats/index.json",
     "type": "conversation",
     "summary": "Contains: chats"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1770035936408_w7mq1yymv.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1770035936408_w7mq1yymv.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
   }
 ]

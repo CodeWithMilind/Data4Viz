@@ -4,6 +4,7 @@ import { promises as fs } from "fs"
 import path from "path"
 import { existsSync, mkdirSync } from "fs"
 import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
+import { truncateArray, sampleRows, compactColumnInfo, isWithinTokenLimit } from "@/lib/ai/token-reducer"
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
@@ -63,64 +64,39 @@ function buildNotebookGenerationPrompt(
   },
   sampleRows: Record<string, any>[],
 ): string {
-  return `You are a Data Analysis AI Assistant. Generate a VALID Jupyter notebook (.ipynb) JSON structure that explains and analyzes a dataset.
+  // Token optimization: limit columns and sample rows
+  const maxColumns = 20;
+  const displayColumns = metadata.columnNames.slice(0, maxColumns);
+  const displayDtypes = Object.fromEntries(
+    displayColumns.map(col => [col, metadata.dtypes[col] || "unknown"])
+  );
+  const displaySample = sampleRows.slice(0, 2); // Only 2 sample rows
+  
+  const columnInfo = compactColumnInfo(displayColumns, displayDtypes);
+  
+  const prompt = `Generate a Jupyter notebook (.ipynb) for dataset: ${datasetName}
 
-STRICT REQUIREMENTS:
-1. Output ONLY valid JSON that conforms to Jupyter notebook format (nbformat 4)
-2. The notebook should contain:
-   - Markdown cells explaining the dataset structure, columns, and purpose
-   - Code cells (NOT executable here) showing analysis logic like:
-     * Loading the dataset: df = pd.read_csv('${datasetName}')
-     * Basic statistics: df.describe(), df.info()
-     * Data exploration: df.head(), df.shape
-     * Column analysis examples
-3. Code cells should reference the dataset path: '${datasetName}' (read-only reference)
-4. Do NOT include actual execution results or outputs
-5. Do NOT mutate or modify the dataset
-6. Focus on EXPLANATORY and ANALYTICAL code patterns
+DATASET:
+- Rows: ${metadata.rows}, Columns: ${metadata.columns}
+- Key columns: ${columnInfo}
 
-Dataset Metadata:
-- Name: ${datasetName}
-- Total Rows: ${metadata.rows}
-- Total Columns: ${metadata.columns}
-- Column Names: ${metadata.columnNames.join(", ")}
-- Data Types: ${JSON.stringify(metadata.dtypes, null, 2)}
+Sample (${displaySample.length} rows):
+${JSON.stringify(displaySample)}
 
-Sample Data (first ${sampleRows.length} rows):
-${JSON.stringify(sampleRows, null, 2)}
+Create .ipynb with:
+1. Title markdown cell
+2. Data loading code: df = pd.read_csv('${datasetName}')
+3. Basic exploration: df.info(), df.describe()
+4. Column analysis examples for first 3 columns
 
-Generate a complete .ipynb JSON structure with:
-- nbformat: 4
-- nbformat_minor: 4
-- metadata with language_info for Python
-- cells array with markdown and code cells
-- Each cell must have: cell_type, source (array of strings), metadata
+nbformat: 4, valid JSON only. No markdown code blocks.`;
 
-Example structure:
-{
-  "nbformat": 4,
-  "nbformat_minor": 4,
-  "metadata": {
-    "kernelspec": { "display_name": "Python 3", "name": "python3" },
-    "language_info": { "name": "python", "version": "3.8" }
-  },
-  "cells": [
-    {
-      "cell_type": "markdown",
-      "metadata": {},
-      "source": ["# Dataset Analysis: ${datasetName}"]
-    },
-    {
-      "cell_type": "code",
-      "metadata": {},
-      "source": ["import pandas as pd\\n", "df = pd.read_csv('${datasetName}')"],
-      "execution_count": null,
-      "outputs": []
-    }
-  ]
-}
+  // Log if exceeding token limit
+  if (!isWithinTokenLimit(prompt, 2000)) {
+    console.warn(`[generate-notebook] Prompt exceeds token limit (${prompt.length} chars)`);
+  }
 
-Output ONLY the JSON, no markdown code blocks, no explanations.`
+  return prompt;
 }
 
 export async function POST(req: NextRequest) {
