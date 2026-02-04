@@ -386,7 +386,13 @@ export function Sidebar({
             workspaces.map((workspace) => {
               const isActive = currentWorkspace?.id === workspace.id
               const isExpanded = expandedWorkspaceId === workspace.id
-              const datasetCount = workspace.datasets?.length || 0
+              let datasetCount = 0
+              try {
+                const ds = (workspace as any).datasets
+                datasetCount = Array.isArray(ds) ? ds.length : 0
+              } catch (err) {
+                datasetCount = 0
+              }
 
               return (
                 <div key={workspace.id} className="space-y-1" suppressHydrationWarning>

@@ -419,3 +419,44 @@ async def get_dataset_logs(
             status_code=500,
             detail=f"Failed to get operation logs: {str(e)}"
         )
+
+# ----------------------------
+# Internal Helper Functions
+# ----------------------------
+
+def get_dataset_schema_internal(
+    dataset_id: str,
+    workspace_id: str,
+    use_current: bool = True
+) -> Optional[Dict[str, Any]]:
+    """
+    Internal helper to get dataset schema without HTTP overhead.
+    
+    Used by other API modules that need schema information.
+    
+    Args:
+        dataset_id: Dataset filename
+        workspace_id: Workspace identifier
+        use_current: If True, use current_df (modified); if False, use raw_df (original)
+        
+    Returns:
+        Schema dictionary or None if schema cannot be computed
+    """
+    try:
+        # Verify dataset exists
+        if not dataset_exists(dataset_id, workspace_id):
+            logger.warning(f"[get_dataset_schema_internal] Dataset not found: {dataset_id} in workspace {workspace_id}")
+            return None
+        
+        # Compute schema
+        schema = compute_schema(workspace_id, dataset_id, use_current=use_current)
+        
+        if schema is None:
+            logger.error(f"[get_dataset_schema_internal] Failed to compute schema for {dataset_id}")
+            return None
+        
+        return schema
+        
+    except Exception as e:
+        logger.error(f"[get_dataset_schema_internal] Error getting schema: {str(e)}", exc_info=True)
+        return None

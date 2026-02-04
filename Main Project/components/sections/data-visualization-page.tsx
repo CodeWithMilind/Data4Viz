@@ -1,56 +1,48 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { BarChart3, TrendingUp, BarChart, Settings } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { BarChart3, TrendingUp, BarChart } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { 
-  generateChart, 
-  getDatasetSchema, 
-  type ChartIntent, 
-  type ChartOverrides,
-  type ChartGenerationResponse,
-  type ColumnSchema,
-} from "@/lib/api/dataCleaningClient"
+import { getDatasetSchema, type ColumnSchema, type ChartIntent } from "@/lib/api/dataCleaningClient"
+import { runVizion } from "@/lib/vizionClient"
 import { ChartCanvas } from "./chart-canvas"
-import { ChartControls } from "./chart-controls"
 
 const intents = [
-  { 
-    id: "compare" as ChartIntent, 
-    name: "Compare", 
-    icon: BarChart3, 
-    description: "Compare values across categories" 
-  },
-  { 
-    id: "trend" as ChartIntent, 
-    name: "Trend", 
-    icon: TrendingUp, 
-    description: "Show trends over time" 
-  },
-  { 
-    id: "distribution" as ChartIntent, 
-    name: "Distribution", 
-    icon: BarChart, 
-    description: "Display data distribution" 
-  },
+  { id: "compare" as ChartIntent, name: "Compare", icon: BarChart3, description: "Compare values across categories" },
+  { id: "trend" as ChartIntent, name: "Trend", icon: TrendingUp, description: "Show trends over time" },
+  { id: "distribution" as ChartIntent, name: "Distribution", icon: BarChart, description: "Display data distribution" },
 ]
 
 export function DataVisualizationPage() {
   const { currentWorkspace, activeWorkspaceId, getDatasets } = useWorkspace()
   const [selectedIntent, setSelectedIntent] = useState<ChartIntent | null>(null)
   const [selectedDatasetId, setSelectedDatasetId] = useState<string>("")
-  const [chartData, setChartData] = useState<ChartGenerationResponse | null>(null)
+  const [chartData, setChartData] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [showControls, setShowControls] = useState(false)
   const [schema, setSchema] = useState<ColumnSchema[]>([])
   const [isLoadingSchema, setIsLoadingSchema] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
+  // Vizion parameters
+  const [vizParams, setVizParams] = useState<any>({
+    chart_type: "bar",
+    x_column: "",
+    y_column: "",
+    aggregation: "count",
+    bins: 30,
+  })
+
   const datasets = getDatasets()
+
+  // Memoize prepared Vega-Lite spec to avoid unnecessary re-renders
+  const preparedVegaSpec = useMemo(() => {
+    if (!chartData) return null
+    return chartData.vega_lite_spec || null
+  }, [chartData, selectedDatasetId, datasets])
 
   // Prevent hydration mismatch: only fetch after mount
   useEffect(() => {
@@ -92,8 +84,8 @@ export function DataVisualizationPage() {
     loadSchema()
   }, [mounted, selectedDatasetId, activeWorkspaceId, datasets])
 
-  // Generate chart when intent and dataset are selected
-  const handleGenerateChart = async (intent: ChartIntent, overrides?: ChartOverrides) => {
+  // Run Vizion with current parameters and dataset rows
+  const runVizionWithParams = async (params: any) => {
     if (!selectedDatasetId || !activeWorkspaceId) {
       setError("Please select a dataset first")
       return
@@ -105,22 +97,28 @@ export function DataVisualizationPage() {
       return
     }
 
+    if (!dataset.data || dataset.data.length === 0) {
+      setError("Dataset has no rows to visualize")
+      return
+    }
+
     setIsLoading(true)
     setError(null)
-    setShowControls(false)
 
     try {
-      const response = await generateChart(
-        activeWorkspaceId,
-        dataset.fileName,
-        intent,
-        overrides
-      )
-      setChartData(response)
-      setSelectedIntent(intent)
-    } catch (err) {
-      console.error("Error generating chart:", err)
-      setError(err instanceof Error ? err.message : "Failed to generate chart")
+      const vizOutput = await runVizion(params, dataset.data)
+      if (!vizOutput || !vizOutput.vega_lite_spec) {
+        setError("Vizion did not return a valid visualization")
+        setChartData(null)
+      } else {
+        setChartData({
+          insight_text: vizOutput.insight_text || null,
+          vega_lite_spec: vizOutput.vega_lite_spec,
+          ai_defaults: params,
+        })
+      }
+    } catch (e: any) {
+      setError(e instanceof Error ? e.message : String(e))
       setChartData(null)
     } finally {
       setIsLoading(false)
@@ -129,16 +127,33 @@ export function DataVisualizationPage() {
 
   const handleIntentSelect = (intent: ChartIntent) => {
     setSelectedIntent(intent)
-    if (selectedDatasetId && activeWorkspaceId) {
-      handleGenerateChart(intent)
-    }
+    setVizParams((p: any) => ({ ...p, chart_type: intent }))
   }
 
-  const handleApplyOverrides = (overrides: ChartOverrides) => {
-    if (selectedIntent) {
-      handleGenerateChart(selectedIntent, overrides)
+  // When schema loads, set reasonable defaults for x/y
+  useEffect(() => {
+    if (schema.length === 0) return
+    setVizParams((p: any) => ({
+      ...p,
+      x_column: p.x_column || schema[0].name,
+      y_column: p.y_column || (schema.find((c) => c.canonical_type === "numeric")?.name || schema[0].name),
+    }))
+  }, [schema])
+
+  // Force aggregation to "count" for histogram charts
+  useEffect(() => {
+    if (vizParams.chart_type === "histogram" && vizParams.aggregation !== "count") {
+      setVizParams((p: any) => ({ ...p, aggregation: "count" }))
     }
-  }
+  }, [vizParams.chart_type])
+
+  // apply params change immediately
+  useEffect(() => {
+    if (selectedDatasetId && mounted) {
+      runVizionWithParams(vizParams)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vizParams, selectedDatasetId, mounted])
 
   return (
     <main className="flex-1 flex flex-col h-screen bg-background overflow-auto">
@@ -223,22 +238,9 @@ export function DataVisualizationPage() {
               <div>
                 <CardTitle>Chart Canvas</CardTitle>
                 <CardDescription>
-                  {chartData
-                    ? "AI-generated visualization"
-                    : "Select an intent and dataset to generate a chart"}
+                  {chartData ? "Vizion-generated visualization" : "Select an intent and dataset to generate a chart"}
                 </CardDescription>
               </div>
-              {chartData && !showControls && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowControls(true)}
-                  className="gap-2"
-                >
-                  <Settings className="w-4 h-4" />
-                  Customize chart
-                </Button>
-              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -251,24 +253,98 @@ export function DataVisualizationPage() {
 
             {/* Chart */}
             <ChartCanvas
-              vegaLiteSpec={chartData?.vega_lite_spec || null}
+              vegaLiteSpec={preparedVegaSpec}
               isLoading={isLoading}
             />
           </CardContent>
         </Card>
 
-        {/* Chart Controls Panel */}
-        {showControls && chartData && schema.length > 0 && (
-          <ChartControls
-            aiDefaults={chartData.ai_defaults}
-            columns={schema}
-            chartType={chartData.ai_defaults.chart_type}
-            onApply={(overrides) => {
-              handleApplyOverrides(overrides)
-              setShowControls(false)
-            }}
-            onCancel={() => setShowControls(false)}
-          />
+        {/* Vizion Parameter Panel */}
+        {selectedDatasetId && selectedIntent && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Vizion Parameters</CardTitle>
+              <CardDescription>Adjust parameters to control Vizion's output. Changes run immediately.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Chart Type</label>
+                  <Select value={vizParams.chart_type} onValueChange={(v) => setVizParams((p: any) => ({ ...p, chart_type: v }))}>
+                    <SelectTrigger className="w-full max-w-xs mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bar">Bar</SelectItem>
+                      <SelectItem value="line">Line</SelectItem>
+                      <SelectItem value="histogram">Histogram</SelectItem>
+                      <SelectItem value="scatter">Scatter</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">X Column</label>
+                  <Select value={vizParams.x_column} onValueChange={(v) => setVizParams((p: any) => ({ ...p, x_column: v }))}>
+                    <SelectTrigger className="w-full max-w-xs mt-2">
+                      <SelectValue placeholder="Select X column" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schema.map((c) => (
+                        <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Y Column</label>
+                  <Select value={vizParams.y_column} onValueChange={(v) => setVizParams((p: any) => ({ ...p, y_column: v }))}>
+                    <SelectTrigger className="w-full max-w-xs mt-2">
+                      <SelectValue placeholder="Select Y column" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schema.map((c) => (
+                        <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label className="text-sm font-medium">Aggregation</label>
+                  {vizParams.chart_type === "histogram" ? (
+                    <div className="mt-2 text-sm">Count (forced for histogram)</div>
+                  ) : (
+                    <Select value={vizParams.aggregation} onValueChange={(v) => setVizParams((p: any) => ({ ...p, aggregation: v }))}>
+                      <SelectTrigger className="w-full max-w-xs mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="count">Count</SelectItem>
+                        <SelectItem value="sum">Sum</SelectItem>
+                        <SelectItem value="mean">Mean</SelectItem>
+                        <SelectItem value="median">Median</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Bins</label>
+                  <input
+                    className="mt-2 p-2 border rounded w-24"
+                    type="number"
+                    min={1}
+                    value={vizParams.bins}
+                    onChange={(e) => setVizParams((p: any) => ({ ...p, bins: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </main>

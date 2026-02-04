@@ -165,16 +165,27 @@ export function ChartControls({
         {/* Aggregation */}
         <div className="space-y-2">
           <Label htmlFor="aggregation">Aggregation</Label>
-          <Select value={selectedAggregation} onValueChange={(value) => setSelectedAggregation(value as "sum" | "avg" | "count")}>
-            <SelectTrigger id="aggregation">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sum">Sum</SelectItem>
-              <SelectItem value="avg">Average</SelectItem>
-              <SelectItem value="count">Count</SelectItem>
-            </SelectContent>
-          </Select>
+          {selectedChartType === "histogram" ? (
+            <div className="relative">
+              <div className="px-3 py-2 border border-input rounded-md bg-muted text-muted-foreground text-sm">
+                Count (forced for histogram)
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Histograms always use count aggregation
+              </p>
+            </div>
+          ) : (
+            <Select value={selectedAggregation} onValueChange={(value) => setSelectedAggregation(value as "sum" | "avg" | "count")}>
+              <SelectTrigger id="aggregation">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sum">Sum</SelectItem>
+                <SelectItem value="avg">Average</SelectItem>
+                <SelectItem value="count">Count</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <p className="text-xs text-muted-foreground">
             AI recommended: {aiDefaults.aggregation}
           </p>

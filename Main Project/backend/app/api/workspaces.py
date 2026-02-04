@@ -29,6 +29,7 @@ from app.services.file_registry import (
     get_file_metadata,
     unregister_file,
 )
+from app.services.vizion_runner import run_vizion, extract_vega_spec
 
 logger = logging.getLogger(__name__)
 
@@ -1327,3 +1328,297 @@ async def get_column_intelligence(workspace_id: str):
         status_code=404,
         detail=f"Column intelligence not found for workspace '{workspace_id}'. Call POST endpoint to generate."
     )
+
+# ----------------------------
+# Chart Generation Endpoint
+# ----------------------------
+
+class ChartOverrides(BaseModel):
+    """Chart customization overrides."""
+    chart_type: Optional[str] = None
+    x: Optional[str] = None
+    y: Optional[str] = None
+    aggregation: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
+
+
+class ChartGenerationRequest(BaseModel):
+    """Request to generate a chart."""
+    workspace_id: str
+    dataset_id: str
+    goal: str  # "compare", "trend", "distribution"
+    overrides: Optional[ChartOverrides] = None
+
+
+class ChartGenerationResponse(BaseModel):
+    """Chart generation response."""
+    insight_text: str
+    vega_lite_spec: Dict[str, Any]
+    ai_defaults: Dict[str, Any]
+
+
+def infer_chart_properties(
+    df: pd.DataFrame,
+    schema: List[Dict[str, Any]],
+    goal: str,
+    overrides: Optional[ChartOverrides] = None
+) -> Dict[str, Any]:
+    """
+    Infer optimal chart properties based on data schema and visualization goal.
+    
+    IMPORTANT: This function implements chart compatibility rules:
+    - Compare: Categorical X + Numeric Y (bar chart)
+    - Trend: Datetime X + Numeric Y (line chart)
+    - Distribution: Numeric X, count aggregation (histogram)
+    
+    Args:
+        df: DataFrame to visualize
+        schema: Column schema information
+        goal: Visualization intent ("compare", "trend", "distribution")
+        overrides: Optional user overrides
+        
+    Returns:
+        Chart properties with chart_type, x, y, aggregation, and params
+    """
+    # Build schema lookup by column name
+    schema_lookup = {col["name"]: col for col in schema}
+    columns = list(df.columns)
+    
+    # Helper: Find first column of type
+    def find_column_of_type(canonical_type):
+        for col_name in columns:
+            if col_name in schema_lookup:
+                if schema_lookup[col_name].get("canonical_type") == canonical_type:
+                    return col_name
+        return None
+    
+    # Default to first column if no type match
+    def safe_column_select(col_name):
+        if not col_name or col_name not in columns:
+            return columns[0] if columns else None
+        return col_name
+    
+    # Determine chart type and columns based on goal
+    if goal == "compare":
+        chart_type = "bar"
+        # Try to find categorical for X, numeric for Y
+        x = find_column_of_type("categorical") or columns[0]
+        y = find_column_of_type("numeric") or columns[1] if len(columns) > 1 else columns[0]
+        aggregation = "count"
+    elif goal == "trend":
+        chart_type = "line"
+        # Try to find datetime for X, numeric for Y
+        x = find_column_of_type("datetime") or columns[0]
+        y = find_column_of_type("numeric") or columns[1] if len(columns) > 1 else columns[0]
+        aggregation = "avg"
+    elif goal == "distribution":
+        chart_type = "histogram"
+        # Histogram needs numeric column
+        x = find_column_of_type("numeric") or columns[0]
+        y = x  # Distribution uses single column
+        aggregation = "count"  # Always count for distribution
+    else:
+        # Default fallback
+        chart_type = "bar"
+        x = columns[0] if columns else None
+        y = columns[1] if len(columns) > 1 else columns[0]
+        aggregation = "count"
+    
+    # Apply user overrides
+    if overrides:
+        if overrides.chart_type:
+            chart_type = overrides.chart_type
+        if overrides.x:
+            x = safe_column_select(overrides.x)
+        if overrides.y:
+            y = safe_column_select(overrides.y)
+        if overrides.aggregation:
+            aggregation = overrides.aggregation
+    
+    # Ensure columns are valid
+    x = safe_column_select(x)
+    y = safe_column_select(y)
+    
+    return {
+        "chart_type": chart_type,
+        "x": x,
+        "y": y,
+        "aggregation": aggregation,
+        "params": overrides.params if overrides and overrides.params else {},
+    }
+
+
+def generate_vega_lite_spec(
+    df: pd.DataFrame,
+    chart_type: str,
+    x_col: str,
+    y_col: str,
+    aggregation: str,
+) -> Dict[str, Any]:
+    """
+    Generate a Vega-Lite specification for the chart.
+    
+    Args:
+        df: DataFrame with data
+        chart_type: Type of chart (bar, line, histogram, scatter, pie)
+        x_col: Column name for X-axis
+        y_col: Column name for Y-axis
+        aggregation: Aggregation function (count, sum, avg, etc.)
+        
+    Returns:
+        Vega-Lite specification dictionary
+    """
+    
+    # Base spec with data included
+    spec: Dict[str, Any] = {
+        "data": {"values": df.to_dict(orient="records")},
+        "width": 700,
+        "height": 400,
+        "encoding": {
+            "x": {"field": x_col, "type": "nominal"},
+            "y": {"field": y_col, "type": "quantitative", "aggregate": aggregation},
+        },
+    }
+    
+    # Chart-specific configuration
+    if chart_type == "bar":
+        spec["mark"] = "bar"
+        spec["encoding"]["x"] = {"field": x_col, "type": "nominal"}
+        spec["encoding"]["y"] = {"field": y_col, "type": "quantitative", "aggregate": aggregation}
+    
+    elif chart_type == "line":
+        spec["mark"] = "line"
+        spec["encoding"]["x"] = {"field": x_col, "type": "temporal"}
+        spec["encoding"]["y"] = {"field": y_col, "type": "quantitative", "aggregate": aggregation}
+    
+    elif chart_type == "histogram":
+        spec["mark"] = "bar"
+        spec["encoding"]["x"] = {"field": x_col, "type": "quantitative", "bin": True}
+        spec["encoding"]["y"] = {"aggregate": "count", "type": "quantitative"}
+    
+    elif chart_type == "scatter":
+        spec["mark"] = "point"
+        spec["encoding"]["x"] = {"field": x_col, "type": "quantitative"}
+        spec["encoding"]["y"] = {"field": y_col, "type": "quantitative"}
+    
+    elif chart_type == "pie":
+        spec["mark"] = "arc"
+        spec["encoding"]["theta"] = {"field": y_col, "type": "quantitative", "aggregate": aggregation}
+        spec["encoding"]["color"] = {"field": x_col, "type": "nominal"}
+    
+    else:
+        # Default to bar
+        spec["mark"] = "bar"
+    
+    return spec
+
+
+@router.post("/{workspace_id}/datasets/{dataset_id}/chart", response_model=ChartGenerationResponse)
+async def generate_chart(workspace_id: str, dataset_id: str, request: ChartGenerationRequest):
+    """
+    Generate a chart for a dataset.
+    
+    This endpoint:
+    1. Loads the dataset from workspace storage
+    2. Loads the schema to understand column types
+    3. Infers optimal chart properties based on visualization goal
+    4. Generates a Vega-Lite specification
+    5. Returns the spec with real data rows injected
+    
+    Args:
+        workspace_id: Workspace identifier
+        dataset_id: Dataset filename (e.g., "sample.csv")
+        request: Chart generation request with goal and optional overrides
+        
+    Returns:
+        Chart response with vega_lite_spec and ai_defaults
+    """
+    logger.info(f"[generateChart] Request received - workspace_id={workspace_id}, dataset_id={dataset_id}, goal={request.goal}")
+    
+    try:
+        # Validate dataset exists
+        if not dataset_exists(dataset_id, workspace_id):
+            logger.warning(f"[generateChart] Dataset not found: {dataset_id} in workspace {workspace_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
+            )
+        
+        # Load dataset
+        df = load_dataset(dataset_id, workspace_id)
+        
+        # Check if dataset is empty
+        if df.empty:
+            logger.warning(f"[generateChart] Dataset is empty: {dataset_id}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Dataset '{dataset_id}' has no rows to visualize"
+            )
+        
+        # Load schema (optional) - used only for validation hints
+        from app.api.schema import get_dataset_schema_internal
+        schema_response = get_dataset_schema_internal(dataset_id, workspace_id, use_current=True)
+        schema = schema_response.get("columns", []) if schema_response and schema_response.get("columns") else []
+
+        # Build structured Vizion parameters from request.overrides
+        params: Dict[str, Any] = {}
+        if not request.overrides:
+            raise HTTPException(status_code=400, detail="Structured visualization parameters required in overrides")
+
+        overrides = request.overrides
+        # Map known fields
+        if overrides.chart_type:
+            params["chart_type"] = overrides.chart_type
+        if overrides.x:
+            params["x_column"] = overrides.x
+        if overrides.y:
+            params["y_column"] = overrides.y
+        if overrides.aggregation:
+            params["aggregation"] = overrides.aggregation
+        # Merge any extra params
+        if overrides.params and isinstance(overrides.params, dict):
+            params.update(overrides.params)
+
+        # Basic validation: require chart_type and x_column at minimum
+        if "chart_type" not in params or "x_column" not in params:
+            raise HTTPException(status_code=400, detail="Parameters 'chart_type' and 'x_column' are required")
+
+        # Call Vizion runner with real DataFrame and parameters
+        try:
+            vizion_output = run_vizion(params, df)
+        except Exception as e:
+            logger.error(f"[generateChart] Vizion runner failed: {str(e)}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Vizion execution failed: {str(e)}")
+
+        # Extract Vega-Lite spec from Vizion output
+        vega_spec = extract_vega_spec(vizion_output)
+        if not vega_spec:
+            # If Vizion didn't return a Vega-Lite spec, fail safely
+            logger.error("[generateChart] Vizion did not return a Vega-Lite specification")
+            raise HTTPException(status_code=502, detail="Vizion did not return a Vega-Lite specification")
+
+        insight_text = vizion_output.get("insight_text", "") if isinstance(vizion_output, dict) else ""
+
+        response = ChartGenerationResponse(
+            insight_text=insight_text,
+            vega_lite_spec=vega_spec,
+            ai_defaults={
+                "chart_type": params.get("chart_type"),
+                "x": params.get("x_column"),
+                "y": params.get("y_column"),
+                "aggregation": params.get("aggregation"),
+                "params": {k: v for k, v in params.items() if k not in ("chart_type", "x_column", "y_column", "aggregation")},
+            }
+        )
+
+        logger.info(f"[generateChart] Chart generated by Vizion for {dataset_id}")
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[generateChart] Error generating chart: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate chart: {str(e)}"
+        )
