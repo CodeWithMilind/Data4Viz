@@ -13,5 +13,25 @@
     "file": "column_intelligence.json",
     "type": "data",
     "summary": "Contains: columns, generated_at"
+  },
+  {
+    "file": "dataset_analysis_state.json",
+    "type": "dataset",
+    "summary": "Dataset metadata and schema"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1770192197610_5nc2wowzv.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1770192197610_5nc2wowzv.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/index.json",
+    "type": "conversation",
+    "summary": "Contains: chats"
   }
 ]

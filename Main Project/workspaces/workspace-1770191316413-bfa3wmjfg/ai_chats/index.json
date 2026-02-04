@@ -1,0 +1,12 @@
+{
+  "chats": [
+    {
+      "chatId": "chat_1770192197610_5nc2wowzv",
+      "title": "data exploration",
+      "description": "handle",
+      "createdAt": 1770192197610,
+      "updatedAt": 1770192267805,
+      "isDeleted": false
+    }
+  ]
+}

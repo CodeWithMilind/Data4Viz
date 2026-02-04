@@ -285,5 +285,61 @@
     "file_type": "insight",
     "is_protected": false,
     "created_at": "2026-02-04T13:20:11.584805"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\test-ws-1770192461239\\datasets\\test_dataset.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\test-ws-1770192461239\\datasets\\test_dataset.csv",
+    "workspace_id": "test-ws-1770192461239",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-02-04T13:37:43.286756"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\test-ws-1770192461239\\files\\test_dataset_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\test-ws-1770192461239\\files\\test_dataset_overview.json",
+    "workspace_id": "test-ws-1770192461239",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-02-04T13:37:43.304482"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\test-ws-1770192511589\\datasets\\test_dataset.csv": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\test-ws-1770192511589\\datasets\\test_dataset.csv",
+    "workspace_id": "test-ws-1770192511589",
+    "file_type": "csv",
+    "is_protected": true,
+    "created_at": "2026-02-04T13:38:33.705177"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\test-ws-1770192511589\\files\\test_dataset_overview.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\test-ws-1770192511589\\files\\test_dataset_overview.json",
+    "workspace_id": "test-ws-1770192511589",
+    "file_type": "overview",
+    "is_protected": false,
+    "created_at": "2026-02-04T13:38:33.733359"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1770191316413-bfa3wmjfg\\insights\\bank-additional-full.csv_previous_v1.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1770191316413-bfa3wmjfg\\insights\\bank-additional-full.csv_previous_v1.json",
+    "workspace_id": "workspace-1770191316413-bfa3wmjfg",
+    "file_type": "insight",
+    "is_protected": false,
+    "created_at": "2026-02-04T13:43:18.182670"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1770191316413-bfa3wmjfg\\insights\\bank-additional-full.csv_previous_latest.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1770191316413-bfa3wmjfg\\insights\\bank-additional-full.csv_previous_latest.json",
+    "workspace_id": "workspace-1770191316413-bfa3wmjfg",
+    "file_type": "insight",
+    "is_protected": false,
+    "created_at": "2026-02-04T13:43:18.191180"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1770191316413-bfa3wmjfg\\insights\\bank-additional-full.csv_campaign_v1.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1770191316413-bfa3wmjfg\\insights\\bank-additional-full.csv_campaign_v1.json",
+    "workspace_id": "workspace-1770191316413-bfa3wmjfg",
+    "file_type": "insight",
+    "is_protected": false,
+    "created_at": "2026-02-04T13:44:00.739301"
+  },
+  "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1770191316413-bfa3wmjfg\\insights\\bank-additional-full.csv_campaign_latest.json": {
+    "file_path": "C:\\Users\\milind\\Documents\\GitHub\\Data4Viz\\Main Project\\backend\\workspaces\\workspace-1770191316413-bfa3wmjfg\\insights\\bank-additional-full.csv_campaign_latest.json",
+    "workspace_id": "workspace-1770191316413-bfa3wmjfg",
+    "file_type": "insight",
+    "is_protected": false,
+    "created_at": "2026-02-04T13:44:00.741780"
   }
 }

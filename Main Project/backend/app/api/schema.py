@@ -77,6 +77,10 @@ async def get_dataset_schema(
     """
     Get schema for a dataset.
     
+    DEFENSIVE ENDPOINT: Always returns valid SchemaResponse (HTTP 200).
+    - Never returns 500 for computation errors
+    - Returns empty schema as fallback if dataset can't be processed
+    
     Schema is the single source of truth for column metadata.
     This endpoint:
     - Loads dataset into in-memory cache if not already loaded
@@ -89,9 +93,20 @@ async def get_dataset_schema(
         use_current: If True, use current_df (modified); if False, use raw_df (original)
         
     Returns:
-        Schema with column metadata
+        Schema with column metadata (or empty schema if dataset has issues)
     """
     logger.info(f"[API START] get_dataset_schema - dataset_id={dataset_id}, workspace_id={workspace_id}, use_current={use_current}")
+    
+    # DEFENSIVE: Create empty fallback schema for error cases
+    empty_schema = {
+        "workspace_id": workspace_id,
+        "dataset_id": dataset_id,
+        "total_rows": 0,
+        "total_columns": 0,
+        "columns": [],
+        "computed_at": __import__("datetime").datetime.utcnow().isoformat(),
+        "using_current": use_current
+    }
     
     try:
         # Log request payload
@@ -103,47 +118,43 @@ async def get_dataset_schema(
         logger.info(f"[SCHEMA] dataset_exists returned: {dataset_exists_result}")
         
         if not dataset_exists_result:
-            logger.warning(f"[SCHEMA] Dataset not found: {dataset_id} in workspace {workspace_id}")
-            raise HTTPException(
-                status_code=404,
-                detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
-            )
+            logger.warning(f"[SCHEMA] Dataset not found: {dataset_id} in workspace {workspace_id} - returning empty schema")
+            # DEFENSIVE: Return empty schema instead of 404
+            return SchemaResponse(**empty_schema)
+        
         logger.info(f"[SCHEMA] Dataset exists, computing schema...")
         
-        # Compute schema (will auto-load into cache if needed)
-        logger.info(f"[SCHEMA] Calling compute_schema...")
-        schema = compute_schema(workspace_id, dataset_id, use_current=use_current)
-        logger.info(f"[SCHEMA] Schema computed, schema is None: {schema is None}, schema type: {type(schema)}")
+        try:
+            # Compute schema (will auto-load into cache if needed)
+            logger.info(f"[SCHEMA] Calling compute_schema...")
+            schema = compute_schema(workspace_id, dataset_id, use_current=use_current)
+            logger.info(f"[SCHEMA] Schema computed, schema is None: {schema is None}, schema type: {type(schema)}")
+            
+            if schema is None:
+                logger.error(f"[SCHEMA] Failed to compute schema for {dataset_id} - compute_schema returned None")
+                # DEFENSIVE: Return empty schema instead of 500
+                return SchemaResponse(**empty_schema)
+            
+            # Validate schema structure before returning
+            logger.info(f"[SCHEMA] Validating schema structure...")
+            if not isinstance(schema, dict):
+                logger.error(f"[SCHEMA] Schema is not a dict, got {type(schema)}")
+                # DEFENSIVE: Return empty schema instead of 500
+                return SchemaResponse(**empty_schema)
+            
+            logger.info(f"[RESPONSE SENT] Returning schema for dataset '{dataset_id}' in workspace '{workspace_id}' - columns: {len(schema.get('columns', []))}")
+            return SchemaResponse(**schema)
+            
+        except Exception as compute_error:
+            logger.error(f"[SCHEMA] Failed to compute schema: {compute_error}", exc_info=True)
+            # DEFENSIVE: Return empty schema for any computation error
+            logger.warning(f"[SCHEMA] Returning empty schema due to computation error")
+            return SchemaResponse(**empty_schema)
         
-        if schema is None:
-            logger.error(f"[SCHEMA] Failed to compute schema for {dataset_id} - compute_schema returned None")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to compute schema for dataset '{dataset_id}'. Dataset may be empty or corrupted."
-            )
-        
-        # Validate schema structure before returning
-        logger.info(f"[SCHEMA] Validating schema structure...")
-        if not isinstance(schema, dict):
-            logger.error(f"[SCHEMA] Schema is not a dict, got {type(schema)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Invalid schema format returned for dataset '{dataset_id}'"
-            )
-        
-        logger.info(f"[RESPONSE SENT] Returning schema for dataset '{dataset_id}' in workspace '{workspace_id}' - columns: {len(schema.get('columns', []))}")
-        return SchemaResponse(**schema)
-        
-    except HTTPException:
-        logger.info(f"[RESPONSE SENT] HTTPException raised for {dataset_id}")
-        raise
     except Exception as e:
-        logger.error(f"[ERROR] Error getting schema for dataset '{dataset_id}': {e}", exc_info=True)
-        logger.error(f"[ERROR] Exception type: {type(e).__name__}, message: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get schema: {str(e)}"
-        )
+        logger.error(f"[ERROR] Unexpected error in get_dataset_schema for dataset '{dataset_id}': {e}", exc_info=True)
+        # DEFENSIVE: Return empty schema for any unexpected error
+        return SchemaResponse(**empty_schema)
 
 
 @router.post("/{dataset_id}/load")

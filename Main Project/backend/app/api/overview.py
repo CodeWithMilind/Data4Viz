@@ -295,6 +295,11 @@ async def get_overview(
     """
     Get dataset overview.
     
+    DEFENSIVE ENDPOINT: Always returns valid OverviewResponse (HTTP 200).
+    - Never returns 404 after successful upload
+    - Never returns 500 for computation errors
+    - Returns empty overview as fallback if computation fails
+    
     WORKSPACE-CENTRIC: Reads from saved file if exists, computes only if missing or refresh=True.
     
     Args:
@@ -303,69 +308,88 @@ async def get_overview(
         refresh: If True, force recomputation and save new result
         
     Returns:
-        Overview statistics
+        Overview statistics (or empty overview if dataset has issues)
     """
     logger.info(f"[Overview API] GET /api/overview called")
     logger.info(f"[API START] get_overview - dataset_id={dataset_id}, workspace_id={workspace_id}, refresh={refresh}")
     logger.info(f"[API START] Request URL path would be: /api/overview?workspace_id={workspace_id}&dataset_id={dataset_id}&refresh={refresh}")
+    
+    # DEFENSIVE: Create empty fallback overview for error cases
+    empty_overview = OverviewResponse(
+        total_rows=0,
+        total_columns=0,
+        duplicate_row_count=0,
+        numeric_column_count=0,
+        categorical_column_count=0,
+        datetime_column_count=0,
+        columns=[],
+        column_insights={}
+    )
+    
     try:
         logger.info(f"[OVERVIEW] Checking if dataset exists...")
         if not dataset_exists(dataset_id, workspace_id):
-            logger.warning(f"[OVERVIEW] Dataset not found: {dataset_id} in workspace {workspace_id}")
-            raise HTTPException(
-                status_code=404,
-                detail=f"Dataset '{dataset_id}' not found in workspace '{workspace_id}'"
-            )
+            logger.warning(f"[OVERVIEW] Dataset not found: {dataset_id} in workspace {workspace_id} - returning empty overview")
+            # DEFENSIVE: Return empty overview instead of 404
+            # After successful upload, dataset should exist; if it doesn't, assume it's being created
+            return empty_overview
+
         logger.info(f"[OVERVIEW] Dataset exists")
 
         # Try to load from file first (unless refresh requested)
         if not refresh:
             logger.info(f"[OVERVIEW] Attempting to load from file...")
-            cached_overview = load_overview_from_file(workspace_id, dataset_id)
-            if cached_overview:
-                logger.info(f"[RESPONSE SENT] Returning cached overview for {dataset_id}")
-                return cached_overview
+            try:
+                cached_overview = load_overview_from_file(workspace_id, dataset_id)
+                if cached_overview:
+                    logger.info(f"[RESPONSE SENT] Returning cached overview for {dataset_id}")
+                    return cached_overview
+            except Exception as cache_error:
+                logger.warning(f"[OVERVIEW] Failed to load cached overview: {cache_error}")
+                # Fall through to compute
             logger.info(f"[OVERVIEW] No cached overview found, will compute")
 
         # Compute overview (either missing or refresh requested)
-        logger.info(f"[OVERVIEW] Computing overview for {dataset_id} (refresh={refresh})")
-        logger.info(f"[OVERVIEW] Loading dataset...")
-        df = load_dataset(dataset_id, workspace_id)
-        logger.info(f"[OVERVIEW] Dataset loaded - rows={len(df)}, columns={len(df.columns)}")
-        logger.info(f"[OVERVIEW] Computing overview statistics...")
-        overview = compute_overview(df)
-        logger.info(f"[OVERVIEW] Overview computed - rows={overview.total_rows}, columns={overview.total_columns}")
-        
-        # Save to file for future use - CRITICAL: Must succeed
-        logger.info(f"[OVERVIEW] Saving overview to file...")
         try:
-            save_overview_to_file(workspace_id, dataset_id, overview)
-            logger.info(f"[OVERVIEW] Overview file saved successfully")
-        except Exception as save_error:
-            logger.error(f"[OVERVIEW] CRITICAL: Failed to save overview file: {save_error}", exc_info=True)
-            # Still return overview, but log the error
-            # Frontend will get overview in response, but file won't be cached
-            logger.warning(f"[OVERVIEW] Returning overview despite file save failure - file will not be cached")
+            logger.info(f"[OVERVIEW] Computing overview for {dataset_id} (refresh={refresh})")
+            logger.info(f"[OVERVIEW] Loading dataset...")
+            df = load_dataset(dataset_id, workspace_id)
+            logger.info(f"[OVERVIEW] Dataset loaded - rows={len(df)}, columns={len(df.columns)}")
+            logger.info(f"[OVERVIEW] Computing overview statistics...")
+            overview = compute_overview(df)
+            logger.info(f"[OVERVIEW] Overview computed - rows={overview.total_rows}, columns={overview.total_columns}")
+            
+            # Save to file for future use - CRITICAL: Must succeed
+            logger.info(f"[OVERVIEW] Saving overview to file...")
+            try:
+                save_overview_to_file(workspace_id, dataset_id, overview)
+                logger.info(f"[OVERVIEW] Overview file saved successfully")
+            except Exception as save_error:
+                logger.error(f"[OVERVIEW] Failed to save overview file: {save_error}", exc_info=True)
+                # Still return overview, but log the error
+                # Frontend will get overview in response, but file won't be cached
+                logger.warning(f"[OVERVIEW] Returning overview despite file save failure - file will not be cached")
+            
+            # Verify file exists after save (double-check)
+            overview_path = get_overview_file_path(workspace_id, dataset_id)
+            if overview_path.exists():
+                logger.info(f"[OVERVIEW] Verified overview file exists at {overview_path}")
+            else:
+                logger.warning(f"[OVERVIEW] WARNING: Overview file not found after save at {overview_path}")
+            
+            logger.info(f"[RESPONSE SENT] Returning overview for {dataset_id}")
+            return overview
+            
+        except Exception as compute_error:
+            logger.error(f"[OVERVIEW] Failed to compute overview for {dataset_id}: {compute_error}", exc_info=True)
+            # DEFENSIVE: Return empty overview instead of raising 500
+            logger.warning(f"[OVERVIEW] Returning empty overview due to computation error")
+            return empty_overview
         
-        # Verify file exists after save (double-check)
-        overview_path = get_overview_file_path(workspace_id, dataset_id)
-        if overview_path.exists():
-            logger.info(f"[OVERVIEW] Verified overview file exists at {overview_path}")
-        else:
-            logger.warning(f"[OVERVIEW] WARNING: Overview file not found after save at {overview_path}")
-        
-        logger.info(f"[RESPONSE SENT] Returning overview for {dataset_id}")
-        return overview
-        
-    except HTTPException:
-        logger.info(f"[RESPONSE SENT] HTTPException raised for {dataset_id}")
-        raise
     except Exception as e:
-        logger.error(f"[ERROR] Error getting overview for dataset '{dataset_id}': {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get overview: {str(e)}"
-        )
+        logger.error(f"[ERROR] Unexpected error in get_overview for dataset '{dataset_id}': {e}", exc_info=True)
+        # DEFENSIVE: Return empty overview for any unexpected error
+        return empty_overview
 
 
 @router.get("/file", response_model=OverviewResponse)

@@ -1,0 +1,356 @@
+{
+  "version": "1",
+  "workspace_id": "workspace-1770191316413-bfa3wmjfg",
+  "dataset_id": "bank-additional-full.csv",
+  "decision_metric": "previous",
+  "dataset_hash": "fd68ec9c258ddaa8dfba84a9087d6946eee3f545ada539f91d494fa77ac93584",
+  "created_at": "2026-02-04T08:13:18.158723",
+  "backend_stats": {
+    "decision_metric": "previous",
+    "total_rows": 41188,
+    "valid_rows": 41188,
+    "missing_percentage": 0,
+    "outlier_count": 5625,
+    "outlier_percentage": 13.66,
+    "top_factors": [
+      {
+        "factor": "poutcome",
+        "impact_score": 907.45,
+        "type": "categorical",
+        "mean_difference": 1.5696,
+        "top_segments": {
+          "success": 1.5696,
+          "failure": 1.1686,
+          "nonexistent": 0
+        },
+        "bottom_segments": {
+          "nonexistent": 0,
+          "failure": 1.1686,
+          "success": 1.5696
+        }
+      },
+      {
+        "factor": "month",
+        "impact_score": 453.54,
+        "type": "categorical",
+        "mean_difference": 0.7845,
+        "top_segments": {
+          "sep": 0.8316,
+          "oct": 0.6476,
+          "dec": 0.6154
+        },
+        "bottom_segments": {
+          "jul": 0.0471,
+          "jun": 0.0831,
+          "aug": 0.1154
+        }
+      },
+      {
+        "factor": "job",
+        "impact_score": 232.44,
+        "type": "categorical",
+        "mean_difference": 0.402,
+        "top_segments": {
+          "student": 0.5246,
+          "retired": 0.3273,
+          "unemployed": 0.1992
+        },
+        "bottom_segments": {
+          "blue-collar": 0.1225,
+          "housemaid": 0.1377,
+          "entrepreneur": 0.1387
+        }
+      },
+      {
+        "factor": "y",
+        "impact_score": 208.31,
+        "type": "categorical",
+        "mean_difference": 0.3603,
+        "top_segments": {
+          "yes": 0.4927,
+          "no": 0.1324
+        },
+        "bottom_segments": {
+          "no": 0.1324,
+          "yes": 0.4927
+        }
+      },
+      {
+        "factor": "default",
+        "impact_score": 149.88,
+        "type": "categorical",
+        "mean_difference": 0.2592,
+        "top_segments": {
+          "yes": 0.3333,
+          "no": 0.199,
+          "unknown": 0.0741
+        },
+        "bottom_segments": {
+          "unknown": 0.0741,
+          "no": 0.199,
+          "yes": 0.3333
+        }
+      }
+    ],
+    "all_correlations": [
+      {
+        "factor": "pdays",
+        "correlation": -0.5875,
+        "abs_correlation": 0.5875,
+        "type": "numeric"
+      },
+      {
+        "factor": "nr.employed",
+        "correlation": -0.5013,
+        "abs_correlation": 0.5013,
+        "type": "numeric"
+      },
+      {
+        "factor": "euribor3m",
+        "correlation": -0.4545,
+        "abs_correlation": 0.4545,
+        "type": "numeric"
+      },
+      {
+        "factor": "emp.var.rate",
+        "correlation": -0.4205,
+        "abs_correlation": 0.4205,
+        "type": "numeric"
+      },
+      {
+        "factor": "campaign",
+        "correlation": -0.0791,
+        "abs_correlation": 0.0791,
+        "type": "numeric"
+      },
+      {
+        "factor": "age",
+        "correlation": 0.0244,
+        "abs_correlation": 0.0244,
+        "type": "numeric"
+      },
+      {
+        "factor": "duration",
+        "correlation": 0.0206,
+        "abs_correlation": 0.0206,
+        "type": "numeric"
+      }
+    ],
+    "all_segment_impacts": [
+      {
+        "factor": "poutcome",
+        "mean_difference": 1.5696,
+        "relative_impact_pct": 907.45,
+        "top_segments": {
+          "success": 1.5696,
+          "failure": 1.1686,
+          "nonexistent": 0
+        },
+        "bottom_segments": {
+          "nonexistent": 0,
+          "failure": 1.1686,
+          "success": 1.5696
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "month",
+        "mean_difference": 0.7845,
+        "relative_impact_pct": 453.54,
+        "top_segments": {
+          "sep": 0.8316,
+          "oct": 0.6476,
+          "dec": 0.6154
+        },
+        "bottom_segments": {
+          "jul": 0.0471,
+          "jun": 0.0831,
+          "aug": 0.1154
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "job",
+        "mean_difference": 0.402,
+        "relative_impact_pct": 232.44,
+        "top_segments": {
+          "student": 0.5246,
+          "retired": 0.3273,
+          "unemployed": 0.1992
+        },
+        "bottom_segments": {
+          "blue-collar": 0.1225,
+          "housemaid": 0.1377,
+          "entrepreneur": 0.1387
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "default",
+        "mean_difference": 0.2592,
+        "relative_impact_pct": 149.88,
+        "top_segments": {
+          "yes": 0.3333,
+          "no": 0.199,
+          "unknown": 0.0741
+        },
+        "bottom_segments": {
+          "unknown": 0.0741,
+          "no": 0.199,
+          "yes": 0.3333
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "contact",
+        "mean_difference": 0.2188,
+        "relative_impact_pct": 126.48,
+        "top_segments": {
+          "cellular": 0.2529,
+          "telephone": 0.0341
+        },
+        "bottom_segments": {
+          "telephone": 0.0341,
+          "cellular": 0.2529
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "marital",
+        "mean_difference": 0.1194,
+        "relative_impact_pct": 69.03,
+        "top_segments": {
+          "unknown": 0.275,
+          "single": 0.2114,
+          "divorced": 0.1687
+        },
+        "bottom_segments": {
+          "married": 0.1556,
+          "divorced": 0.1687,
+          "single": 0.2114
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "education",
+        "mean_difference": 0.1153,
+        "relative_impact_pct": 66.69,
+        "top_segments": {
+          "unknown": 0.2265,
+          "university.degree": 0.1924,
+          "high.school": 0.1859
+        },
+        "bottom_segments": {
+          "illiterate": 0.1111,
+          "basic.6y": 0.1291,
+          "basic.9y": 0.1414
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "housing",
+        "mean_difference": 0.0237,
+        "relative_impact_pct": 13.7,
+        "top_segments": {
+          "unknown": 0.1848,
+          "yes": 0.1826,
+          "no": 0.1612
+        },
+        "bottom_segments": {
+          "no": 0.1612,
+          "yes": 0.1826,
+          "unknown": 0.1848
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "loan",
+        "mean_difference": 0.0144,
+        "relative_impact_pct": 8.32,
+        "top_segments": {
+          "unknown": 0.1848,
+          "no": 0.1731,
+          "yes": 0.1705
+        },
+        "bottom_segments": {
+          "yes": 0.1705,
+          "no": 0.1731,
+          "unknown": 0.1848
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "day_of_week",
+        "mean_difference": 0.0084,
+        "relative_impact_pct": 4.87,
+        "top_segments": {
+          "fri": 0.1775,
+          "thu": 0.1744,
+          "tue": 0.1731
+        },
+        "bottom_segments": {
+          "wed": 0.169,
+          "mon": 0.171,
+          "tue": 0.1731
+        },
+        "type": "categorical"
+      }
+    ],
+    "decision_metric_stats": {
+      "mean": 0.173,
+      "median": 0,
+      "std": 0.4949,
+      "min": 0,
+      "max": 7
+    }
+  },
+  "insights": {
+    "decision_metric": "previous",
+    "top_insights": [
+      {
+        "rank": 1,
+        "factor": "poutcome",
+        "why_it_matters": "shows a pattern with previous value",
+        "evidence": "Mean difference: 1.5696. Top segments: success (1.5696), failure (1.1686), nonexistent (0)",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on limited separation or high variance."
+      },
+      {
+        "rank": 2,
+        "factor": "month",
+        "why_it_matters": "suggests a relationship with previous value",
+        "evidence": "Mean difference: 0.7845. Top segments: sep (0.8316), oct (0.6476), dec (0.6154)",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on limited separation or high variance."
+      },
+      {
+        "rank": 3,
+        "factor": "job",
+        "why_it_matters": "appears correlated with previous value",
+        "evidence": "Mean difference: 0.402. Top segments: student (0.5246), retired (0.3273), unemployed (0.1992)",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on limited separation or high variance."
+      },
+      {
+        "rank": 4,
+        "factor": "y",
+        "why_it_matters": "is associated with previous value",
+        "evidence": "Mean difference: 0.3603. Top segments: yes (0.4927), no (0.1324)",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on limited separation or high variance."
+      },
+      {
+        "rank": 5,
+        "factor": "default",
+        "why_it_matters": "shows a pattern with previous value",
+        "evidence": "Mean difference: 0.2592. Top segments: yes (0.3333), no (0.199), unknown (0.0741)",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on limited separation or high variance."
+      }
+    ],
+    "data_risks": [
+      "Outlier count: 5625 (13.66%)."
+    ],
+    "limitations": "Statistical evidence is based on pre-computed results. The confidence levels are determined by the numeric rules provided."
+  }
+}
