@@ -178,9 +178,10 @@ export function validateAndFilterInsights(
       continue
     }
 
-    // GATE 4: Suppression Gate - LOW confidence + weak effect → suppress
-    if (computedConfidence === "low" && effectSize < EPSILON) {
-      console.warn(`[validation] Suppressing insight: weak effect (${effectSize}) for factor "${factorName}"`)
+    // GATE 4: Suppression Gate - LOW confidence insights are suppressed entirely
+    // LOW confidence indicates weak statistical evidence and should not be displayed
+    if (computedConfidence === "low") {
+      console.warn(`[validation] Suppressing insight: low confidence for factor "${factorName}"`)
       continue
     }
 

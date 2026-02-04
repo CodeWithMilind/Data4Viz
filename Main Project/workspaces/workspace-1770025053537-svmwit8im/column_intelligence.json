@@ -1,0 +1,23 @@
+{
+  "columns": [
+    {
+      "name": "a",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "b",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "c",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    }
+  ],
+  "generated_at": 1770190184723
+}

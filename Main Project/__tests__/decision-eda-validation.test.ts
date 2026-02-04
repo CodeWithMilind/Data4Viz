@@ -164,6 +164,7 @@ describe("Insight Validation Function - Unit Tests", () => {
       const result = validateAndFilterInsights(rawInsights, backendStats, datasetColumns)
 
       // Assertions: Confidence must match computed values
+      // Note: LOW confidence insights are suppressed entirely, so only HIGH and MEDIUM remain
       const strongCorr = result.find((i) => i.factor === "strong_corr")
       expect(strongCorr?.confidence).toBe("high") // |0.75| >= 0.30
 
@@ -171,7 +172,7 @@ describe("Insight Validation Function - Unit Tests", () => {
       expect(mediumCorr?.confidence).toBe("medium") // 0.10 <= |0.20| < 0.30
 
       const weakCorr = result.find((i) => i.factor === "weak_corr")
-      expect(weakCorr?.confidence).toBe("low") // |0.08| < 0.10
+      expect(weakCorr).toBeUndefined() // LOW confidence - suppressed
 
       const strongCat = result.find((i) => i.factor === "strong_cat")
       expect(strongCat?.confidence).toBe("high") // relativeImpact > 20
@@ -180,7 +181,7 @@ describe("Insight Validation Function - Unit Tests", () => {
       expect(mediumCat?.confidence).toBe("medium") // 10 < relativeImpact <= 20
 
       const weakCat = result.find((i) => i.factor === "weak_cat")
-      expect(weakCat?.confidence).toBe("low") // relativeImpact <= 10
+      expect(weakCat).toBeUndefined() // LOW confidence - suppressed
     })
   })
 
