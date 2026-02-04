@@ -1,0 +1,329 @@
+{
+  "version": "1",
+  "workspace_id": "workspace-1770191316413-bfa3wmjfg",
+  "dataset_id": "bank-additional-full.csv",
+  "decision_metric": "pdays",
+  "dataset_hash": "fd68ec9c258ddaa8dfba84a9087d6946eee3f545ada539f91d494fa77ac93584",
+  "created_at": "2026-02-04T07:50:11.575149",
+  "backend_stats": {
+    "decision_metric": "pdays",
+    "total_rows": 41188,
+    "valid_rows": 41188,
+    "missing_percentage": 0,
+    "outlier_count": 1515,
+    "outlier_percentage": 3.68,
+    "top_factors": [
+      {
+        "factor": "poutcome",
+        "impact_score": 103.21,
+        "type": "categorical",
+        "mean_difference": 993.4122,
+        "top_segments": {
+          "nonexistent": 999,
+          "failure": 965.976,
+          "success": 5.5878
+        },
+        "bottom_segments": {
+          "success": 5.5878,
+          "failure": 965.976,
+          "nonexistent": 999
+        }
+      },
+      {
+        "factor": "previous",
+        "impact_score": 58.75,
+        "type": "numeric",
+        "correlation": -0.5875,
+        "abs_correlation": 0.5875
+      },
+      {
+        "factor": "nr.employed",
+        "impact_score": 37.26,
+        "type": "numeric",
+        "correlation": 0.3726,
+        "abs_correlation": 0.3726
+      },
+      {
+        "factor": "euribor3m",
+        "impact_score": 29.69,
+        "type": "numeric",
+        "correlation": 0.2969,
+        "abs_correlation": 0.2969
+      },
+      {
+        "factor": "month",
+        "impact_score": 27.45,
+        "type": "categorical",
+        "mean_difference": 264.199,
+        "top_segments": {
+          "jul": 982.7007,
+          "may": 981.1204,
+          "jun": 970.2215
+        },
+        "bottom_segments": {
+          "sep": 718.5018,
+          "dec": 748.0604,
+          "oct": 781.9095
+        }
+      }
+    ],
+    "all_correlations": [
+      {
+        "factor": "previous",
+        "correlation": -0.5875,
+        "abs_correlation": 0.5875,
+        "type": "numeric"
+      },
+      {
+        "factor": "nr.employed",
+        "correlation": 0.3726,
+        "abs_correlation": 0.3726,
+        "type": "numeric"
+      },
+      {
+        "factor": "euribor3m",
+        "correlation": 0.2969,
+        "abs_correlation": 0.2969,
+        "type": "numeric"
+      },
+      {
+        "factor": "emp.var.rate",
+        "correlation": 0.271,
+        "abs_correlation": 0.271,
+        "type": "numeric"
+      },
+      {
+        "factor": "campaign",
+        "correlation": 0.0526,
+        "abs_correlation": 0.0526,
+        "type": "numeric"
+      },
+      {
+        "factor": "duration",
+        "correlation": -0.0476,
+        "abs_correlation": 0.0476,
+        "type": "numeric"
+      },
+      {
+        "factor": "age",
+        "correlation": -0.0344,
+        "abs_correlation": 0.0344,
+        "type": "numeric"
+      }
+    ],
+    "all_segment_impacts": [
+      {
+        "factor": "poutcome",
+        "mean_difference": 993.4122,
+        "relative_impact_pct": 103.21,
+        "top_segments": {
+          "nonexistent": 999,
+          "failure": 965.976,
+          "success": 5.5878
+        },
+        "bottom_segments": {
+          "success": 5.5878,
+          "failure": 965.976,
+          "nonexistent": 999
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "month",
+        "mean_difference": 264.199,
+        "relative_impact_pct": 27.45,
+        "top_segments": {
+          "jul": 982.7007,
+          "may": 981.1204,
+          "jun": 970.2215
+        },
+        "bottom_segments": {
+          "sep": 718.5018,
+          "dec": 748.0604,
+          "oct": 781.9095
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "job",
+        "mean_difference": 144.9432,
+        "relative_impact_pct": 15.06,
+        "top_segments": {
+          "blue-collar": 985.1604,
+          "entrepreneur": 981.2672,
+          "services": 979.974
+        },
+        "bottom_segments": {
+          "student": 840.2171,
+          "retired": 897.936,
+          "unemployed": 935.3166
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "contact",
+        "mean_difference": 45.7936,
+        "relative_impact_pct": 4.76,
+        "top_segments": {
+          "telephone": 991.5429,
+          "cellular": 945.7492
+        },
+        "bottom_segments": {
+          "cellular": 945.7492,
+          "telephone": 991.5429
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "default",
+        "mean_difference": 44.2129,
+        "relative_impact_pct": 4.59,
+        "top_segments": {
+          "yes": 999,
+          "unknown": 991.6063,
+          "no": 954.7871
+        },
+        "bottom_segments": {
+          "no": 954.7871,
+          "unknown": 991.6063,
+          "yes": 999
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "education",
+        "mean_difference": 37.5375,
+        "relative_impact_pct": 3.9,
+        "top_segments": {
+          "basic.6y": 980.3682,
+          "basic.9y": 979.1332,
+          "basic.4y": 965.705
+        },
+        "bottom_segments": {
+          "unknown": 942.8307,
+          "illiterate": 943.8333,
+          "university.degree": 951.8077
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "marital",
+        "mean_difference": 31.5399,
+        "relative_impact_pct": 3.28,
+        "top_segments": {
+          "divorced": 968.6399,
+          "married": 967.2477,
+          "single": 949.9096
+        },
+        "bottom_segments": {
+          "unknown": 937.1,
+          "single": 949.9096,
+          "married": 967.2477
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "day_of_week",
+        "mean_difference": 8.2919,
+        "relative_impact_pct": 0.86,
+        "top_segments": {
+          "fri": 967.7938,
+          "wed": 962.86,
+          "mon": 962.8529
+        },
+        "bottom_segments": {
+          "thu": 959.5019,
+          "tue": 959.7156,
+          "mon": 962.8529
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "housing",
+        "mean_difference": 4.3317,
+        "relative_impact_pct": 0.45,
+        "top_segments": {
+          "unknown": 964.897,
+          "no": 964.5599,
+          "yes": 960.5653
+        },
+        "bottom_segments": {
+          "yes": 960.5653,
+          "no": 964.5599,
+          "unknown": 964.897
+        },
+        "type": "categorical"
+      },
+      {
+        "factor": "loan",
+        "mean_difference": 2.4851,
+        "relative_impact_pct": 0.26,
+        "top_segments": {
+          "unknown": 964.897,
+          "yes": 962.4374,
+          "no": 962.4118
+        },
+        "bottom_segments": {
+          "no": 962.4118,
+          "yes": 962.4374,
+          "unknown": 964.897
+        },
+        "type": "categorical"
+      }
+    ],
+    "decision_metric_stats": {
+      "mean": 962.4755,
+      "median": 999,
+      "std": 186.9109,
+      "min": 0,
+      "max": 999
+    }
+  },
+  "insights": {
+    "decision_metric": "pdays",
+    "top_insights": [
+      {
+        "rank": 1,
+        "factor": "poutcome",
+        "why_it_matters": "shows a pattern with the duration of past loan agreements.",
+        "evidence": "The mean difference between nonexistent, failure, and success outcomes is 993.4122.",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on limited separation or high variance."
+      },
+      {
+        "rank": 2,
+        "factor": "previous",
+        "why_it_matters": "appears correlated with loan agreement duration.",
+        "evidence": "The absolute correlation coefficient between previous loan agreements and the duration of current loan agreements is 0.5875.",
+        "confidence": "high",
+        "confidence_explanation": "High confidence \u2014 based on large sample size."
+      },
+      {
+        "rank": 3,
+        "factor": "nr.employed",
+        "why_it_matters": "appears correlated with loan agreement duration.",
+        "evidence": "The absolute correlation coefficient between nr.employed and the duration of current loan agreements is 0.3726.",
+        "confidence": "high",
+        "confidence_explanation": "High confidence \u2014 based on large sample size."
+      },
+      {
+        "rank": 4,
+        "factor": "euribor3m",
+        "why_it_matters": "appears correlated with loan agreement duration.",
+        "evidence": "The absolute correlation coefficient between euribor3m and the duration of current loan agreements is 0.2969.",
+        "confidence": "medium",
+        "confidence_explanation": "Medium confidence \u2014 based on moderate separation between segments."
+      },
+      {
+        "rank": 5,
+        "factor": "month",
+        "why_it_matters": "shows a pattern with the duration of loan agreements.",
+        "evidence": "The mean difference between various months is 264.199.",
+        "confidence": "low",
+        "confidence_explanation": "Low confidence \u2014 based on limited separation or high variance."
+      }
+    ],
+    "data_risks": [],
+    "limitations": ""
+  }
+}

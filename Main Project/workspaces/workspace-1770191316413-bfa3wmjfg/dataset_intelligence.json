@@ -1,0 +1,181 @@
+{
+  "file_name": "bank-additional-full.csv",
+  "rows": 41188,
+  "columns": 21,
+  "schema": [
+    {
+      "name": "age",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "job",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "marital",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "education",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "default",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "housing",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "loan",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "contact",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "month",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "day_of_week",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "duration",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "campaign",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "pdays",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "previous",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "poutcome",
+      "type": "categorical",
+      "missing": 0
+    },
+    {
+      "name": "emp.var.rate",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "cons.price.idx",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "cons.conf.idx",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "euribor3m",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "nr.employed",
+      "type": "numeric",
+      "missing": 0
+    },
+    {
+      "name": "y",
+      "type": "categorical",
+      "missing": 0
+    }
+  ],
+  "numeric_summary": {},
+  "categorical_summary": {
+    "job": [
+      "admin.",
+      "blue-collar",
+      "technician",
+      "services",
+      "management"
+    ],
+    "marital": [
+      "married",
+      "single",
+      "divorced",
+      "unknown"
+    ],
+    "education": [
+      "university.degree",
+      "high.school",
+      "basic.9y",
+      "professional.course",
+      "basic.4y"
+    ],
+    "default": [
+      "no",
+      "unknown",
+      "yes"
+    ],
+    "housing": [
+      "yes",
+      "no",
+      "unknown"
+    ],
+    "loan": [
+      "no",
+      "yes",
+      "unknown"
+    ],
+    "contact": [
+      "cellular",
+      "telephone"
+    ],
+    "month": [
+      "may",
+      "jul",
+      "aug",
+      "jun",
+      "nov"
+    ],
+    "day_of_week": [
+      "thu",
+      "mon",
+      "wed",
+      "tue",
+      "fri"
+    ],
+    "poutcome": [
+      "nonexistent",
+      "failure",
+      "success"
+    ],
+    "y": [
+      "no",
+      "yes"
+    ]
+  },
+  "data_quality": {
+    "missing_columns": 0,
+    "duplicate_rows": 12
+  }
+}

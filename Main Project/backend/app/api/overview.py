@@ -70,7 +70,7 @@ def infer_column_type(df: pd.DataFrame, col: str) -> str:
             return "numeric"
 
     # 4) datetime with sane years
-    parsed = pd.to_datetime(s, errors="coerce", infer_datetime_format=True)
+    parsed = pd.to_datetime(s, errors="coerce")
     if parsed.notna().mean() > 0.7:
         years = parsed.dropna().dt.year
         if not years.empty and years.between(1900, 2100).all():

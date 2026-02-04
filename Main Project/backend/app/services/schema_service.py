@@ -57,7 +57,7 @@ def get_canonical_type(series: pd.Series) -> str:
     
     # 5) Datetime-like strings
     if series.dtype == "object":
-        parsed = pd.to_datetime(series, errors="coerce", infer_datetime_format=True)
+        parsed = pd.to_datetime(series, errors="coerce")
         if parsed.notna().mean() > 0.7:
             years = parsed.dropna().dt.year
             if not years.empty and years.between(1900, 2100).all():

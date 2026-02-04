@@ -555,7 +555,7 @@ def infer_column_type(df: pd.DataFrame, col_name: str) -> str:
                 # Also try pandas' flexible parser as fallback
                 if not parsed:
                     try:
-                        dt = pd.to_datetime(val_str, errors="raise", infer_datetime_format=True)
+                        dt = pd.to_datetime(val_str, errors="raise")
                         if 1900 <= dt.year <= 2100:
                             valid_date_count += 1
                     except (ValueError, TypeError):
