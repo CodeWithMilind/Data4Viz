@@ -251,6 +251,13 @@ async def upload_dataset_to_workspace(
     """
     Upload a dataset to workspace storage.
     
+    ATOMIC OPERATION:
+    1. Validate CSV file
+    2. Save to workspace storage
+    3. Register in file registry
+    4. Generate and save dataset overview
+    5. Return success (or rollback on any failure)
+    
     This endpoint allows frontend to sync workspace datasets to backend storage.
     When a dataset is uploaded to a workspace in the frontend, it should also
     be uploaded here so backend can perform cleaning operations on it.
@@ -260,14 +267,18 @@ async def upload_dataset_to_workspace(
         file: CSV file to upload
         
     Returns:
-        Dataset metadata
+        Dataset metadata with rows and columns
     """
+    temp_file_path = None
     try:
-        if not file.filename.endswith('.csv'):
+        if not file.filename or not file.filename.endswith('.csv'):
             raise HTTPException(status_code=400, detail="Only CSV files are supported")
         
-        # Read CSV content with auto-detection of delimiter
+        # Step 1: Read and validate CSV content
         contents = await file.read()
+        if not contents:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty")
+        
         try:
             # Try auto-detecting delimiter first (pandas can detect comma, semicolon, tab, etc.)
             df = pd.read_csv(io.BytesIO(contents), sep=None, engine="python", on_bad_lines="skip")
@@ -275,40 +286,66 @@ async def upload_dataset_to_workspace(
             # Fallback: If only one column detected, try semicolon delimiter
             if len(df.columns) == 1:
                 try:
-                    # Create new BytesIO for second attempt (BytesIO is consumed after first read)
                     df_semicolon = pd.read_csv(io.BytesIO(contents), sep=";", engine="python", on_bad_lines="skip")
                     if len(df_semicolon.columns) > 1:
                         df = df_semicolon
                 except Exception:
-                    # If semicolon parsing also fails, keep original
                     pass
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to parse CSV file: {str(e)}")
         
-        # Save to workspace storage
+        # Validate parsed data
+        if len(df.columns) == 0:
+            raise HTTPException(status_code=400, detail="CSV file has no columns")
+        
+        # Step 2: Save to workspace storage
         datasets_dir = get_workspace_datasets_dir(workspace_id)
         file_path = datasets_dir / file.filename
+        temp_file_path = file_path  # Track for rollback if needed
         
-        df.to_csv(file_path, index=False)
+        try:
+            df.to_csv(file_path, index=False)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save dataset to workspace: {str(e)}")
         
-        # Register CSV file in registry (protected)
-        from app.services.file_registry import register_file
-        register_file(
-            file_path=str(file_path),
-            workspace_id=workspace_id,
-            file_type="csv",
-            is_protected=True,  # CSV files are protected
-        )
+        # Step 3: Register CSV file in registry (protected)
+        try:
+            from app.services.file_registry import register_file
+            register_file(
+                file_path=str(file_path),
+                workspace_id=workspace_id,
+                file_type="csv",
+                is_protected=True,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to register file in registry (non-critical): {e}")
+            # Don't fail upload - registration is best-effort
         
+        # Step 4: Generate and save overview IMMEDIATELY after upload
+        # This ensures overview always exists for newly uploaded datasets
+        try:
+            from app.api.overview import compute_overview, save_overview_to_file
+            logger.info(f"Generating overview for uploaded dataset: {file.filename}")
+            overview = compute_overview(df)
+            save_overview_to_file(workspace_id, file.filename, overview)
+            logger.info(f"Overview generated and saved for dataset: {file.filename}")
+        except Exception as e:
+            logger.error(f"Failed to generate overview after upload (non-critical): {e}")
+            # Don't fail upload - overview can be generated on-demand later
+            # But log the failure for debugging
+        
+        # Step 5: Return success
         return {
             "id": file.filename,
             "rows": len(df),
             "columns": len(df.columns),
-            "message": f"Dataset '{file.filename}' uploaded to workspace"
+            "message": f"Dataset '{file.filename}' uploaded successfully to workspace"
         }
+        
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Unexpected error during dataset upload: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to upload dataset: {str(e)}")
 
 

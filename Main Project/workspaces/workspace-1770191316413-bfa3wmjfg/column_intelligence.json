@@ -1,0 +1,131 @@
+{
+  "columns": [
+    {
+      "name": "age",
+      "data_type": "numeric",
+      "meaning": "Age in years, representing the age of individuals in the dataset.",
+      "why_used": "Used for demographic segmentation, age-based customer profiling, and age-related trend analysis."
+    },
+    {
+      "name": "job",
+      "data_type": "categorical",
+      "meaning": "Job title or occupation category Common values: admin., blue-collar, technician.",
+      "why_used": "Used for job-based segmentation, career analysis, and occupational grouping."
+    },
+    {
+      "name": "marital",
+      "data_type": "categorical",
+      "meaning": "Marital status of individuals (e.g., single, married, divorced).",
+      "why_used": "Used for demographic analysis, customer segmentation, and lifestyle profiling."
+    },
+    {
+      "name": "education",
+      "data_type": "categorical",
+      "meaning": "Education level or qualification Examples: university.degree, high.school, basic.9y.",
+      "why_used": "Used for educational background analysis and qualification-based segmentation."
+    },
+    {
+      "name": "default",
+      "data_type": "boolean",
+      "meaning": "Boolean indicator showing whether the customer defaulted on payment (yes/no).",
+      "why_used": "Used as a target variable for default prediction models and credit risk analysis."
+    },
+    {
+      "name": "housing",
+      "data_type": "boolean",
+      "meaning": "Boolean indicator showing housing loan status (yes/no).",
+      "why_used": "Used to identify customers with housing loans for financial product segmentation and risk assessment."
+    },
+    {
+      "name": "loan",
+      "data_type": "boolean",
+      "meaning": "Boolean indicator showing whether a loan was approved or not (yes/no).",
+      "why_used": "Used to filter and segment customers based on loan approval status for risk analysis and targeting."
+    },
+    {
+      "name": "contact",
+      "data_type": "categorical",
+      "meaning": "Method of contact (e.g., cellular, telephone).",
+      "why_used": "Used to understand communication preferences and contact channel effectiveness."
+    },
+    {
+      "name": "month",
+      "data_type": "categorical",
+      "meaning": "Month of the year Examples: may, jul, aug.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "day_of_week",
+      "data_type": "categorical",
+      "meaning": "Day of the week Examples: thu, mon, wed.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "duration",
+      "data_type": "numeric",
+      "meaning": "Duration measurement, typically in seconds, minutes, or days.",
+      "why_used": "Used for time-based analysis, duration trends, and temporal pattern identification."
+    },
+    {
+      "name": "campaign",
+      "data_type": "numeric",
+      "meaning": "Number of contacts performed during the current campaign.",
+      "why_used": "Used to measure campaign effectiveness, contact frequency analysis, and marketing optimization."
+    },
+    {
+      "name": "pdays",
+      "data_type": "categorical",
+      "meaning": "Day-related categorical feature.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "previous",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 8 distinct values. Common values: 0, 1, 2.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "poutcome",
+      "data_type": "categorical",
+      "meaning": "Categorical feature with 3 distinct values. Common values: nonexistent, failure, success.",
+      "why_used": "Used for grouping, filtering, and categorical analysis to identify patterns across different categories."
+    },
+    {
+      "name": "emp.var.rate",
+      "data_type": "numeric",
+      "meaning": "Numerical score or rating value for evaluation.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "cons.price.idx",
+      "data_type": "numeric",
+      "meaning": "Monetary or quantitative amount in currency or unit terms.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "cons.conf.idx",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "euribor3m",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "nr.employed",
+      "data_type": "numeric",
+      "meaning": "Numeric measurement representing a quantifiable value.",
+      "why_used": "Used for quantitative analysis, statistical modeling, and measurable attribute evaluation."
+    },
+    {
+      "name": "y",
+      "data_type": "boolean",
+      "meaning": "Boolean flag indicating true/false or yes/no values (e.g., no, yes).",
+      "why_used": "Used for binary classification, filtering, and conditional segmentation in predictive modeling."
+    }
+  ],
+  "generated_at": 1770191964282
+}

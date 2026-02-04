@@ -3,5 +3,15 @@
     "file": "dataset_intelligence.json",
     "type": "dataset",
     "summary": "Dataset metadata and schema"
+  },
+  {
+    "file": "files_index.json",
+    "type": "data",
+    "summary": "Index of workspace files"
+  },
+  {
+    "file": "column_intelligence.json",
+    "type": "data",
+    "summary": "Contains: columns, generated_at"
   }
 ]
