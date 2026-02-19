@@ -73,20 +73,72 @@ async def get_workspace_datasets(workspace_id: str):
     Reads from workspace storage - no fake or global datasets.
     Data Cleaning uses this endpoint to populate dataset dropdown.
     
+    Requirements:
+    - Parameter validation: workspace_id is required and cannot be empty
+    - Returns empty list (not error) if workspace has no datasets
+    - Returns empty list if workspace directory doesn't exist (no 404)
+    - Handles 500 errors gracefully with detailed logging
+    - Always returns valid WorkspaceDatasetsResponse structure (never undefined/null)
+    
     Args:
         workspace_id: Unique workspace identifier
         
     Returns:
         List of datasets with metadata (id, rows, columns)
+        Returns empty list if workspace is empty or doesn't exist
+        
+    Raises:
+        HTTPException 400: If workspace_id is missing or empty
+        HTTPException 500: If backend error occurs while reading datasets
     """
+    # Step 1: Validate required parameters
+    if not workspace_id or workspace_id.strip() == "":
+        logger.warning(f"[get_workspace_datasets] Invalid request: workspace_id is missing or empty")
+        raise HTTPException(
+            status_code=400,
+            detail="workspace_id is required and cannot be empty"
+        )
+    
+    logger.info(f"[get_workspace_datasets] Request received - workspace_id={workspace_id}")
+    
     try:
+        # Step 2: List workspace datasets
         datasets = list_workspace_datasets(workspace_id)
-        return WorkspaceDatasetsResponse(
+        
+        # Step 3: Validate response structure
+        if not isinstance(datasets, list):
+            logger.error(
+                f"[get_workspace_datasets] Invalid response from list_workspace_datasets: "
+                f"expected list, got {type(datasets).__name__}"
+            )
+            raise Exception(f"Internal error: list_workspace_datasets returned {type(datasets).__name__}")
+        
+        # Step 4: Log results
+        logger.info(
+            f"[get_workspace_datasets] Success - found {len(datasets)} datasets in workspace '{workspace_id}'"
+        )
+        
+        # Step 5: Return response (always valid structure)
+        response = WorkspaceDatasetsResponse(
             workspace_id=workspace_id,
             datasets=datasets
         )
+        
+        return response
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list workspace datasets: {str(e)}")
+        # Catch all backend errors
+        logger.error(
+            f"[get_workspace_datasets] Error listing datasets for workspace '{workspace_id}': {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list workspace datasets: {str(e)}"
+        )
 
 
 @router.get("/{workspace_id}/files", response_model=WorkspaceFilesResponse)
@@ -382,107 +434,195 @@ async def get_cleaning_summary(workspace_id: str, request: SummaryRequest):
     - Outlier count (for numeric columns)
     - Health score
     
+    Requirements:
+    - Parameter validation: workspace_id and dataset name required
+    - Returns 404 if dataset doesn't exist
+    - Returns 400 if parameters are invalid
+    - Always returns valid CleaningSummaryResponse (never undefined/null)
+    - Never allows unhandled promise rejection or undefined access
+    
     Args:
         workspace_id: Unique workspace identifier
         request: Request containing dataset filename
         
     Returns:
         Cleaning summary with column metrics and overall score
+        
+    Raises:
+        HTTPException 400: If workspace_id or dataset name is missing
+        HTTPException 404: If dataset doesn't exist in workspace
+        HTTPException 500: If backend error occurs
     """
+    # Step 1: Validate required parameters
+    if not workspace_id or workspace_id.strip() == "":
+        logger.warning(f"[get_cleaning_summary] Invalid request: workspace_id is missing or empty")
+        raise HTTPException(
+            status_code=400,
+            detail="workspace_id is required and cannot be empty"
+        )
+    
+    if not request.dataset or request.dataset.strip() == "":
+        logger.warning(f"[get_cleaning_summary] Invalid request: dataset name is missing or empty")
+        raise HTTPException(
+            status_code=400,
+            detail="dataset name is required and cannot be empty"
+        )
+    
     logger.info(f"[get_cleaning_summary] Request received - workspace_id={workspace_id}, dataset={request.dataset}")
     
     try:
-        # Validate dataset exists in workspace
+        # Step 2: Validate dataset exists in workspace
         if not dataset_exists(request.dataset, workspace_id):
-            logger.warning(f"[get_cleaning_summary] Dataset '{request.dataset}' not found in workspace '{workspace_id}'")
+            logger.warning(
+                f"[get_cleaning_summary] Dataset '{request.dataset}' not found in workspace '{workspace_id}'"
+            )
             raise HTTPException(
                 status_code=404,
                 detail=f"Dataset '{request.dataset}' not found in workspace"
             )
         
-        # Load dataset
-        df = load_dataset(request.dataset, workspace_id)
+        # Step 3: Load dataset
+        try:
+            df = load_dataset(request.dataset, workspace_id)
+        except Exception as e:
+            logger.error(
+                f"[get_cleaning_summary] Error loading dataset '{request.dataset}': {str(e)}",
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to load dataset: {str(e)}"
+            )
+        
+        # Validate dataframe
+        if df is None:
+            logger.error(f"[get_cleaning_summary] load_dataset returned None")
+            raise HTTPException(
+                status_code=500,
+                detail="Dataset loading returned invalid data"
+            )
+        
         logger.info(f"[get_cleaning_summary] Dataset loaded - rows={len(df)}, columns={len(df.columns)}")
         
-        total_rows = len(df)
-        column_summaries = []
-        total_health_score = 0
-        
-        # Analyze each column
-        for col in df.columns:
-            col_data = df[col]
+        # Step 4: Analyze dataset
+        try:
+            total_rows = len(df)
+            if total_rows == 0:
+                logger.warning(f"[get_cleaning_summary] Dataset is empty (0 rows)")
+                # Return empty but valid response for empty dataset
+                return CleaningSummaryResponse(
+                    rows=0,
+                    columns=[],
+                    overall_score=0.0
+                )
             
-            # Determine column type
-            if pd.api.types.is_numeric_dtype(col_data):
-                col_type = "numeric"
-            elif pd.api.types.is_datetime64_any_dtype(col_data):
-                col_type = "datetime"
-            elif pd.api.types.is_bool_dtype(col_data):
-                col_type = "boolean"
-            else:
-                col_type = "categorical"
+            column_summaries = []
+            total_health_score = 0
             
-            # Calculate missing percentage
-            missing_count = col_data.isna().sum()
-            missing_pct = (missing_count / total_rows * 100) if total_rows > 0 else 0
-            
-            # Calculate duplicate contribution (percentage of rows that are duplicates)
-            duplicate_count = col_data.duplicated().sum()
-            duplicates_pct = (duplicate_count / total_rows * 100) if total_rows > 0 else 0
-            
-            # Calculate outliers for numeric columns
-            outliers = None
-            if col_type == "numeric" and not col_data.isna().all():
-                Q1 = col_data.quantile(0.25)
-                Q3 = col_data.quantile(0.75)
-                IQR = Q3 - Q1
-                if IQR > 0:
-                    lower_bound = Q1 - 1.5 * IQR
-                    upper_bound = Q3 + 1.5 * IQR
-                    outliers = ((col_data < lower_bound) | (col_data > upper_bound)).sum()
+            # Analyze each column
+            for col in df.columns:
+                col_data = df[col]
+                
+                # Determine column type
+                if pd.api.types.is_numeric_dtype(col_data):
+                    col_type = "numeric"
+                elif pd.api.types.is_datetime64_any_dtype(col_data):
+                    col_type = "datetime"
+                elif pd.api.types.is_bool_dtype(col_data):
+                    col_type = "boolean"
                 else:
-                    outliers = 0
+                    col_type = "categorical"
+                
+                # Calculate missing percentage
+                missing_count = col_data.isna().sum()
+                missing_pct = (missing_count / total_rows * 100) if total_rows > 0 else 0
+                missing_pct = max(0.0, min(100.0, missing_pct))  # Clamp to 0-100
+                
+                # Calculate duplicate contribution (percentage of rows that are duplicates)
+                duplicate_count = col_data.duplicated().sum()
+                duplicates_pct = (duplicate_count / total_rows * 100) if total_rows > 0 else 0
+                duplicates_pct = max(0.0, min(100.0, duplicates_pct))  # Clamp to 0-100
+                
+                # Calculate outliers for numeric columns
+                outliers = None
+                if col_type == "numeric" and not col_data.isna().all():
+                    try:
+                        Q1 = col_data.quantile(0.25)
+                        Q3 = col_data.quantile(0.75)
+                        IQR = Q3 - Q1
+                        if IQR > 0:
+                            lower_bound = Q1 - 1.5 * IQR
+                            upper_bound = Q3 + 1.5 * IQR
+                            outliers = int(((col_data < lower_bound) | (col_data > upper_bound)).sum())
+                        else:
+                            outliers = 0
+                    except Exception as e:
+                        logger.warning(f"[get_cleaning_summary] Error calculating outliers for column '{col}': {e}")
+                        outliers = None
+                
+                # Calculate health score (0-100)
+                # Penalize: missing values, duplicates, outliers, type inconsistencies
+                health_score = 100.0
+                health_score -= min(missing_pct * 2, 40)  # Up to 40 points for missing
+                health_score -= min(duplicates_pct * 1, 20)  # Up to 20 points for duplicates
+                if outliers is not None and outliers > 0:
+                    outlier_pct = (outliers / total_rows * 100) if total_rows > 0 else 0
+                    health_score -= min(outlier_pct * 0.5, 20)  # Up to 20 points for outliers
+                health_score = max(0.0, min(100.0, health_score))  # Clamp to 0-100
+                
+                column_summaries.append(ColumnSummary(
+                    name=col,
+                    type=col_type,
+                    missing_pct=round(missing_pct, 2),
+                    duplicates_pct=round(duplicates_pct, 2),
+                    outliers=outliers,
+                    health_score=round(health_score, 1)
+                ))
+                
+                total_health_score += health_score
             
-            # Calculate health score (0-100)
-            # Penalize: missing values, duplicates, outliers, type inconsistencies
-            health_score = 100.0
-            health_score -= min(missing_pct * 2, 40)  # Up to 40 points for missing
-            health_score -= min(duplicates_pct * 1, 20)  # Up to 20 points for duplicates
-            if outliers is not None:
-                outlier_pct = (outliers / total_rows * 100) if total_rows > 0 else 0
-                health_score -= min(outlier_pct * 0.5, 20)  # Up to 20 points for outliers
-            health_score = max(health_score, 0)  # Ensure non-negative
+            # Calculate overall score
+            overall_score = (total_health_score / len(column_summaries)) if column_summaries else 0.0
+            overall_score = round(overall_score, 1)
             
-            column_summaries.append(ColumnSummary(
-                name=col,
-                type=col_type,
-                missing_pct=round(missing_pct, 2),
-                duplicates_pct=round(duplicates_pct, 2),
-                outliers=outliers,
-                health_score=round(health_score, 1)
-            ))
+            response = CleaningSummaryResponse(
+                rows=total_rows,
+                columns=column_summaries,
+                overall_score=overall_score
+            )
             
-            total_health_score += health_score
-        
-        # Calculate overall score
-        overall_score = (total_health_score / len(column_summaries)) if column_summaries else 0
-        
-        response = CleaningSummaryResponse(
-            rows=total_rows,
-            columns=column_summaries,
-            overall_score=round(overall_score, 1)
-        )
-        
-        logger.info(f"[get_cleaning_summary] Response prepared - rows={response.rows}, columns={len(response.columns)}, overall_score={response.overall_score}")
-        logger.info(f"[get_cleaning_summary] Response payload: {response.model_dump_json()}")
-        
-        return response
-        
+            logger.info(
+                f"[get_cleaning_summary] Success - rows={response.rows}, "
+                f"columns={len(response.columns)}, overall_score={response.overall_score}"
+            )
+            
+            return response
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(
+                f"[get_cleaning_summary] Error analyzing columns: {str(e)}",
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to analyze dataset: {str(e)}"
+            )
+            
     except HTTPException:
+        # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        logger.error(f"[get_cleaning_summary] Error: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to generate cleaning summary: {str(e)}")
+        # Catch all other errors
+        logger.error(
+            f"[get_cleaning_summary] Unexpected error: {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate cleaning summary: {str(e)}"
+        )
 
 
 class OverviewRequest(BaseModel):
@@ -618,6 +758,13 @@ async def get_dataset_overview(workspace_id: str, request: OverviewRequest):
     - Column datatype classification (numeric, datetime, categorical)
     - Counts of each column type
     
+    Requirements:
+    - Parameter validation: workspace_id and dataset name required
+    - Returns 404 if dataset doesn't exist (not found in workspace)
+    - Returns 400 if parameters are invalid
+    - Type inference is robust and prevents misclassification
+    - Always returns valid OverviewResponse (never undefined/null)
+    
     IMPORTANT: Type inference is robust and prevents misclassification:
     - Numeric columns are detected first (int, float)
     - Datetime is only inferred if values match valid date patterns
@@ -630,70 +777,131 @@ async def get_dataset_overview(workspace_id: str, request: OverviewRequest):
         
     Returns:
         Overview summary with dataset metrics and column metadata
+        
+    Raises:
+        HTTPException 400: If workspace_id or dataset name is missing
+        HTTPException 404: If dataset doesn't exist in workspace
+        HTTPException 500: If backend error occurs
     """
+    # Step 1: Validate required parameters
+    if not workspace_id or workspace_id.strip() == "":
+        logger.warning(f"[get_dataset_overview] Invalid request: workspace_id is missing or empty")
+        raise HTTPException(
+            status_code=400,
+            detail="workspace_id is required and cannot be empty"
+        )
+    
+    if not request.dataset or request.dataset.strip() == "":
+        logger.warning(f"[get_dataset_overview] Invalid request: dataset name is missing or empty")
+        raise HTTPException(
+            status_code=400,
+            detail="dataset name is required and cannot be empty"
+        )
+    
     logger.info(f"[get_dataset_overview] Request received - workspace_id={workspace_id}, dataset={request.dataset}")
     
     try:
-        # Validate dataset exists in workspace
+        # Step 2: Validate dataset exists in workspace
         if not dataset_exists(request.dataset, workspace_id):
-            logger.warning(f"[get_dataset_overview] Dataset '{request.dataset}' not found in workspace '{workspace_id}'")
+            logger.warning(
+                f"[get_dataset_overview] Dataset '{request.dataset}' not found in workspace '{workspace_id}'"
+            )
             raise HTTPException(
                 status_code=404,
-                detail=f"Dataset '{request.dataset}' not found in workspace"
+                detail=f"Dataset '{request.dataset}' not found in workspace '{workspace_id}'"
             )
         
-        # Load dataset
-        df = load_dataset(request.dataset, workspace_id)
+        # Step 3: Load dataset
+        try:
+            df = load_dataset(request.dataset, workspace_id)
+        except Exception as e:
+            logger.error(
+                f"[get_dataset_overview] Error loading dataset '{request.dataset}' from workspace '{workspace_id}': {str(e)}",
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to load dataset: {str(e)}"
+            )
+        
+        # Validate dataframe
+        if df is None:
+            logger.error(f"[get_dataset_overview] load_dataset returned None for '{request.dataset}'")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Dataset loading returned invalid data"
+            )
+        
         logger.info(f"[get_dataset_overview] Dataset loaded - rows={len(df)}, columns={len(df.columns)}")
         
+        # Step 4: Calculate duplicate row count (row-level, not column-level)
         total_rows = len(df)
-        total_columns = len(df.columns)
-        
-        # Calculate duplicate row count (row-level, not column-level)
-        # IMPORTANT: Ensure duplicate_count <= total_rows
         duplicate_row_count = df.duplicated().sum()
-        duplicate_row_count = min(duplicate_row_count, total_rows)
+        # IMPORTANT: Ensure duplicate_count <= total_rows
+        duplicate_row_count = min(int(duplicate_row_count), total_rows)
         
-        # Analyze each column
+        # Step 5: Analyze each column
         column_metadata = []
         type_counts = {"numeric": 0, "categorical": 0, "datetime": 0}
         
-        for col in df.columns:
-            col_data = df[col]
-            
-            # Infer column type using robust logic
-            inferred_type = infer_column_type(df, col)
-            type_counts[inferred_type] += 1
-            
-            # Calculate missing value statistics
-            missing_count = col_data.isna().sum()
-            missing_percentage = (missing_count / total_rows * 100) if total_rows > 0 else 0.0
-            # Ensure percentage is valid (0-100)
-            missing_percentage = max(0.0, min(100.0, missing_percentage))
-            
-            # Determine if column is nullable (has any missing values)
-            nullable = missing_count > 0
-            
-            column_metadata.append(ColumnMetadata(
-                name=col,
-                inferred_type=inferred_type,
-                nullable=nullable,
-                missing_count=int(missing_count),
-                missing_percentage=round(missing_percentage, 2)
-            ))
+        try:
+            for col in df.columns:
+                col_data = df[col]
+                
+                # Infer column type using robust logic
+                inferred_type = infer_column_type(df, col)
+                type_counts[inferred_type] += 1
+                
+                # Calculate missing value statistics
+                missing_count = col_data.isna().sum()
+                missing_percentage = (missing_count / total_rows * 100) if total_rows > 0 else 0.0
+                # Ensure percentage is valid (0-100)
+                missing_percentage = max(0.0, min(100.0, missing_percentage))
+                
+                # Determine if column is nullable (has any missing values)
+                nullable = missing_count > 0
+                
+                column_metadata.append(ColumnMetadata(
+                    name=col,
+                    inferred_type=inferred_type,
+                    nullable=nullable,
+                    missing_count=int(missing_count),
+                    missing_percentage=round(missing_percentage, 2)
+                ))
+        except Exception as e:
+            logger.error(
+                f"[get_dataset_overview] Error analyzing columns for dataset '{request.dataset}': {str(e)}",
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to analyze dataset columns: {str(e)}"
+            )
         
-        response = OverviewResponse(
-            total_rows=total_rows,
-            total_columns=total_columns,
-            duplicate_row_count=duplicate_row_count,
-            numeric_column_count=type_counts["numeric"],
-            categorical_column_count=type_counts["categorical"],
-            datetime_column_count=type_counts["datetime"],
-            columns=column_metadata
-        )
+        # Step 6: Build response
+        try:
+            response = OverviewResponse(
+                total_rows=total_rows,
+                total_columns=len(df.columns),
+                duplicate_row_count=duplicate_row_count,
+                numeric_column_count=type_counts["numeric"],
+                categorical_column_count=type_counts["categorical"],
+                datetime_column_count=type_counts["datetime"],
+                columns=column_metadata
+            )
+        except Exception as e:
+            logger.error(
+                f"[get_dataset_overview] Error building response for dataset '{request.dataset}': {str(e)}",
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to build overview response: {str(e)}"
+            )
         
+        # Step 7: Log and return success
         logger.info(
-            f"[get_dataset_overview] Response prepared - "
+            f"[get_dataset_overview] Success - "
             f"rows={response.total_rows}, columns={response.total_columns}, "
             f"duplicates={response.duplicate_row_count}, "
             f"types: numeric={response.numeric_column_count}, "
@@ -704,9 +912,18 @@ async def get_dataset_overview(workspace_id: str, request: OverviewRequest):
         return response
         
     except HTTPException:
+        # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        logger.error(f"[get_dataset_overview] Error: {str(e)}", exc_info=True)
+        # Catch all other backend errors
+        logger.error(
+            f"[get_dataset_overview] Unexpected error for dataset '{request.dataset}' in workspace '{workspace_id}': {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate dataset overview: {str(e)}"
+        )
         raise HTTPException(status_code=500, detail=f"Failed to generate dataset overview: {str(e)}")
 
 
@@ -728,23 +945,37 @@ async def delete_workspace(workspace_id: str):
     - Deletion is scoped strictly to the workspace directory
     - Does NOT delete files from other workspaces
     - Does NOT delete global/system files
+    - Parameter validation: workspaceId is required and cannot be empty
+    - Returns 404 if workspace doesn't exist (idempotent)
     
     Args:
         workspace_id: Unique workspace identifier
         
     Returns:
-        Success message
+        Success message with status 200
         
     Raises:
-        HTTPException: If workspace doesn't exist or deletion fails
+        HTTPException 400: If workspace_id is missing or empty
+        HTTPException 404: If workspace doesn't exist (but deletes anyway - idempotent)
+        HTTPException 403: If permission denied
+        HTTPException 500: If deletion fails for other reasons
     """
+    # Step 1: Validate required parameters
+    if not workspace_id or workspace_id.strip() == "":
+        logger.warning(f"[delete_workspace] Invalid request: workspace_id is missing or empty")
+        raise HTTPException(
+            status_code=400,
+            detail="workspace_id is required and cannot be empty"
+        )
+    
     logger.info(f"[delete_workspace] Request received - workspace_id={workspace_id}")
     
     try:
-        # Get workspace directory path
+        # Step 2: Get workspace directory path
         workspace_dir = get_workspace_dir(workspace_id)
+        logger.info(f"[delete_workspace] Workspace directory: {workspace_dir}")
         
-        # Safety check: Ensure we're only deleting from workspaces directory
+        # Step 3: Safety check - Ensure we're only deleting from workspaces directory
         # This prevents accidental deletion of files outside workspace storage
         # Use resolve() to get absolute paths and compare
         try:
@@ -752,28 +983,41 @@ async def delete_workspace(workspace_id: str):
             workspaces_abs = WORKSPACES_DIR.resolve()
             # Check if workspace directory is within workspaces directory
             if not str(workspace_abs).startswith(str(workspaces_abs)):
-                logger.error(f"[delete_workspace] Security check failed: workspace_dir is not within WORKSPACES_DIR")
+                logger.error(
+                    f"[delete_workspace] Security validation failed: workspace_dir is not within WORKSPACES_DIR. "
+                    f"workspace_abs={workspace_abs}, workspaces_abs={workspaces_abs}"
+                )
                 raise HTTPException(
                     status_code=500,
-                    detail="Workspace directory path validation failed"
+                    detail="Workspace directory path validation failed - security check"
                 )
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"[delete_workspace] Error during path validation: {str(e)}")
+            logger.error(
+                f"[delete_workspace] Error during path validation for workspace_id={workspace_id}: {str(e)}",
+                exc_info=True
+            )
             raise HTTPException(
                 status_code=500,
-                detail="Workspace directory path validation failed"
+                detail="Failed to validate workspace directory path"
             )
         
-        # Check if workspace directory exists
+        # Step 4: Check if workspace directory exists
         if not workspace_dir.exists():
-            logger.warning(f"[delete_workspace] Workspace directory does not exist: {workspace_dir}")
+            logger.warning(
+                f"[delete_workspace] Workspace directory does not exist: {workspace_dir}. "
+                f"Returning success (idempotent operation)."
+            )
             # Return success even if directory doesn't exist (idempotent operation)
+            # This is correct behavior - if workspace is already gone, mission accomplished
             return {
+                "success": True,
                 "message": f"Workspace '{workspace_id}' deleted (directory did not exist)",
                 "workspace_id": workspace_id
             }
         
-        # Log what will be deleted (for debugging)
+        # Step 5: Log what will be deleted (for debugging)
         try:
             datasets_dir = get_workspace_datasets_dir(workspace_id)
             files_dir = get_workspace_files_dir(workspace_id)
@@ -785,48 +1029,79 @@ async def delete_workspace(workspace_id: str):
             
             logger.info(
                 f"[delete_workspace] Deleting workspace '{workspace_id}': "
-                f"{dataset_count} files in datasets/, {files_count} files in files/, {logs_count} files in logs/"
+                f"{dataset_count} dataset files, {files_count} other files, {logs_count} log files"
             )
         except Exception as e:
             logger.warning(f"[delete_workspace] Could not count files before deletion: {e}")
+            # Non-critical - continue with deletion
         
-        # Step 1: Delete all files from registry (cascade delete)
+        # Step 6: Delete all files from registry (cascade delete)
         # This ensures registry is clean before physical deletion
-        deleted_file_paths = delete_workspace_files(workspace_id)
-        logger.info(f"[delete_workspace] Removed {len(deleted_file_paths)} files from registry")
+        try:
+            deleted_file_paths = delete_workspace_files(workspace_id)
+            logger.info(f"[delete_workspace] Removed {len(deleted_file_paths)} files from registry")
+        except Exception as e:
+            logger.warning(
+                f"[delete_workspace] Warning: Could not clean up file registry: {e}. "
+                f"Continuing with physical deletion anyway."
+            )
+            # Non-critical - continue with physical deletion
         
-        # Step 2: Delete entire workspace directory (cascade delete)
+        # Step 7: Delete entire workspace directory (cascade delete)
         # This removes:
         # - datasets/ directory and all CSV files
         # - files/ directory and all JSON/overview files
         # - logs/ directory and all LOG files
         # - Any other files/subdirectories in the workspace
-        shutil.rmtree(workspace_dir, ignore_errors=False)
+        try:
+            shutil.rmtree(workspace_dir, ignore_errors=False)
+            logger.info(f"[delete_workspace] Successfully deleted workspace directory: {workspace_dir}")
+        except Exception as e:
+            logger.error(
+                f"[delete_workspace] Error deleting workspace directory: {str(e)}",
+                exc_info=True
+            )
+            # Re-raise with appropriate status code
+            raise
         
-        logger.info(f"[delete_workspace] Successfully deleted workspace directory: {workspace_dir}")
-        
+        # Step 8: Return success
+        logger.info(f"[delete_workspace] Successfully completed delete operation for workspace '{workspace_id}'")
         return {
+            "success": True,
             "message": f"Workspace '{workspace_id}' and all its files deleted successfully",
             "workspace_id": workspace_id
         }
         
     except HTTPException:
+        # Re-raise HTTP exceptions as-is
         raise
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         # Workspace directory doesn't exist - return success (idempotent)
-        logger.info(f"[delete_workspace] Workspace directory not found: {workspace_id}")
+        logger.info(
+            f"[delete_workspace] Workspace directory not found during deletion: {workspace_id}. "
+            f"Returning success (idempotent operation). Error: {e}"
+        )
         return {
+            "success": True,
             "message": f"Workspace '{workspace_id}' deleted (directory did not exist)",
             "workspace_id": workspace_id
         }
     except PermissionError as e:
-        logger.error(f"[delete_workspace] Permission denied when deleting workspace '{workspace_id}': {str(e)}")
+        # Permission denied
+        logger.error(
+            f"[delete_workspace] Permission denied when deleting workspace '{workspace_id}': {str(e)}",
+            exc_info=True
+        )
         raise HTTPException(
             status_code=403,
-            detail=f"Permission denied: Cannot delete workspace '{workspace_id}'"
+            detail=f"Permission denied: Cannot delete workspace '{workspace_id}'. Check file permissions."
         )
     except Exception as e:
-        logger.error(f"[delete_workspace] Error deleting workspace '{workspace_id}': {str(e)}", exc_info=True)
+        # Catch all other errors
+        logger.error(
+            f"[delete_workspace] Unexpected error deleting workspace '{workspace_id}': {str(e)}",
+            exc_info=True
+        )
         raise HTTPException(
             status_code=500,
             detail=f"Failed to delete workspace: {str(e)}"

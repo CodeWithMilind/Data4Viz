@@ -160,7 +160,27 @@ export async function safeFetch(
 
     // Check for HTTP errors
     if (!response.ok) {
-      const errorText = await response.text().catch(() => response.statusText);
+      let errorText = response.statusText;
+      let errorBody = '';
+      
+      try {
+        // Try to get error body for detailed logging
+        errorBody = await response.text();
+        if (errorBody) {
+          // Limit error body to 500 chars to avoid flooding logs
+          const preview = errorBody.substring(0, 500);
+          console.error(
+            `[safeFetch] HTTP ${response.status} error response body: ${preview}`,
+            errorBody.length > 500 ? `(truncated, full length: ${errorBody.length})` : ''
+          );
+          errorText = errorBody;
+        }
+      } catch (readError) {
+        console.warn(`[safeFetch] Could not read error response body: ${readError instanceof Error ? readError.message : String(readError)}`);
+        // Use statusText if we can't read body
+        errorText = response.statusText || `HTTP ${response.status}`;
+      }
+
       throw new FetchError(
         `HTTP ${response.status}: ${errorText || response.statusText}`,
         'HTTP_ERROR',
@@ -174,6 +194,7 @@ export async function safeFetch(
 
     // Handle abort (timeout)
     if (error instanceof Error && error.name === 'AbortError') {
+      console.error(`[safeFetch] Request timeout after ${timeout}ms to ${fullUrl}`);
       throw new FetchError(
         `Request timed out after ${timeout}ms`,
         'TIMEOUT'
@@ -182,6 +203,11 @@ export async function safeFetch(
 
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error(
+        `[safeFetch] Network error: Failed to fetch from ${fullUrl}. ` +
+        `Check your connection and ensure the backend is running. ` +
+        `Error: ${error.message}`
+      );
       throw new FetchError(
         'Network error: Failed to fetch. Check your connection and ensure the backend is running.',
         'NETWORK_ERROR',
@@ -196,8 +222,14 @@ export async function safeFetch(
     }
 
     // Wrap other errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(
+      `[safeFetch] Unexpected error during fetch: ${errorMessage}`,
+      error
+    );
+    
     throw new FetchError(
-      error instanceof Error ? error.message : String(error),
+      `Fetch failed: ${errorMessage}`,
       'NETWORK_ERROR',
       undefined,
       error
@@ -208,16 +240,18 @@ export async function safeFetch(
 /**
  * Safe fetch with JSON parsing
  * 
- * Defensive JSON parsing with detailed error handling:
- * - Catches and wraps JSON parsing errors
- * - Validates response is actually JSON
- * - Provides helpful error messages for debugging
+ * Enterprise-level error handling with:
+ * - Safe JSON parsing with detailed error messages
+ * - Proper handling of empty response bodies
+ * - Content-Type validation
+ * - Detailed logging of backend error responses
+ * - Prevents returning undefined
  * 
  * @param url Full URL or path
  * @param options Fetch options
  * @param baseUrl Optional base URL
  * @returns Parsed JSON data
- * @throws FetchError on JSON parsing failure
+ * @throws FetchError on JSON parsing failure or invalid response
  */
 export async function safeFetchJson<T = any>(
   url: string,
@@ -227,30 +261,108 @@ export async function safeFetchJson<T = any>(
   const response = await safeFetch(url, options, baseUrl);
   
   try {
-    // Try to parse JSON
-    const data = await response.json();
+    // Check for empty response body
+    const contentLength = response.headers?.get('content-length');
+    const contentType = response.headers?.get('content-type') || 'unknown';
     
-    // Basic validation: ensure we got an object or array
-    if (data === null || (typeof data !== 'object' && !Array.isArray(data))) {
-      throw new Error(`Expected JSON object/array, got ${typeof data}`);
+    // If no content, return appropriate empty structure
+    if (response.status === 204 || contentLength === '0') {
+      console.warn(
+        `[safeFetchJson] Empty response body (HTTP ${response.status}, Content-Length: ${contentLength}). ` +
+        `This may indicate a server error or an incomplete response.`
+      );
+      throw new FetchError(
+        `Unexpected empty response from server (HTTP ${response.status})`,
+        'HTTP_ERROR',
+        response.status
+      );
     }
-    
+
+    // Validate content type
+    if (!contentType.includes('application/json')) {
+      const bodyPreview = await response.text().catch(() => '<unable to read>');
+      const preview = bodyPreview.substring(0, 200);
+      console.error(
+        `[safeFetchJson] Invalid Content-Type for JSON endpoint (HTTP ${response.status}): ` +
+        `got "${contentType}", expected "application/json". ` +
+        `Response body preview: ${preview}`
+      );
+      throw new FetchError(
+        `Invalid Content-Type: expected application/json, got ${contentType}. ` +
+        `The server may have returned an error page or malformed response.`,
+        'HTTP_ERROR',
+        response.status
+      );
+    }
+
+    // Try to parse JSON
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      // JSON parsing failed - try to get response text for error logging
+      try {
+        const bodyText = await response.clone().text();
+        console.error(
+          `[safeFetchJson] Failed to parse JSON (HTTP ${response.status}): ${parseError instanceof Error ? parseError.message : String(parseError)}. ` +
+          `Response body: ${bodyText.substring(0, 500)}`
+        );
+      } catch {
+        console.error(
+          `[safeFetchJson] Failed to parse JSON (HTTP ${response.status}): ${parseError instanceof Error ? parseError.message : String(parseError)}`
+        );
+      }
+      throw new FetchError(
+        `Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        'NETWORK_ERROR',
+        response.status,
+        parseError
+      );
+    }
+
+    // Validate parsed data is not null or undefined
+    if (data === null || data === undefined) {
+      console.warn(
+        `[safeFetchJson] Parsed JSON is null/undefined (HTTP ${response.status}). ` +
+        `Server returned empty JSON response.`
+      );
+      throw new FetchError(
+        `Server returned null/undefined JSON response`,
+        'HTTP_ERROR',
+        response.status
+      );
+    }
+
+    // Validate data is an object or array
+    if (typeof data !== 'object' && !Array.isArray(data)) {
+      console.warn(
+        `[safeFetchJson] Invalid JSON type (HTTP ${response.status}): ` +
+        `expected object/array, got ${typeof data}. ` +
+        `Value: ${String(data).substring(0, 100)}`
+      );
+      throw new FetchError(
+        `Expected JSON object or array, got ${typeof data}`,
+        'HTTP_ERROR',
+        response.status
+      );
+    }
+
     return data as T;
   } catch (error) {
-    // Detailed error handling for JSON parsing
-    const contentType = response.headers?.get('content-type') || 'unknown';
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : String(error);
-    
-    // Provide helpful error message
-    let detailedMessage = `Failed to parse JSON response (${response.status}): ${errorMessage}`;
-    if (!contentType.includes('application/json')) {
-      detailedMessage += ` (Content-Type: ${contentType}, expected application/json)`;
+    // If error is already a FetchError, re-throw as-is
+    if (error instanceof FetchError) {
+      throw error;
     }
+
+    // Wrap unexpected errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(
+      `[safeFetchJson] Unexpected error during JSON parsing: ${errorMessage}`,
+      error
+    );
     
     throw new FetchError(
-      detailedMessage,
+      `Unexpected error parsing JSON response: ${errorMessage}`,
       'NETWORK_ERROR',
       response.status,
       error
