@@ -1,0 +1,5483 @@
+{
+  "workspace_id": "workspace-1770025053537-svmwit8im",
+  "dataset_id": "data.csv",
+  "dataset_hash": "67fdcc284f90b3e77c09166561759a1adea61bce14b07976a5711dde64819772",
+  "method": "zscore",
+  "threshold": 3.0,
+  "timestamp": "2026-02-20T11:48:09.056850",
+  "outliers": [
+    {
+      "column_name": "MiscVal",
+      "detected_value": 15500.0,
+      "outlier_score": 31.15,
+      "row_index": 346,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 215245.0,
+      "outlier_score": 20.51,
+      "row_index": 313,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "PoolArea",
+      "detected_value": 738.0,
+      "outlier_score": 18.3,
+      "row_index": 1423,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 508.0,
+      "outlier_score": 17.21,
+      "row_index": 205,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MiscVal",
+      "detected_value": 8300.0,
+      "outlier_score": 16.64,
+      "row_index": 1230,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "PoolArea",
+      "detected_value": 648.0,
+      "outlier_score": 16.06,
+      "row_index": 810,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 164660.0,
+      "outlier_score": 15.44,
+      "row_index": 335,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 159000.0,
+      "outlier_score": 14.88,
+      "row_index": 249,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "PoolArea",
+      "detected_value": 576.0,
+      "outlier_score": 14.27,
+      "row_index": 1170,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 407.0,
+      "outlier_score": 13.77,
+      "row_index": 55,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "PoolArea",
+      "detected_value": 555.0,
+      "outlier_score": 13.75,
+      "row_index": 1182,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "PoolArea",
+      "detected_value": 519.0,
+      "outlier_score": 12.85,
+      "row_index": 1386,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "PoolArea",
+      "detected_value": 512.0,
+      "outlier_score": 12.67,
+      "row_index": 197,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "PoolArea",
+      "detected_value": 480.0,
+      "outlier_score": 11.88,
+      "row_index": 1298,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 572.0,
+      "outlier_score": 11.64,
+      "row_index": 185,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 6110.0,
+      "outlier_score": 11.52,
+      "row_index": 1298,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF1",
+      "detected_value": 5644.0,
+      "outlier_score": 11.4,
+      "row_index": 1298,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 320.0,
+      "outlier_score": 10.8,
+      "row_index": 5,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 528.0,
+      "outlier_score": 10.74,
+      "row_index": 170,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 115149.0,
+      "outlier_score": 10.48,
+      "row_index": 706,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 515.0,
+      "outlier_score": 10.47,
+      "row_index": 635,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 514.0,
+      "outlier_score": 10.45,
+      "row_index": 1009,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 513.0,
+      "outlier_score": 10.43,
+      "row_index": 88,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 304.0,
+      "outlier_score": 10.25,
+      "row_index": 1437,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 313.0,
+      "outlier_score": 10.0,
+      "row_index": 934,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 313.0,
+      "outlier_score": 10.0,
+      "row_index": 1298,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 290.0,
+      "outlier_score": 9.78,
+      "row_index": 1346,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 481.0,
+      "outlier_score": 9.77,
+      "row_index": 883,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 479.0,
+      "outlier_score": 9.73,
+      "row_index": 1173,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 473.0,
+      "outlier_score": 9.61,
+      "row_index": 406,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 4692.0,
+      "outlier_score": 9.13,
+      "row_index": 1298,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 3.0,
+      "outlier_score": 8.87,
+      "row_index": 48,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 3.0,
+      "outlier_score": 8.87,
+      "row_index": 809,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1474.0,
+      "outlier_score": 8.85,
+      "row_index": 322,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 552.0,
+      "outlier_score": 8.67,
+      "row_index": 197,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 420.0,
+      "outlier_score": 8.52,
+      "row_index": 267,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 480.0,
+      "outlier_score": 8.34,
+      "row_index": 1328,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 1600.0,
+      "outlier_score": 8.26,
+      "row_index": 297,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 245.0,
+      "outlier_score": 8.24,
+      "row_index": 258,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 8.14,
+      "row_index": 597,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 8.14,
+      "row_index": 954,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 397.0,
+      "outlier_score": 8.04,
+      "row_index": 1031,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 238.0,
+      "outlier_score": 8.0,
+      "row_index": 237,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 392.0,
+      "outlier_score": 7.94,
+      "row_index": 197,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 390.0,
+      "outlier_score": 7.9,
+      "row_index": 263,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 5642.0,
+      "outlier_score": 7.85,
+      "row_index": 1298,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 384.0,
+      "outlier_score": 7.78,
+      "row_index": 1440,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 440.0,
+      "outlier_score": 7.62,
+      "row_index": 1386,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 547.0,
+      "outlier_score": 7.55,
+      "row_index": 1328,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 371.0,
+      "outlier_score": 7.51,
+      "row_index": 198,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 360.0,
+      "outlier_score": 7.28,
+      "row_index": 51,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 360.0,
+      "outlier_score": 7.28,
+      "row_index": 729,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 216.0,
+      "outlier_score": 7.25,
+      "row_index": 1080,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 216.0,
+      "outlier_score": 7.25,
+      "row_index": 1161,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 755000.0,
+      "outlier_score": 7.23,
+      "row_index": 691,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 523.0,
+      "outlier_score": 7.19,
+      "row_index": 495,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 745000.0,
+      "outlier_score": 7.1,
+      "row_index": 1182,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 410.0,
+      "outlier_score": 7.08,
+      "row_index": 185,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 1378.0,
+      "outlier_score": 7.04,
+      "row_index": 1169,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MiscVal",
+      "detected_value": 3500.0,
+      "outlier_score": 6.97,
+      "row_index": 705,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 502.0,
+      "outlier_score": 6.87,
+      "row_index": 583,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 396.0,
+      "outlier_score": 6.83,
+      "row_index": 426,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1127.0,
+      "outlier_score": 6.7,
+      "row_index": 542,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1120.0,
+      "outlier_score": 6.65,
+      "row_index": 470,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 385.0,
+      "outlier_score": 6.63,
+      "row_index": 625,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 196.0,
+      "outlier_score": 6.57,
+      "row_index": 280,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1085.0,
+      "outlier_score": 6.44,
+      "row_index": 854,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 374.0,
+      "outlier_score": 6.44,
+      "row_index": 359,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1080.0,
+      "outlier_score": 6.41,
+      "row_index": 153,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1063.0,
+      "outlier_score": 6.3,
+      "row_index": 271,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1061.0,
+      "outlier_score": 6.29,
+      "row_index": 924,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 8.0,
+      "outlier_score": 6.29,
+      "row_index": 635,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1057.0,
+      "outlier_score": 6.26,
+      "row_index": 764,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1031.0,
+      "outlier_score": 6.1,
+      "row_index": 1253,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 1029.0,
+      "outlier_score": 6.09,
+      "row_index": 1458,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 857.0,
+      "outlier_score": 6.09,
+      "row_index": 53,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 182.0,
+      "outlier_score": 6.09,
+      "row_index": 726,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 70761.0,
+      "outlier_score": 6.04,
+      "row_index": 451,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 180.0,
+      "outlier_score": 6.02,
+      "row_index": 129,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 180.0,
+      "outlier_score": 6.02,
+      "row_index": 182,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 4676.0,
+      "outlier_score": 6.01,
+      "row_index": 523,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 386.0,
+      "outlier_score": 5.96,
+      "row_index": 747,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 1170.0,
+      "outlier_score": 5.89,
+      "row_index": 691,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 972.0,
+      "outlier_score": 5.74,
+      "row_index": 1369,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 1129.0,
+      "outlier_score": 5.66,
+      "row_index": 115,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 4476.0,
+      "outlier_score": 5.63,
+      "row_index": 1182,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 168.0,
+      "outlier_score": 5.61,
+      "row_index": 159,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 168.0,
+      "outlier_score": 5.61,
+      "row_index": 744,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 168.0,
+      "outlier_score": 5.61,
+      "row_index": 941,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 418.0,
+      "outlier_score": 5.6,
+      "row_index": 854,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 1115.0,
+      "outlier_score": 5.59,
+      "row_index": 70,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 625000.0,
+      "outlier_score": 5.59,
+      "row_index": 1169,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 322.0,
+      "outlier_score": 5.5,
+      "row_index": 907,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 406.0,
+      "outlier_score": 5.42,
+      "row_index": 523,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 611657.0,
+      "outlier_score": 5.42,
+      "row_index": 898,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 162.0,
+      "outlier_score": 5.41,
+      "row_index": 889,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 63887.0,
+      "outlier_score": 5.35,
+      "row_index": 1298,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 3228.0,
+      "outlier_score": 5.34,
+      "row_index": 496,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 906.0,
+      "outlier_score": 5.33,
+      "row_index": 1299,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 4316.0,
+      "outlier_score": 5.33,
+      "row_index": 691,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 312.0,
+      "outlier_score": 5.33,
+      "row_index": 854,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 1047.0,
+      "outlier_score": 5.21,
+      "row_index": 808,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 1031.0,
+      "outlier_score": 5.12,
+      "row_index": 58,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 872.0,
+      "outlier_score": 5.12,
+      "row_index": 1418,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 736.0,
+      "outlier_score": 5.12,
+      "row_index": 1459,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 3138.0,
+      "outlier_score": 5.11,
+      "row_index": 523,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 869.0,
+      "outlier_score": 5.1,
+      "row_index": 113,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 153.0,
+      "outlier_score": 5.1,
+      "row_index": 1181,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 728.0,
+      "outlier_score": 5.06,
+      "row_index": 1068,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 582933.0,
+      "outlier_score": 5.06,
+      "row_index": 803,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 330.0,
+      "outlier_score": 5.04,
+      "row_index": 1197,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 3.0,
+      "outlier_score": 4.96,
+      "row_index": 738,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 291.0,
+      "outlier_score": 4.95,
+      "row_index": 72,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MiscVal",
+      "detected_value": 2500.0,
+      "outlier_score": 4.95,
+      "row_index": 1457,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 841.0,
+      "outlier_score": 4.92,
+      "row_index": 923,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 3206.0,
+      "outlier_score": 4.9,
+      "row_index": 332,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 288.0,
+      "outlier_score": 4.9,
+      "row_index": 1171,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 288.0,
+      "outlier_score": 4.9,
+      "row_index": 1282,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 3200.0,
+      "outlier_score": 4.88,
+      "row_index": 496,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 287.0,
+      "outlier_score": 4.88,
+      "row_index": 647,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 318.0,
+      "outlier_score": 4.84,
+      "row_index": 939,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 975.0,
+      "outlier_score": 4.81,
+      "row_index": 981,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 823.0,
+      "outlier_score": 4.81,
+      "row_index": 888,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 144.0,
+      "outlier_score": 4.8,
+      "row_index": 546,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 144.0,
+      "outlier_score": 4.8,
+      "row_index": 704,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 820.0,
+      "outlier_score": 4.79,
+      "row_index": 313,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 364.0,
+      "outlier_score": 4.79,
+      "row_index": 875,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 0.0,
+      "outlier_score": 4.75,
+      "row_index": 954,
+      "suggested_action": "Remove",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 3138.0,
+      "outlier_score": 4.74,
+      "row_index": 523,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 556581.0,
+      "outlier_score": 4.73,
+      "row_index": 1046,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 555000.0,
+      "outlier_score": 4.71,
+      "row_index": 440,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 234.0,
+      "outlier_score": 4.69,
+      "row_index": 125,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 57200.0,
+      "outlier_score": 4.68,
+      "row_index": 1396,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 276.0,
+      "outlier_score": 4.68,
+      "row_index": 471,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 140.0,
+      "outlier_score": 4.66,
+      "row_index": 187,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 232.0,
+      "outlier_score": 4.65,
+      "row_index": 873,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 3094.0,
+      "outlier_score": 4.64,
+      "row_index": 440,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 273.0,
+      "outlier_score": 4.63,
+      "row_index": 1154,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 182.0,
+      "outlier_score": 4.61,
+      "row_index": 1127,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 791.0,
+      "outlier_score": 4.61,
+      "row_index": 1077,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 14.0,
+      "outlier_score": 4.6,
+      "row_index": 635,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 670.0,
+      "outlier_score": 4.59,
+      "row_index": 335,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 271.0,
+      "outlier_score": 4.59,
+      "row_index": 312,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 668.0,
+      "outlier_score": 4.58,
+      "row_index": 1313,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 301.0,
+      "outlier_score": 4.57,
+      "row_index": 1360,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 922.0,
+      "outlier_score": 4.52,
+      "row_index": 224,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 921.0,
+      "outlier_score": 4.51,
+      "row_index": 517,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 266.0,
+      "outlier_score": 4.5,
+      "row_index": 196,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2898.0,
+      "outlier_score": 4.49,
+      "row_index": 1024,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 538000.0,
+      "outlier_score": 4.49,
+      "row_index": 769,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 265.0,
+      "outlier_score": 4.48,
+      "row_index": 887,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 768.0,
+      "outlier_score": 4.47,
+      "row_index": 166,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 764.0,
+      "outlier_score": 4.45,
+      "row_index": 828,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 294.0,
+      "outlier_score": 4.45,
+      "row_index": 358,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 263.0,
+      "outlier_score": 4.45,
+      "row_index": 1184,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 341.0,
+      "outlier_score": 4.44,
+      "row_index": 735,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 293.0,
+      "outlier_score": 4.43,
+      "row_index": 630,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GarageArea",
+      "detected_value": 1418.0,
+      "outlier_score": 4.42,
+      "row_index": 1298,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 291.0,
+      "outlier_score": 4.4,
+      "row_index": 496,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 260.0,
+      "outlier_score": 4.39,
+      "row_index": 618,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 259.0,
+      "outlier_score": 4.38,
+      "row_index": 289,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 259.0,
+      "outlier_score": 4.38,
+      "row_index": 1293,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 894.0,
+      "outlier_score": 4.36,
+      "row_index": 755,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 8,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 9,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 17,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 39,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 74,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 78,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 93,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 102,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 137,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 144,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 165,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 188,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 246,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 330,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 342,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 420,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 441,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 454,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 488,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 505,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 520,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 529,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 570,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 634,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 635,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 637,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 676,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 703,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 705,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 728,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 736,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 778,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 843,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 886,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 894,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 897,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 910,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 913,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 921,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 940,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 942,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 943,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 955,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 984,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1003,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1011,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1030,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1062,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1090,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1163,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1186,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1216,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1230,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1232,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1266,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1275,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1283,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1292,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1336,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1350,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1391,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1393,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1412,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1416,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "KitchenAbvGr",
+      "detected_value": 2.0,
+      "outlier_score": 4.33,
+      "row_index": 1450,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 286.0,
+      "outlier_score": 4.32,
+      "row_index": 1326,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 130.0,
+      "outlier_score": 4.32,
+      "row_index": 120,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 53504.0,
+      "outlier_score": 4.31,
+      "row_index": 769,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 635.0,
+      "outlier_score": 4.31,
+      "row_index": 1210,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GarageArea",
+      "detected_value": 1390.0,
+      "outlier_score": 4.29,
+      "row_index": 581,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 174.0,
+      "outlier_score": 4.28,
+      "row_index": 197,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 174.0,
+      "outlier_score": 4.28,
+      "row_index": 231,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 53227.0,
+      "outlier_score": 4.28,
+      "row_index": 457,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 53107.0,
+      "outlier_score": 4.27,
+      "row_index": 384,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 252.0,
+      "outlier_score": 4.25,
+      "row_index": 80,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 870.0,
+      "outlier_score": 4.23,
+      "row_index": 349,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 280.0,
+      "outlier_score": 4.22,
+      "row_index": 1152,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 723.0,
+      "outlier_score": 4.19,
+      "row_index": 666,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 860.0,
+      "outlier_score": 4.18,
+      "row_index": 798,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 275.0,
+      "outlier_score": 4.14,
+      "row_index": 813,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 712.0,
+      "outlier_score": 4.13,
+      "row_index": 52,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 712.0,
+      "outlier_score": 4.13,
+      "row_index": 233,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 713.0,
+      "outlier_score": 4.13,
+      "row_index": 446,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GarageArea",
+      "detected_value": 1356.0,
+      "outlier_score": 4.13,
+      "row_index": 1190,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 1.0,
+      "outlier_score": 4.11,
+      "row_index": 375,
+      "suggested_action": "Remove",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 319.0,
+      "outlier_score": 4.11,
+      "row_index": 996,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 205.0,
+      "outlier_score": 4.1,
+      "row_index": 1349,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 272.0,
+      "outlier_score": 4.09,
+      "row_index": 3,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 501837.0,
+      "outlier_score": 4.04,
+      "row_index": 178,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 168.0,
+      "outlier_score": 4.03,
+      "row_index": 1107,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 268.0,
+      "outlier_score": 4.03,
+      "row_index": 328,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3627.0,
+      "outlier_score": 4.02,
+      "row_index": 1169,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 692.0,
+      "outlier_score": 4.0,
+      "row_index": 263,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 2336.0,
+      "outlier_score": 4.0,
+      "row_index": 224,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 312.0,
+      "outlier_score": 4.0,
+      "row_index": 645,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 312.0,
+      "outlier_score": 4.0,
+      "row_index": 807,
+      "suggested_action": "Remove",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 690.0,
+      "outlier_score": 3.99,
+      "row_index": 260,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 50271.0,
+      "outlier_score": 3.98,
+      "row_index": 53,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF1",
+      "detected_value": 2260.0,
+      "outlier_score": 3.98,
+      "row_index": 523,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3608.0,
+      "outlier_score": 3.98,
+      "row_index": 185,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 264.0,
+      "outlier_score": 3.96,
+      "row_index": 799,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 264.0,
+      "outlier_score": 3.96,
+      "row_index": 1266,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 26,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 33,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 37,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 41,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 50,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 93,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 116,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 129,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 176,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 197,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 201,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 213,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 215,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 218,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 245,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 249,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 251,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 253,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 298,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 299,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 314,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 330,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 352,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 358,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 367,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 414,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 421,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 426,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 499,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 504,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 558,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 574,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 576,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 580,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 611,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 628,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 633,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 658,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 691,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 697,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 717,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 741,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 743,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 745,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 814,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 828,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 892,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 920,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 925,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 931,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 944,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 952,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 953,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1006,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1029,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1041,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1047,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1052,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1055,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1069,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1072,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1076,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1080,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1103,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1118,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1123,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1149,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1156,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1181,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1213,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1225,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1276,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1287,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1327,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1335,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1350,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1389,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1405,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtHalfBath",
+      "detected_value": 1.0,
+      "outlier_score": 3.95,
+      "row_index": 1415,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 682.0,
+      "outlier_score": 3.94,
+      "row_index": 1040,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "2ndFlrSF",
+      "detected_value": 2065.0,
+      "outlier_score": 3.94,
+      "row_index": 1182,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MiscVal",
+      "detected_value": 2000.0,
+      "outlier_score": 3.94,
+      "row_index": 510,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MiscVal",
+      "detected_value": 2000.0,
+      "outlier_score": 3.94,
+      "row_index": 539,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MiscVal",
+      "detected_value": 2000.0,
+      "outlier_score": 3.94,
+      "row_index": 890,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MiscVal",
+      "detected_value": 2000.0,
+      "outlier_score": 3.94,
+      "row_index": 1386,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 816.0,
+      "outlier_score": 3.93,
+      "row_index": 825,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 234.0,
+      "outlier_score": 3.93,
+      "row_index": 339,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 586.0,
+      "outlier_score": 3.92,
+      "row_index": 1423,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 233.0,
+      "outlier_score": 3.91,
+      "row_index": 944,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 304.0,
+      "outlier_score": 3.88,
+      "row_index": 1193,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 259.0,
+      "outlier_score": 3.88,
+      "row_index": 1248,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 670.0,
+      "outlier_score": 3.86,
+      "row_index": 116,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 668.0,
+      "outlier_score": 3.85,
+      "row_index": 24,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 6.0,
+      "outlier_score": 3.84,
+      "row_index": 144,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 6.0,
+      "outlier_score": 3.84,
+      "row_index": 291,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 6.0,
+      "outlier_score": 3.84,
+      "row_index": 330,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 6.0,
+      "outlier_score": 3.84,
+      "row_index": 570,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 6.0,
+      "outlier_score": 3.84,
+      "row_index": 843,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 6.0,
+      "outlier_score": 3.84,
+      "row_index": 897,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 6.0,
+      "outlier_score": 3.84,
+      "row_index": 1350,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 576.0,
+      "outlier_score": 3.84,
+      "row_index": 64,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 574.0,
+      "outlier_score": 3.83,
+      "row_index": 169,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 485000.0,
+      "outlier_score": 3.83,
+      "row_index": 798,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 796.0,
+      "outlier_score": 3.82,
+      "row_index": 1298,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF1",
+      "detected_value": 2188.0,
+      "outlier_score": 3.82,
+      "row_index": 898,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 661.0,
+      "outlier_score": 3.81,
+      "row_index": 1320,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2633.0,
+      "outlier_score": 3.8,
+      "row_index": 1373,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 254.0,
+      "outlier_score": 3.8,
+      "row_index": 840,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 788.0,
+      "outlier_score": 3.78,
+      "row_index": 1289,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 225.0,
+      "outlier_score": 3.77,
+      "row_index": 828,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3493.0,
+      "outlier_score": 3.76,
+      "row_index": 304,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 252.0,
+      "outlier_score": 3.76,
+      "row_index": 260,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 252.0,
+      "outlier_score": 3.76,
+      "row_index": 660,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 252.0,
+      "outlier_score": 3.76,
+      "row_index": 1119,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 252.0,
+      "outlier_score": 3.76,
+      "row_index": 1445,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 224.0,
+      "outlier_score": 3.75,
+      "row_index": 189,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 224.0,
+      "outlier_score": 3.75,
+      "row_index": 400,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 224.0,
+      "outlier_score": 3.75,
+      "row_index": 888,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 224.0,
+      "outlier_score": 3.75,
+      "row_index": 1228,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 224.0,
+      "outlier_score": 3.75,
+      "row_index": 1301,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 645.0,
+      "outlier_score": 3.71,
+      "row_index": 548,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 222.0,
+      "outlier_score": 3.71,
+      "row_index": 859,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 160.0,
+      "outlier_score": 3.7,
+      "row_index": 1182,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "Fireplaces",
+      "detected_value": 3.0,
+      "outlier_score": 3.7,
+      "row_index": 166,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "Fireplaces",
+      "detected_value": 3.0,
+      "outlier_score": 3.7,
+      "row_index": 309,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "Fireplaces",
+      "detected_value": 3.0,
+      "outlier_score": 3.7,
+      "row_index": 605,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "Fireplaces",
+      "detected_value": 3.0,
+      "outlier_score": 3.7,
+      "row_index": 642,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "Fireplaces",
+      "detected_value": 3.0,
+      "outlier_score": 3.7,
+      "row_index": 1298,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 292.0,
+      "outlier_score": 3.7,
+      "row_index": 1298,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 248.0,
+      "outlier_score": 3.7,
+      "row_index": 459,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 475000.0,
+      "outlier_score": 3.7,
+      "row_index": 185,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallQual",
+      "detected_value": 1.0,
+      "outlier_score": 3.69,
+      "row_index": 375,
+      "suggested_action": "Cap",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "OverallQual",
+      "detected_value": 1.0,
+      "outlier_score": 3.69,
+      "row_index": 533,
+      "suggested_action": "Cap",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 772.0,
+      "outlier_score": 3.69,
+      "row_index": 477,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 291.0,
+      "outlier_score": 3.69,
+      "row_index": 784,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3447.0,
+      "outlier_score": 3.68,
+      "row_index": 1268,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 220.0,
+      "outlier_score": 3.68,
+      "row_index": 1414,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 768.0,
+      "outlier_score": 3.67,
+      "row_index": 105,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 766.0,
+      "outlier_score": 3.66,
+      "row_index": 1228,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 762.0,
+      "outlier_score": 3.64,
+      "row_index": 523,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 634.0,
+      "outlier_score": 3.64,
+      "row_index": 918,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 550.0,
+      "outlier_score": 3.64,
+      "row_index": 961,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 288.0,
+      "outlier_score": 3.64,
+      "row_index": 713,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 287.0,
+      "outlier_score": 3.63,
+      "row_index": 1292,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 244.0,
+      "outlier_score": 3.63,
+      "row_index": 325,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 244.0,
+      "outlier_score": 3.63,
+      "row_index": 945,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 760.0,
+      "outlier_score": 3.62,
+      "row_index": 898,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF1",
+      "detected_value": 2096.0,
+      "outlier_score": 3.62,
+      "row_index": 1182,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 630.0,
+      "outlier_score": 3.62,
+      "row_index": 785,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GarageArea",
+      "detected_value": 1248.0,
+      "outlier_score": 3.62,
+      "row_index": 1061,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 46589.0,
+      "outlier_score": 3.61,
+      "row_index": 661,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 627.0,
+      "outlier_score": 3.6,
+      "row_index": 1445,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 285.0,
+      "outlier_score": 3.6,
+      "row_index": 499,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 242.0,
+      "outlier_score": 3.6,
+      "row_index": 380,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 216.0,
+      "outlier_score": 3.6,
+      "row_index": 764,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 216.0,
+      "outlier_score": 3.6,
+      "row_index": 1320,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 2153.0,
+      "outlier_score": 3.59,
+      "row_index": 477,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 2633.0,
+      "outlier_score": 3.59,
+      "row_index": 1373,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 466500.0,
+      "outlier_score": 3.59,
+      "row_index": 1373,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3395.0,
+      "outlier_score": 3.58,
+      "row_index": 635,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 465000.0,
+      "outlier_score": 3.58,
+      "row_index": 1243,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 240.0,
+      "outlier_score": 3.57,
+      "row_index": 577,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 240.0,
+      "outlier_score": 3.57,
+      "row_index": 662,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 748.0,
+      "outlier_score": 3.56,
+      "row_index": 178,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 620.0,
+      "outlier_score": 3.55,
+      "row_index": 273,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 282.0,
+      "outlier_score": 3.55,
+      "row_index": 961,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 239.0,
+      "outlier_score": 3.55,
+      "row_index": 653,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 2121.0,
+      "outlier_score": 3.52,
+      "row_index": 278,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2524.0,
+      "outlier_score": 3.52,
+      "row_index": 1044,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 536.0,
+      "outlier_score": 3.52,
+      "row_index": 357,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotArea",
+      "detected_value": 45600.0,
+      "outlier_score": 3.51,
+      "row_index": 848,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 612.0,
+      "outlier_score": 3.51,
+      "row_index": 599,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 0.0,
+      "outlier_score": 3.51,
+      "row_index": 53,
+      "suggested_action": "Cap",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 0.0,
+      "outlier_score": 3.51,
+      "row_index": 189,
+      "suggested_action": "Cap",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 0.0,
+      "outlier_score": 3.51,
+      "row_index": 634,
+      "suggested_action": "Cap",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 0.0,
+      "outlier_score": 3.51,
+      "row_index": 1163,
+      "suggested_action": "Cap",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 0.0,
+      "outlier_score": 3.51,
+      "row_index": 1213,
+      "suggested_action": "Cap",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "BedroomAbvGr",
+      "detected_value": 0.0,
+      "outlier_score": 3.51,
+      "row_index": 1270,
+      "suggested_action": "Cap",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2515.0,
+      "outlier_score": 3.5,
+      "row_index": 529,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 236.0,
+      "outlier_score": 3.5,
+      "row_index": 462,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 236.0,
+      "outlier_score": 3.5,
+      "row_index": 1185,
+      "suggested_action": "Cap",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 210.0,
+      "outlier_score": 3.5,
+      "row_index": 769,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "2ndFlrSF",
+      "detected_value": 1872.0,
+      "outlier_score": 3.49,
+      "row_index": 691,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GarageArea",
+      "detected_value": 1220.0,
+      "outlier_score": 3.49,
+      "row_index": 825,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 608.0,
+      "outlier_score": 3.48,
+      "row_index": 1308,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 606.0,
+      "outlier_score": 3.47,
+      "row_index": 586,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 234.0,
+      "outlier_score": 3.47,
+      "row_index": 314,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 234.0,
+      "outlier_score": 3.47,
+      "row_index": 720,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 731.0,
+      "outlier_score": 3.46,
+      "row_index": 1417,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 600.0,
+      "outlier_score": 3.43,
+      "row_index": 1220,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 274.0,
+      "outlier_score": 3.43,
+      "row_index": 591,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 153.0,
+      "outlier_score": 3.42,
+      "row_index": 1337,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 451950.0,
+      "outlier_score": 3.41,
+      "row_index": 591,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 230.0,
+      "outlier_score": 3.4,
+      "row_index": 836,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 519.0,
+      "outlier_score": 3.39,
+      "row_index": 480,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 204.0,
+      "outlier_score": 3.39,
+      "row_index": 795,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 152.0,
+      "outlier_score": 3.37,
+      "row_index": 1211,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "2ndFlrSF",
+      "detected_value": 1818.0,
+      "outlier_score": 3.37,
+      "row_index": 304,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 185,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 769,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 803,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 897,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 910,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 1031,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 1173,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 1230,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 1298,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 1350,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotRmsAbvGrd",
+      "detected_value": 12.0,
+      "outlier_score": 3.37,
+      "row_index": 1386,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 517.0,
+      "outlier_score": 3.37,
+      "row_index": 661,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 228.0,
+      "outlier_score": 3.37,
+      "row_index": 7,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 228.0,
+      "outlier_score": 3.37,
+      "row_index": 154,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 228.0,
+      "outlier_score": 3.37,
+      "row_index": 1030,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3279.0,
+      "outlier_score": 3.36,
+      "row_index": 769,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 2046.0,
+      "outlier_score": 3.35,
+      "row_index": 678,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 2042.0,
+      "outlier_score": 3.34,
+      "row_index": 581,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 2524.0,
+      "outlier_score": 3.34,
+      "row_index": 1044,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 226.0,
+      "outlier_score": 3.34,
+      "row_index": 1013,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 446261.0,
+      "outlier_score": 3.34,
+      "row_index": 527,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 511.0,
+      "outlier_score": 3.33,
+      "row_index": 893,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 267.0,
+      "outlier_score": 3.33,
+      "row_index": 664,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 705.0,
+      "outlier_score": 3.32,
+      "row_index": 1373,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "2ndFlrSF",
+      "detected_value": 1796.0,
+      "outlier_score": 3.32,
+      "row_index": 1169,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 200.0,
+      "outlier_score": 3.32,
+      "row_index": 550,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 200.0,
+      "outlier_score": 3.32,
+      "row_index": 673,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 580.0,
+      "outlier_score": 3.31,
+      "row_index": 253,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2444.0,
+      "outlier_score": 3.31,
+      "row_index": 691,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 509.0,
+      "outlier_score": 3.31,
+      "row_index": 974,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 224.0,
+      "outlier_score": 3.31,
+      "row_index": 306,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 224.0,
+      "outlier_score": 3.31,
+      "row_index": 918,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 265.0,
+      "outlier_score": 3.3,
+      "row_index": 666,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 150.0,
+      "outlier_score": 3.29,
+      "row_index": 313,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "YearBuilt",
+      "detected_value": 1872.0,
+      "outlier_score": 3.29,
+      "row_index": 1349,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3238.0,
+      "outlier_score": 3.28,
+      "row_index": 1353,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 198.0,
+      "outlier_score": 3.28,
+      "row_index": 46,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 198.0,
+      "outlier_score": 3.28,
+      "row_index": 297,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 263.0,
+      "outlier_score": 3.27,
+      "row_index": 1184,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3228.0,
+      "outlier_score": 3.26,
+      "row_index": 496,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 503.0,
+      "outlier_score": 3.26,
+      "row_index": 769,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 221.0,
+      "outlier_score": 3.26,
+      "row_index": 1382,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 197.0,
+      "outlier_score": 3.26,
+      "row_index": 785,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 440000.0,
+      "outlier_score": 3.26,
+      "row_index": 473,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 149.0,
+      "outlier_score": 3.25,
+      "row_index": 909,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 2002.0,
+      "outlier_score": 3.25,
+      "row_index": 1267,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3222.0,
+      "outlier_score": 3.25,
+      "row_index": 118,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 262.0,
+      "outlier_score": 3.25,
+      "row_index": 1369,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 438780.0,
+      "outlier_score": 3.25,
+      "row_index": 58,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GarageArea",
+      "detected_value": 1166.0,
+      "outlier_score": 3.24,
+      "row_index": 178,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 500.0,
+      "outlier_score": 3.24,
+      "row_index": 1312,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 220.0,
+      "outlier_score": 3.24,
+      "row_index": 1081,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2411.0,
+      "outlier_score": 3.23,
+      "row_index": 1182,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 437154.0,
+      "outlier_score": 3.23,
+      "row_index": 349,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 188,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 298,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 597,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 624,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 628,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 921,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 1154,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 1163,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 1230,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 1283,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 1350,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "HalfBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.22,
+      "row_index": 1450,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 260.0,
+      "outlier_score": 3.22,
+      "row_index": 185,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 2.0,
+      "outlier_score": 3.21,
+      "row_index": 88,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 2.0,
+      "outlier_score": 3.21,
+      "row_index": 250,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 2.0,
+      "outlier_score": 3.21,
+      "row_index": 378,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 2.0,
+      "outlier_score": 3.21,
+      "row_index": 398,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 2.0,
+      "outlier_score": 3.21,
+      "row_index": 676,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2402.0,
+      "outlier_score": 3.21,
+      "row_index": 440,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 218.0,
+      "outlier_score": 3.21,
+      "row_index": 365,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF1",
+      "detected_value": 1904.0,
+      "outlier_score": 3.2,
+      "row_index": 178,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 495.0,
+      "outlier_score": 3.2,
+      "row_index": 343,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "YearBuilt",
+      "detected_value": 1875.0,
+      "outlier_score": 3.19,
+      "row_index": 1137,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3194.0,
+      "outlier_score": 3.19,
+      "row_index": 608,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 258.0,
+      "outlier_score": 3.19,
+      "row_index": 28,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2392.0,
+      "outlier_score": 3.18,
+      "row_index": 224,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GarageYrBlt",
+      "detected_value": 1900.0,
+      "outlier_score": 3.18,
+      "row_index": 93,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 1969.0,
+      "outlier_score": 3.17,
+      "row_index": 496,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 216.0,
+      "outlier_score": 3.17,
+      "row_index": 648,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 216.0,
+      "outlier_score": 3.17,
+      "row_index": 718,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 216.0,
+      "outlier_score": 3.17,
+      "row_index": 1139,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 216.0,
+      "outlier_score": 3.17,
+      "row_index": 1419,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 216.0,
+      "outlier_score": 3.17,
+      "row_index": 1439,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 192.0,
+      "outlier_score": 3.17,
+      "row_index": 176,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 192.0,
+      "outlier_score": 3.17,
+      "row_index": 360,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 192.0,
+      "outlier_score": 3.17,
+      "row_index": 475,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 192.0,
+      "outlier_score": 3.17,
+      "row_index": 803,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 192.0,
+      "outlier_score": 3.17,
+      "row_index": 830,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 192.0,
+      "outlier_score": 3.17,
+      "row_index": 1070,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 557.0,
+      "outlier_score": 3.16,
+      "row_index": 1059,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 2444.0,
+      "outlier_score": 3.16,
+      "row_index": 691,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "3SsnPorch",
+      "detected_value": 96.0,
+      "outlier_score": 3.16,
+      "row_index": 1156,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 9,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 48,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 93,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 125,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 165,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 246,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 291,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 300,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 312,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 335,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 411,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 488,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 520,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 535,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 635,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 637,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 703,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 705,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 713,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 861,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 969,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 985,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 1030,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 1062,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 1144,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 1186,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 1190,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 1266,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 1393,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MSSubClass",
+      "detected_value": 190.0,
+      "outlier_score": 3.15,
+      "row_index": 1416,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF1",
+      "detected_value": 1880.0,
+      "outlier_score": 3.15,
+      "row_index": 70,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 673.0,
+      "outlier_score": 3.14,
+      "row_index": 763,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 214.0,
+      "outlier_score": 3.14,
+      "row_index": 1150,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 190.0,
+      "outlier_score": 3.14,
+      "row_index": 919,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 430000.0,
+      "outlier_score": 3.14,
+      "row_index": 496,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 551.0,
+      "outlier_score": 3.13,
+      "row_index": 577,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 551.0,
+      "outlier_score": 3.13,
+      "row_index": 697,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 486.0,
+      "outlier_score": 3.13,
+      "row_index": 828,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 486.0,
+      "outlier_score": 3.13,
+      "row_index": 848,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 189.0,
+      "outlier_score": 3.12,
+      "row_index": 605,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 189.0,
+      "outlier_score": 3.12,
+      "row_index": 1037,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 189.0,
+      "outlier_score": 3.12,
+      "row_index": 1055,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 189.0,
+      "outlier_score": 3.12,
+      "row_index": 1067,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "1stFlrSF",
+      "detected_value": 2364.0,
+      "outlier_score": 3.11,
+      "row_index": 898,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 212.0,
+      "outlier_score": 3.11,
+      "row_index": 1393,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 547.0,
+      "outlier_score": 3.1,
+      "row_index": 1152,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 546.0,
+      "outlier_score": 3.1,
+      "row_index": 1387,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 1935.0,
+      "outlier_score": 3.1,
+      "row_index": 774,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 252.0,
+      "outlier_score": 3.1,
+      "row_index": 947,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 664.0,
+      "outlier_score": 3.09,
+      "row_index": 161,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LowQualFinSF",
+      "detected_value": 156.0,
+      "outlier_score": 3.09,
+      "row_index": 589,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3140.0,
+      "outlier_score": 3.09,
+      "row_index": 798,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GarageArea",
+      "detected_value": 1134.0,
+      "outlier_score": 3.09,
+      "row_index": 664,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 185,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 191,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 218,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 241,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 304,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 461,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 508,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 519,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 583,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 703,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 726,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 745,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 980,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 991,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 1123,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 1149,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 1213,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 1268,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 1327,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 1352,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 1435,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OverallCond",
+      "detected_value": 9.0,
+      "outlier_score": 3.08,
+      "row_index": 1457,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 544.0,
+      "outlier_score": 3.08,
+      "row_index": 355,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 1926.0,
+      "outlier_score": 3.08,
+      "row_index": 798,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 210.0,
+      "outlier_score": 3.08,
+      "row_index": 520,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 426000.0,
+      "outlier_score": 3.08,
+      "row_index": 389,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 660.0,
+      "outlier_score": 3.07,
+      "row_index": 654,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 660.0,
+      "outlier_score": 3.07,
+      "row_index": 1111,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 250.0,
+      "outlier_score": 3.07,
+      "row_index": 293,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 424870.0,
+      "outlier_score": 3.07,
+      "row_index": 1142,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "LotFrontage",
+      "detected_value": 144.0,
+      "outlier_score": 3.05,
+      "row_index": 807,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 539.0,
+      "outlier_score": 3.05,
+      "row_index": 440,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 539.0,
+      "outlier_score": 3.05,
+      "row_index": 842,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 2396.0,
+      "outlier_score": 3.05,
+      "row_index": 1182,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 476.0,
+      "outlier_score": 3.05,
+      "row_index": 166,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 185.0,
+      "outlier_score": 3.05,
+      "row_index": 366,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "SalePrice",
+      "detected_value": 423000.0,
+      "outlier_score": 3.05,
+      "row_index": 664,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "TotalBsmtSF",
+      "detected_value": 2392.0,
+      "outlier_score": 3.04,
+      "row_index": 224,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "GrLivArea",
+      "detected_value": 3112.0,
+      "outlier_score": 3.04,
+      "row_index": 197,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "EnclosedPorch",
+      "detected_value": 208.0,
+      "outlier_score": 3.04,
+      "row_index": 1202,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 653.0,
+      "outlier_score": 3.03,
+      "row_index": 169,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 1907.0,
+      "outlier_score": 3.03,
+      "row_index": 137,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtUnfSF",
+      "detected_value": 1905.0,
+      "outlier_score": 3.03,
+      "row_index": 932,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 53,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 188,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 313,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 326,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 335,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 420,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 454,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 588,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 634,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 807,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 921,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 942,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 1163,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 1270,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFullBath",
+      "detected_value": 2.0,
+      "outlier_score": 3.03,
+      "row_index": 1298,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "WoodDeckSF",
+      "detected_value": 474.0,
+      "outlier_score": 3.03,
+      "row_index": 1044,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 184.0,
+      "outlier_score": 3.03,
+      "row_index": 104,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "ScreenPorch",
+      "detected_value": 184.0,
+      "outlier_score": 3.03,
+      "row_index": 351,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "YearBuilt",
+      "detected_value": 1880.0,
+      "outlier_score": 3.02,
+      "row_index": 304,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "YearBuilt",
+      "detected_value": 1880.0,
+      "outlier_score": 3.02,
+      "row_index": 630,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "YearBuilt",
+      "detected_value": 1880.0,
+      "outlier_score": 3.02,
+      "row_index": 747,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "YearBuilt",
+      "detected_value": 1880.0,
+      "outlier_score": 3.02,
+      "row_index": 1132,
+      "suggested_action": "Review",
+      "outlier_type": "lower"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 650.0,
+      "outlier_score": 3.02,
+      "row_index": 37,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 650.0,
+      "outlier_score": 3.02,
+      "row_index": 403,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "MasVnrArea",
+      "detected_value": 651.0,
+      "outlier_score": 3.02,
+      "row_index": 718,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "OpenPorchSF",
+      "detected_value": 247.0,
+      "outlier_score": 3.02,
+      "row_index": 775,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 532.0,
+      "outlier_score": 3.01,
+      "row_index": 493,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    },
+    {
+      "column_name": "BsmtFinSF2",
+      "detected_value": 531.0,
+      "outlier_score": 3.0,
+      "row_index": 414,
+      "suggested_action": "Review",
+      "outlier_type": "upper"
+    }
+  ],
+  "total_outliers": 684
+}

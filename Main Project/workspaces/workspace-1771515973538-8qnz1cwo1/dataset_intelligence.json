@@ -1,0 +1,108 @@
+{
+  "file_name": "movie.csv",
+  "rows": 9837,
+  "columns": 9,
+  "schema": [
+    {
+      "name": "Release_Date",
+      "type": "datetime",
+      "missing": 0
+    },
+    {
+      "name": "Title",
+      "type": "categorical",
+      "missing": 9
+    },
+    {
+      "name": "Overview",
+      "type": "categorical",
+      "missing": 9
+    },
+    {
+      "name": "Popularity",
+      "type": "numeric",
+      "missing": 10
+    },
+    {
+      "name": "Vote_Count",
+      "type": "categorical",
+      "missing": 10
+    },
+    {
+      "name": "Vote_Average",
+      "type": "categorical",
+      "missing": 10
+    },
+    {
+      "name": "Original_Language",
+      "type": "categorical",
+      "missing": 10
+    },
+    {
+      "name": "Genre",
+      "type": "categorical",
+      "missing": 11
+    },
+    {
+      "name": "Poster_Url",
+      "type": "categorical",
+      "missing": 11
+    }
+  ],
+  "numeric_summary": {},
+  "categorical_summary": {
+    "Title": [
+      "Beauty and the Beast",
+      "Alice in Wonderland",
+      "Batman",
+      "The Little Mermaid",
+      "Cinderella"
+    ],
+    "Overview": [
+      "Alien pods come to Earth and, naturally, start taking over Human Hosts. One such pod only manages to take over one human's, Shin Izumi, right arm. Together they grow and co-exist, all the while the other aliens are making meals of other humans; Shin feels he must put a stop to it all, but his alien, Migi, doesn't see why.",
+      "Dr. Raichi is one of the only survivors of the Tuffles, a race that once lived on Planet Plant before the coming of the Saiyans. The Saiyans not only massacred the entire Tuffle race, but also stole their technology and conquered the planet, renaming it Planet Vegeta in honor of their king. Raichi managed to escape with a capsule and found refuge on the Dark Planet, a world at the end of the universe. His only wish is to eradicate the last remaining Saiyans.",
+      "The Kingdom of the People of the Earth once ruled over the land, but now all that remains is the Sword of the Earth. in the city of Eindoak. Satoshi, Iris, and Dent arrive in Eindoak during a harvest festival's Pokémon Tournament and meet the legendary Pokémon Victini who wishes to share its powers of victory to someone. Elsewhere in the city, a descendant of the People of the Earth named Dred Grangil has arrived who seeks to revive the kingdom's power with the Sword of the Earth, bringing them back into power over the land, and Satoshi and his friends must stop him before he destroys the land along with Victini.",
+      "Wilbur the pig is scared of the end of the season, because he knows that come that time, he will end up on the dinner table. He hatches a plan with Charlotte, a spider that lives in his pen, to ensure that this will never happen.",
+      "In the early 1990s, Nǃxau was cast in three low-budget unofficial sequels that continued the fish-out-of-water aspects of the first two films."
+    ],
+    "Vote_Count": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "Vote_Average": [
+      "6.4",
+      "6.3",
+      "6.5",
+      "6.8",
+      "6.7"
+    ],
+    "Original_Language": [
+      "en",
+      "ja",
+      "es",
+      "fr",
+      "ko"
+    ],
+    "Genre": [
+      "Drama",
+      "Comedy",
+      "Drama, Romance",
+      "Horror",
+      "Horror, Thriller"
+    ],
+    "Poster_Url": [
+      "https://image.tmdb.org/t/p/original/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg",
+      "https://image.tmdb.org/t/p/original/74xTEgt7R36Fpooo50r9T25onhq.jpg",
+      "https://image.tmdb.org/t/p/original/vDHsLnOWKlPGmWs0kGfuhNF4w5l.jpg",
+      "https://image.tmdb.org/t/p/original/4j0PNHkMr5ax3IA8tjtxcmPU3QT.jpg",
+      "https://image.tmdb.org/t/p/original/aq4Pwv5Xeuvj6HZKtxyd23e6bE9.jpg"
+    ]
+  },
+  "data_quality": {
+    "missing_columns": 8,
+    "duplicate_rows": 0
+  }
+}
