@@ -1,10 +1,10 @@
 {
   "workspace_id": "workspace-1770025053537-svmwit8im",
   "dataset_id": "data.csv",
-  "dataset_hash": "67fdcc284f90b3e77c09166561759a1adea61bce14b07976a5711dde64819772",
+  "dataset_hash": "2d342ecce86fa8a9cd11de603d12ee637f554b5d0ddc86585eed3959c5ee4fb5",
   "method": "zscore",
   "threshold": 3.0,
-  "timestamp": "2026-02-20T11:48:09.056850",
+  "timestamp": "2026-04-06T19:42:08.445856",
   "outliers": [
     {
       "column_name": "MiscVal",
