@@ -3,36 +3,15 @@ import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
 import { getDatasetIntelligence, type DatasetIntelligenceSnapshot } from "@/lib/workspace-files"
 import type { WorkspaceContext } from "@/lib/workspace-context"
 import { compactColumnInfo, isWithinTokenLimit } from "@/lib/ai/token-reducer"
+import {
+  getAIResponse,
+  resolveApiKey,
+  isDecommissionError,
+  type AIProvider,
+  type AIMessage,
+} from "@/lib/ai/getAiClient"
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-
-function isDecommissionError(err: string): boolean {
-  const s = String(err).toLowerCase()
-  return /decommission|deprecated|not found|invalid model|does not exist|unknown model|model .* (is )?not (available|supported)/i.test(s)
-}
-
-async function callGroq(
-  key: string,
-  model: string,
-  messages: { role: string; content: string }[],
-): Promise<{ content?: string; error?: string }> {
-  const res = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model, messages }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    const err = data?.error?.message || data?.error || "Request failed"
-    return { error: res.status === 401 ? "Invalid API key" : err }
-  }
-  const content = data?.choices?.[0]?.message?.content ?? ""
-  return { content }
-}
 
 function buildCodeGenerationPrompt(
   datasetPath: string,
@@ -107,21 +86,16 @@ export async function POST(req: NextRequest) {
       apiKey?: string
     }
 
-    if (provider !== "groq") {
-      return NextResponse.json({ error: "Only Groq is supported" }, { status: 400 })
-    }
-
-    if (!workspaceId) {
-      return NextResponse.json({ error: "workspaceId required" }, { status: 400 })
-    }
-
-    const key = process.env.GROQ_API_KEY || bodyKey
-    if (!key || typeof key !== "string") {
+    const aiProvider = (provider as AIProvider) || "groq"
+    const key = resolveApiKey(aiProvider, bodyKey)
+    if (!key) {
       return NextResponse.json({ error: "API key required" }, { status: 400 })
     }
 
-    if (!model || !isGroqModelSupported(model)) {
-      return NextResponse.json({ error: "Invalid model" }, { status: 400 })
+    const resolvedModel = model || (aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini")
+
+    if (!workspaceId) {
+      return NextResponse.json({ error: "workspaceId required" }, { status: 400 })
     }
 
     // Get dataset intelligence
@@ -150,9 +124,9 @@ export async function POST(req: NextRequest) {
       datasetIntelligence,
     )
 
-    const messages = [
-      { role: "system" as const, content: codePrompt },
-      { role: "user" as const, content: "Generate the Python analysis code." },
+    const messages: AIMessage[] = [
+      { role: "system", content: codePrompt },
+      { role: "user", content: "Generate the Python analysis code." },
     ]
 
     // Check if prompt is within token limits
@@ -161,10 +135,20 @@ export async function POST(req: NextRequest) {
       console.warn("[auto-summarize] Prompt token limit exceeded, proceeding with caution")
     }
 
-    let codeResult = await callGroq(key, model, messages)
+    let codeResult = await getAIResponse({
+      provider: aiProvider,
+      model: resolvedModel,
+      apiKey: key,
+      messages,
+    })
 
     if (codeResult.error && isDecommissionError(codeResult.error)) {
-      codeResult = await callGroq(key, GROQ_DEFAULT_MODEL, messages)
+      codeResult = await getAIResponse({
+        provider: aiProvider,
+        model: aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini",
+        apiKey: key,
+        messages,
+      })
       if (codeResult.error) {
         return NextResponse.json({ error: "Model was updated. Please try again." }, { status: 500 })
       }

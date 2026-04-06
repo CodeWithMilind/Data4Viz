@@ -36,31 +36,8 @@ export function SettingsPage() {
   const providerModels: Record<string, { id: string; name: string }[]> = {
     groq: [...GROQ_MODELS],
     openai: [
-      { id: "gpt-4o", name: "GPT-4o" },
       { id: "gpt-4o-mini", name: "GPT-4o Mini" },
-      { id: "gpt-4-turbo", name: "GPT-4 Turbo" },
-      { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
-    ],
-    anthropic: [
-      { id: "claude-3-opus", name: "Claude 3 Opus" },
-      { id: "claude-3-sonnet", name: "Claude 3 Sonnet" },
-      { id: "claude-3-haiku", name: "Claude 3 Haiku" },
-      { id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet" },
-    ],
-    google: [
-      { id: "gemini-pro", name: "Gemini Pro" },
-      { id: "gemini-ultra", name: "Gemini Ultra" },
-      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
-    ],
-    meta: [
-      { id: "llama-3-70b", name: "Llama 3 70B" },
-      { id: "llama-3-8b", name: "Llama 3 8B" },
-      { id: "llama-2-70b", name: "Llama 2 70B" },
-    ],
-    mistral: [
-      { id: "mistral-large", name: "Mistral Large" },
-      { id: "mistral-medium", name: "Mistral Medium" },
-      { id: "mistral-small", name: "Mistral Small" },
+      { id: "gpt-4o", name: "GPT-4o" },
     ],
   }
 
@@ -85,12 +62,21 @@ export function SettingsPage() {
   }, [theme])
 
   const handleProviderChange = (p: string) => {
-    setProvider(p as "groq" | "openai" | "anthropic" | "google" | "meta" | "mistral")
-    setModel(p === "groq" ? GROQ_DEFAULT_MODEL : providerModels[p][0].id)
+    const newProvider = p as "groq" | "openai"
+    setProvider(newProvider)
+    const newModel = p === "groq" ? GROQ_DEFAULT_MODEL : providerModels[p][0].id
+    setModel(newModel)
+    
+    // Explicitly store in localStorage as requested
+    localStorage.setItem("ai_provider", newProvider)
+    localStorage.setItem("ai_model", newModel)
   }
 
   const handleSaveKey = () => {
     setApiKey(keyInput)
+    // Explicitly store in localStorage as requested
+    localStorage.setItem("ai_api_key", keyInput)
+    
     setKeyInput("")
     setKeySaved(true)
     setTimeout(() => setKeySaved(false), 2000)
@@ -249,16 +235,12 @@ export function SettingsPage() {
                   <p className="text-xs text-muted-foreground">Select your preferred AI platform</p>
                 </div>
                 <Select value={provider} onValueChange={handleProviderChange}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-[140px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="groq">Groq</SelectItem>
                     <SelectItem value="openai">OpenAI</SelectItem>
-                    <SelectItem value="anthropic">Anthropic</SelectItem>
-                    <SelectItem value="google">Google AI</SelectItem>
-                    <SelectItem value="meta">Meta AI</SelectItem>
-                    <SelectItem value="mistral">Mistral AI</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

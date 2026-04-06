@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
-import { callGroq, isDecommissionError } from "@/lib/ai/getAiClient"
-import type { AIMessage } from "@/lib/ai/getAiClient"
+import {
+  getAIResponse,
+  resolveApiKey,
+  isDecommissionError,
+  type AIProvider,
+  type AIMessage,
+} from "@/lib/ai/getAiClient"
 import { truncateArray, compactOutlierInfo, isWithinTokenLimit } from "@/lib/ai/token-reducer"
 
 interface OutlierColumnSummary {
@@ -207,15 +212,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (provider !== "groq") {
-      return NextResponse.json(
-        { success: false, error: "Only Groq is supported" },
-        { status: 400 }
-      )
-    }
-
-    const key = process.env.GROQ_API_KEY || bodyKey
-    if (!key || typeof key !== "string") {
+    const aiProvider = (provider as AIProvider) || "groq"
+    const key = resolveApiKey(aiProvider, bodyKey)
+    if (!key) {
       // Fallback to rule-based recommendations
       return NextResponse.json({
         success: true,
@@ -223,7 +222,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const resolvedModel = model && isGroqModelSupported(model) ? model : GROQ_DEFAULT_MODEL
+    const resolvedModel = model || (aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini")
 
     // Build prompt
     const prompt = buildRecommendationPrompt(columns)
@@ -233,11 +232,21 @@ export async function POST(req: NextRequest) {
     ]
 
     // Call AI
-    let result = await callGroq(key, resolvedModel, messages)
+    let result = await getAIResponse({
+      provider: aiProvider,
+      model: resolvedModel,
+      apiKey: key,
+      messages,
+    })
 
     // Fallback to default model if decommissioned
     if (result.error && isDecommissionError(result.error)) {
-      result = await callGroq(key, GROQ_DEFAULT_MODEL, messages)
+      result = await getAIResponse({
+        provider: aiProvider,
+        model: aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini",
+        apiKey: key,
+        messages,
+      })
       if (result.error) {
         // Fallback to rule-based
         return NextResponse.json({

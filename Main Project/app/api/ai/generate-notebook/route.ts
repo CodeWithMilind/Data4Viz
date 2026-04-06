@@ -5,37 +5,16 @@ import path from "path"
 import { existsSync, mkdirSync } from "fs"
 import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
 import { truncateArray, sampleRows, compactColumnInfo, isWithinTokenLimit } from "@/lib/ai/token-reducer"
+import {
+  getAIResponse,
+  resolveApiKey,
+  isDecommissionError,
+  type AIProvider,
+  type AIMessage,
+} from "@/lib/ai/getAiClient"
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 const WORKSPACES_DIR = path.join(process.cwd(), "workspaces")
-
-function isDecommissionError(err: string): boolean {
-  const s = String(err).toLowerCase()
-  return /decommission|deprecated|not found|invalid model|does not exist|unknown model|model .* (is )?not (available|supported)/i.test(s)
-}
-
-async function callGroq(
-  key: string,
-  model: string,
-  messages: { role: string; content: string }[],
-): Promise<{ content?: string; error?: string }> {
-  const res = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model, messages }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    const err = data?.error?.message || data?.error || "Request failed"
-    return { error: res.status === 401 ? "Invalid API key" : err }
-  }
-  const content = data?.choices?.[0]?.message?.content ?? ""
-  return { content }
-}
 
 function getNotebooksDir(workspaceId: string): string {
   return path.join(WORKSPACES_DIR, workspaceId, "notebooks")
@@ -113,10 +92,14 @@ export async function POST(req: NextRequest) {
 
     console.log("[generate-notebook] Request body:", { workspaceId, datasetId, provider, model, hasApiKey: !!bodyKey })
 
-    if (provider !== "groq") {
-      console.error("[generate-notebook] Invalid provider:", provider)
-      return NextResponse.json({ success: false, error: "Only Groq is supported" }, { status: 400 })
+    const aiProvider = (provider as AIProvider) || "groq"
+    const key = resolveApiKey(aiProvider, bodyKey)
+    if (!key) {
+      console.error("[generate-notebook] Missing API key")
+      return NextResponse.json({ success: false, error: "API key required" }, { status: 400 })
     }
+
+    const resolvedModel = model || (aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini")
 
     if (!workspaceId) {
       console.error("[generate-notebook] Missing workspaceId")
@@ -143,17 +126,6 @@ export async function POST(req: NextRequest) {
       }
       datasetFileName = datasetsData.datasets[0].id
       console.log("[generate-notebook] Using first dataset from backend:", datasetFileName)
-    }
-
-    const key = process.env.GROQ_API_KEY || bodyKey
-    if (!key || typeof key !== "string") {
-      console.error("[generate-notebook] Missing API key")
-      return NextResponse.json({ success: false, error: "API key required" }, { status: 400 })
-    }
-
-    if (!model || !isGroqModelSupported(model)) {
-      console.error("[generate-notebook] Invalid model:", model)
-      return NextResponse.json({ success: false, error: "Invalid model" }, { status: 400 })
     }
 
     // Resolve dataset file path using the SAME mechanism as existing features
@@ -290,17 +262,27 @@ export async function POST(req: NextRequest) {
     // Generate notebook using AI
     console.log("[generate-notebook] Calling AI to generate notebook...")
     const prompt = buildNotebookGenerationPrompt(datasetFileName, metadata, sampleRows)
-    const messages = [
-      { role: "system" as const, content: prompt },
-      { role: "user" as const, content: "Generate the Jupyter notebook JSON." },
+    const messages: AIMessage[] = [
+      { role: "system", content: prompt },
+      { role: "user", content: "Generate the Jupyter notebook JSON." },
     ]
 
-    let result = await callGroq(key, model, messages)
+    let result = await getAIResponse({
+      provider: aiProvider,
+      model: resolvedModel,
+      apiKey: key,
+      messages,
+    })
     console.log("[generate-notebook] AI call completed, hasError:", !!result.error, "hasContent:", !!result.content)
 
     if (result.error && isDecommissionError(result.error)) {
       console.log("[generate-notebook] Model decommissioned, retrying with default model...")
-      result = await callGroq(key, GROQ_DEFAULT_MODEL, messages)
+      result = await getAIResponse({
+        provider: aiProvider,
+        model: aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini",
+        apiKey: key,
+        messages,
+      })
       if (result.error) {
         console.error("[generate-notebook] Default model also failed:", result.error)
         return NextResponse.json({ success: false, error: "Model was updated. Please try again." }, { status: 500 })

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
 import {
+  getAIResponse,
+  resolveApiKey,
+  isDecommissionError,
+  type AIProvider,
+  type AIMessage,
+} from "@/lib/ai/getAiClient"
+import {
   appendChatMessages,
   getRecentChat,
   getChatSummary,
@@ -23,13 +30,6 @@ import { promises as fs } from "fs"
 import path from "path"
 import { existsSync } from "fs"
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-
-function isDecommissionError(err: string): boolean {
-  const s = String(err).toLowerCase()
-  return /decommission|deprecated|not found|invalid model|does not exist|unknown model|model .* (is )?not (available|supported)/i.test(s)
-}
-
 function isDatasetRelated(message: string): boolean {
   const datasetKeywords = [
     "dataset", "data", "column", "row", "summary", "overview", "statistics", "stat",
@@ -44,28 +44,6 @@ function isDatasetRelated(message: string): boolean {
   
   const lowerMessage = message.toLowerCase()
   return datasetKeywords.some((keyword) => lowerMessage.includes(keyword))
-}
-
-async function callGroq(
-  key: string,
-  model: string,
-  messages: { role: string; content: string }[],
-): Promise<{ content?: string; error?: string }> {
-  const res = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ model, messages }),
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    const err = data?.error?.message || data?.error || "Request failed"
-    return { error: res.status === 401 ? "Invalid API key" : err }
-  }
-  const content = data?.choices?.[0]?.message?.content ?? ""
-  return { content }
 }
 
 function isValidDatasetIntelligence(snapshot: DatasetIntelligenceSnapshot | null): boolean {
@@ -579,6 +557,8 @@ function sanitizeResponse(content: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+    console.log("[chat] Received request body:", JSON.stringify(body, null, 2))
+    
     const { workspaceId, chatId, userMessage, workspaceContext, provider, model, apiKey: bodyKey, dataExposurePercentage } = body as {
       workspaceId?: string
       chatId?: string
@@ -588,10 +568,6 @@ export async function POST(req: NextRequest) {
       model?: string
       apiKey?: string
       dataExposurePercentage?: number
-    }
-
-    if (provider !== "groq") {
-      return NextResponse.json({ error: "Only Groq is supported" }, { status: 400 })
     }
 
     if (!workspaceId) {
@@ -606,24 +582,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "userMessage required" }, { status: 400 })
     }
 
-    // Backend guard: reject non-dataset questions (only if no dataset exists)
-    const hasDataset = workspaceContext?.hasDataset || false
-    if (!hasDataset && !isDatasetRelated(userMessage)) {
-      return NextResponse.json({
-        error: "I can help only with analysis of the uploaded dataset. Please ask a dataset-related question.",
-      }, { status: 200 })
-    }
-
-    const key = process.env.GROQ_API_KEY || bodyKey
-    if (!key || typeof key !== "string") {
+    const aiProvider = (provider as AIProvider) || "groq"
+    const key = resolveApiKey(aiProvider, bodyKey)
+    if (!key) {
       return NextResponse.json({ error: "API key required" }, { status: 400 })
     }
 
-    if (!model || !isGroqModelSupported(model)) {
-      return NextResponse.json({ error: "Invalid model" }, { status: 400 })
-    }
-
-    const resolvedModel = model
+    const resolvedModel = model || (aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini")
+    const hasDataset = workspaceContext?.hasDataset || false
 
     // Verify chat exists and is not deleted
     const index = await getChatIndex(workspaceId!)
@@ -743,6 +709,18 @@ export async function POST(req: NextRequest) {
     if (hasDataset && isAnalysisIntent) {
       const analysisState = await getDatasetAnalysisState(workspaceId!)
       
+      // STUCK PREVENTION: If state is "processing" but started > 30s ago, treat as not_started
+      const STUCK_TIMEOUT_MS = 30000 // 30 seconds
+      const isStuck = analysisState.state === "processing" && 
+                     analysisState.startedAt && 
+                     (Date.now() - analysisState.startedAt > STUCK_TIMEOUT_MS)
+
+      if (isStuck) {
+        console.warn(`[chat] Analysis state is stuck in "processing" for workspace ${workspaceId}. Resetting...`)
+        await setDatasetAnalysisState(workspaceId!, "not_started")
+        analysisState.state = "not_started"
+      }
+
       // If state is "processing", show processing message (not an error)
       if (analysisState.state === "processing") {
         return NextResponse.json({
@@ -774,8 +752,8 @@ export async function POST(req: NextRequest) {
               body: JSON.stringify({
                 workspaceId,
                 datasetId: datasetFileName,
-                provider: "groq",
-                model: model || "llama-3.1-70b-versatile",
+                provider: aiProvider,
+                model: resolvedModel,
                 apiKey: bodyKey,
                 dataExposurePercentage,
               }),
@@ -829,15 +807,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const messages = [
-      { role: "system" as const, content: systemPrompt },
-      { role: "user" as const, content: userMessage },
+    const messages: AIMessage[] = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userMessage },
     ]
 
-    let out = await callGroq(key, resolvedModel, messages)
+    let out = await getAIResponse({
+      provider: aiProvider,
+      model: resolvedModel,
+      apiKey: key,
+      messages,
+    })
 
     if (out.error && isDecommissionError(out.error)) {
-      out = await callGroq(key, GROQ_DEFAULT_MODEL, messages)
+      out = await getAIResponse({
+        provider: aiProvider,
+        model: aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini",
+        apiKey: key,
+        messages,
+      })
       if (out.error) {
         out = { error: "Model was updated. Please try again." }
       }
@@ -867,10 +855,10 @@ export async function POST(req: NextRequest) {
     try {
       await appendChatMessages(workspaceId!, chatId!, [userMsg, assistantMsg])
     } catch (e: any) {
-      console.error("Failed to save chat messages to file:", e?.message || e)
-      console.error("WorkspaceId:", workspaceId)
-      console.error("ChatId:", chatId)
-      console.error("Error details:", e)
+      console.error("[chat] Failed to save chat messages to file:", e?.message || e)
+      console.error("[chat] WorkspaceId:", workspaceId)
+      console.error("[chat] ChatId:", chatId)
+      console.error("[chat] Error details:", e)
     }
 
     // Trigger files refresh event (client-side will listen for this)
@@ -878,7 +866,8 @@ export async function POST(req: NextRequest) {
     // The client will refresh when navigating or the Files page will poll/refresh
 
     return NextResponse.json({ content: sanitizedContent })
-  } catch (e) {
-    return NextResponse.json({ error: "Network error" }, { status: 200 })
+  } catch (e: any) {
+    console.error("[chat] Critical error in backend route:", e)
+    return NextResponse.json({ error: e.message || "Network error" }, { status: 500 })
   }
 }

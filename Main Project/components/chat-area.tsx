@@ -165,17 +165,20 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
     }
   }, [])
 
-  const canSend = provider === "groq" && !!apiKey && !isSending && !!currentWorkspace?.id && !!activeChatId
+  const hasDataset = workspaceContext?.hasDataset || false
+  const canSend = (provider === "groq" || provider === "openai") && !!apiKey && !isSending && !!currentWorkspace?.id && !!activeChatId && hasDataset
   const warning =
     !currentWorkspace?.id
       ? "Select a workspace to start chatting."
-      : !activeChatId
-        ? "Create or select a chat to start."
-        : !apiKey && provider === "groq"
-          ? "Add your Groq API key in Settings to enable chat."
-          : provider !== "groq"
-            ? "Only Groq is supported. Set Groq in Settings."
-            : null
+      : !hasDataset
+        ? "Please upload dataset first"
+        : !activeChatId
+          ? "Create or select a chat to start."
+          : !apiKey && (provider === "groq" || provider === "openai")
+            ? `Add your ${provider === "openai" ? "OpenAI" : "Groq"} API key in Settings to enable chat.`
+            : (provider !== "groq" && provider !== "openai")
+              ? "Only Groq and OpenAI are supported. Set a valid provider in Settings."
+              : null
 
   const runFetch = useCallback(
     async (userMessage: string) => {
@@ -191,6 +194,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 60000)
 
+      console.log(`[chat] Sending request to /api/ai/chat with model ${model}`)
       try {
         const res = await fetch("/api/ai/chat", {
           method: "POST",
@@ -211,13 +215,17 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
         clearTimeout(timeoutId)
 
         if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`)
+          const errorData = await res.json().catch(() => ({}))
+          console.error(`[chat] API returned ${res.status}:`, errorData)
+          throw new Error(errorData.error || `HTTP ${res.status}`)
         }
 
         let data
         try {
           data = await res.json()
+          console.log("[chat] API success response:", data)
         } catch (parseError) {
+          console.error("[chat] Failed to parse JSON:", parseError)
           setMessages((p) => p.filter((m) => m.id !== "loading"))
           setError("Invalid response from server")
           return
@@ -225,6 +233,7 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
 
         setMessages((p) => p.filter((m) => m.id !== "loading"))
         if (data.error) {
+          console.error("[chat] API returned application error:", data.error)
           setError(data.error)
           return
         }
@@ -241,11 +250,13 @@ export function ChatArea({ onNavigate, currentPage }: ChatAreaProps) {
         loadChats()
       } catch (err: any) {
         clearTimeout(timeoutId)
+        console.error("[chat] Request failed:", err)
         setMessages((p) => p.filter((m) => m.id !== "loading"))
         if (err.name === "AbortError") {
           setError("Request timed out. Please try again.")
         } else {
-          setError("Network error. Please check your connection and try again.")
+          // If the backend returned a specific error message, use it
+          setError(err.message || "Invalid API key or request failed")
         }
       } finally {
         setIsSending(false)

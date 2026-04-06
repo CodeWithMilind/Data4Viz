@@ -1,6 +1,7 @@
 "use client"
 
 import { useWorkspace } from "@/contexts/workspace-context"
+import { useState, useEffect } from "react"
 import { AlertCircle, CheckCircle2, Info, Lightbulb, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,8 +17,13 @@ import { cn } from "@/lib/utils"
  */
 export function WorkspaceStatusBanner() {
   const { currentWorkspace, workspaceStatus } = useWorkspace()
+  const [mounted, setMounted] = useState(false)
 
-  if (!currentWorkspace) {
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!currentWorkspace || !mounted) {
     return null
   }
 

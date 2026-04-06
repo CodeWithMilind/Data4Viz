@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
-import { callGroq, resolveApiKey, isDecommissionError } from "@/lib/ai/getAiClient"
-import type { AIMessage } from "@/lib/ai/getAiClient"
+import {
+  getAIResponse,
+  resolveApiKey,
+  isDecommissionError,
+  type AIProvider,
+  type AIMessage,
+} from "@/lib/ai/getAiClient"
 import fs from "fs"
 import path from "path"
 
@@ -765,25 +770,19 @@ export async function POST(req: NextRequest) {
       regenerate?: boolean
     }
 
-    if (provider !== "groq") {
-      return NextResponse.json({ error: "Only Groq is supported" }, { status: 400 })
+    const aiProvider = (provider as AIProvider) || "groq"
+    const key = resolveApiKey(aiProvider, bodyKey)
+    if (!key) {
+      return NextResponse.json({ error: "API key required" }, { status: 400 })
     }
+
+    const resolvedModel = model || (aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini")
 
     if (!workspaceId || !datasetId || !decisionMetric) {
       return NextResponse.json(
         { error: "workspaceId, datasetId, and decisionMetric are required" },
         { status: 400 }
       )
-    }
-
-    // Use the SAME API key resolution as AI Agent (shared helper)
-    const key = resolveApiKey(bodyKey)
-    if (!key) {
-      return NextResponse.json({ error: "API key required" }, { status: 400 })
-    }
-
-    if (!model || !isGroqModelSupported(model)) {
-      return NextResponse.json({ error: "Invalid model" }, { status: 400 })
     }
 
     // Step 1: Check for existing insights (unless regenerating)
@@ -884,7 +883,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Step 3: Call Groq with strict system prompt (using shared Groq client)
+    // Step 3: Call AI with strict system prompt (using shared AI client)
     const systemPrompt = buildSystemPrompt(decisionMetric, backendStats, previousInsights, regenerate)
     const messages: AIMessage[] = [
       { role: "system", content: systemPrompt },
@@ -894,11 +893,21 @@ export async function POST(req: NextRequest) {
       },
     ]
 
-    let groqResult = await callGroq(key, model, messages)
+    let aiResult = await getAIResponse({
+      provider: aiProvider,
+      model: resolvedModel,
+      apiKey: key,
+      messages,
+    })
 
-    if (groqResult.error && isDecommissionError(groqResult.error)) {
-      groqResult = await callGroq(key, GROQ_DEFAULT_MODEL, messages)
-      if (groqResult.error) {
+    if (aiResult.error && isDecommissionError(aiResult.error)) {
+      aiResult = await getAIResponse({
+        provider: aiProvider,
+        model: aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini",
+        apiKey: key,
+        messages,
+      })
+      if (aiResult.error) {
         return NextResponse.json(
           { error: "Model was updated. Please try again." },
           { status: 500 }
@@ -906,28 +915,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (groqResult.error) {
-      return NextResponse.json({ error: groqResult.error }, { status: 500 })
+    if (aiResult.error) {
+      return NextResponse.json({ error: aiResult.error }, { status: 500 })
     }
 
-    // Parse Groq JSON response
-    let groqContent = groqResult.content || ""
+    // Parse AI JSON response
+    let aiContent = aiResult.content || ""
     
     // Remove markdown code blocks if present
-    const jsonMatch = groqContent.match(/```(?:json)?\n([\s\S]*?)\n```/)
+    const jsonMatch = aiContent.match(/```(?:json)?\n([\s\S]*?)\n```/)
     if (jsonMatch) {
-      groqContent = jsonMatch[1]
+      aiContent = jsonMatch[1]
     }
 
     let insights
     try {
-      insights = JSON.parse(groqContent)
+      insights = JSON.parse(aiContent)
     } catch (parseError) {
       // If JSON parsing fails, return error
       return NextResponse.json(
         {
-          error: "Failed to parse Groq response as JSON",
-          raw_response: groqContent.substring(0, 500),
+          error: "Failed to parse AI response as JSON",
+          raw_response: aiContent.substring(0, 500),
         },
         { status: 500 }
       )

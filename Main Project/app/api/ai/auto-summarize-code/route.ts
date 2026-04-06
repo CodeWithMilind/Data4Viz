@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { GROQ_DEFAULT_MODEL, isGroqModelSupported } from "@/lib/groq-models"
 import { promises as fs } from "fs"
 import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
-import { resolveApiKey, callGroq, isDecommissionError } from "@/lib/ai/getAiClient"
+import {
+  getAIResponse,
+  resolveApiKey,
+  isDecommissionError,
+  type AIProvider,
+  type AIMessage,
+} from "@/lib/ai/getAiClient"
 import { setDatasetAnalysisState } from "@/lib/workspace-files"
 
 /**
@@ -97,26 +103,8 @@ export async function POST(req: NextRequest) {
     }
     workspaceId = bodyWorkspaceId
 
-    // Validation
-    if (provider !== "groq") {
-      return NextResponse.json({ success: false, error: "Only Groq is supported" }, { status: 400 })
-    }
-
-    if (!workspaceId) {
-      return NextResponse.json({ success: false, error: "workspaceId required" }, { status: 400 })
-    }
-
-    if (!datasetId) {
-      return NextResponse.json({ success: false, error: "datasetId required" }, { status: 400 })
-    }
-
-    if (!model || !isGroqModelSupported(model)) {
-      return NextResponse.json({ success: false, error: "Invalid model" }, { status: 400 })
-    }
-
-    // Use SAME API key resolution as Chat (SINGLE SOURCE OF TRUTH)
-    // Priority: bodyKey (user settings) > process.env.GROQ_API_KEY (server default)
-    const apiKey = resolveApiKey(bodyKey)
+    const aiProvider = (provider as AIProvider) || "groq"
+    const apiKey = resolveApiKey(aiProvider, bodyKey)
     if (!apiKey) {
       return NextResponse.json({ 
         success: false, 
@@ -124,78 +112,73 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
+    const resolvedModel = model || (aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini")
+
+    console.log(`[auto-summarize-code] Analysis started for workspace ${workspaceId}`)
     // Set state to "processing" immediately when auto-summarize starts
     await setDatasetAnalysisState(workspaceId, "processing")
 
-    // Resolve dataset file path (read-only, isolated)
-    const datasetPath = getDatasetFilePath(workspaceId, datasetId)
-    if (!datasetPath) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Dataset file not found" 
-      }, { status: 404 })
-    }
-
-    // Read dataset file directly (read-only access)
-    let csvContent: string
     try {
-      csvContent = await fs.readFile(datasetPath, "utf-8")
-    } catch (readError: any) {
-      return NextResponse.json({ 
-        success: false, 
-        error: `Failed to read dataset file: ${readError.message}` 
-      }, { status: 500 })
-    }
-
-    const lines = csvContent.trim().split(/\r?\n/)
-    if (lines.length === 0) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Dataset file is empty" 
-      }, { status: 400 })
-    }
-
-    // Parse CSV to extract metadata and sample rows
-    const headers = parseCSVLine(lines[0]).map((h) => h.replace(/^"|"$/g, ""))
-    const totalRows = lines.length - 1
-
-    // Get sample rows (first 10, safe subset)
-    const sampleRows: Record<string, any>[] = []
-    const sampleCount = Math.min(10, totalRows)
-    for (let i = 1; i <= sampleCount; i++) {
-      const values = parseCSVLine(lines[i]).map((v) => v.replace(/^"|"$/g, ""))
-      const row: Record<string, any> = {}
-      headers.forEach((header, idx) => {
-        row[header] = values[idx] || ""
-      })
-      sampleRows.push(row)
-    }
-
-    // Infer column types from sample
-    const columns = headers.map((header) => {
-      const sampleValues = sampleRows.map((r) => r[header]).filter((v) => v !== "")
-      return {
-        name: header,
-        type: inferColumnType(sampleValues),
+      // Resolve dataset file path (read-only, isolated)
+      const datasetPath = getDatasetFilePath(workspaceId, datasetId)
+      if (!datasetPath) {
+        throw new Error("Dataset file not found")
       }
-    })
 
-    // Build dataset context JSON for AI (without calling other tools)
-    const datasetContextJson = JSON.stringify({
-      dataset_name: datasetId,
-      workspace_id: workspaceId, // User/project context
-      rows: totalRows,
-      columns: columns.map(col => ({ name: col.name, type: col.type })),
-      sample_rows: sampleRows, // Up to 10 sample rows (max 10 per requirements)
-    }, null, 2)
+      // Read dataset file directly (read-only access)
+      let csvContent: string
+      try {
+        csvContent = await fs.readFile(datasetPath, "utf-8")
+      } catch (readError: any) {
+        throw new Error(`Failed to read dataset file: ${readError.message}`)
+      }
 
-    // Get data exposure percentage (default: 100% for code generation)
-    const exposurePercent = dataExposurePercentage !== undefined && dataExposurePercentage !== null
-      ? Math.max(1, Math.min(100, Math.floor(dataExposurePercentage)))
-      : 100
+      const lines = csvContent.trim().split(/\r?\n/)
+      if (lines.length === 0) {
+        throw new Error("Dataset file is empty")
+      }
 
-    // Build AI prompt (V4 - STRICT rules: must load from file, never recreate)
-    const systemPrompt = `You are an AI agent that generates Python code inside Data4Viz.
+      // Parse CSV to extract metadata and sample rows
+      const headers = parseCSVLine(lines[0]).map((h) => h.replace(/^"|"$/g, ""))
+      const totalRows = lines.length - 1
+
+      // Get sample rows (first 10, safe subset)
+      const sampleRows: Record<string, any>[] = []
+      const sampleCount = Math.min(10, totalRows)
+      for (let i = 1; i <= sampleCount; i++) {
+        const values = parseCSVLine(lines[i]).map((v) => v.replace(/^"|"$/g, ""))
+        const row: Record<string, any> = {}
+        headers.forEach((header, idx) => {
+          row[header] = values[idx] || ""
+        })
+        sampleRows.push(row)
+      }
+
+      // Infer column types from sample
+      const columns = headers.map((header) => {
+        const sampleValues = sampleRows.map((r) => r[header]).filter((v) => v !== "")
+        return {
+          name: header,
+          type: inferColumnType(sampleValues),
+        }
+      })
+
+      // Build dataset context JSON for AI (without calling other tools)
+      const datasetContextJson = JSON.stringify({
+        dataset_name: datasetId,
+        workspace_id: workspaceId, // User/project context
+        rows: totalRows,
+        columns: columns.map(col => ({ name: col.name, type: col.type })),
+        sample_rows: sampleRows, // Up to 10 sample rows (max 10 per requirements)
+      }, null, 2)
+
+      // Get data exposure percentage (default: 100% for code generation)
+      const exposurePercent = dataExposurePercentage !== undefined && dataExposurePercentage !== null
+        ? Math.max(1, Math.min(100, Math.floor(dataExposurePercentage)))
+        : 100
+
+      // Build AI prompt (V4 - STRICT rules: must load from file, never recreate)
+      const systemPrompt = `You are an AI agent that generates Python code inside Data4Viz.
 
 The dataset is persisted by the system and must be accessed via file loading.
 You are NOT allowed to recreate, mock, or inline dataset values.
@@ -227,11 +210,11 @@ Do NOT include explanations.
 Do NOT include markdown.
 Do NOT wrap output in code fences.`
 
-    // Determine dataset path (use datasetId as filename)
-    // The actual path will be resolved at runtime, but we provide a variable name
-    const datasetPathVar = datasetId.endsWith('.csv') ? datasetId : `${datasetId}.csv`
+      // Determine dataset path (use datasetId as filename)
+      // The actual path will be resolved at runtime, but we provide a variable name
+      const datasetPathVar = datasetId.endsWith('.csv') ? datasetId : `${datasetId}.csv`
 
-    const userPrompt = `Generate a SAFE, GENERIC, and INSIGHT-ORIENTED Python script for exploratory data analysis.
+      const userPrompt = `Generate a SAFE, GENERIC, and INSIGHT-ORIENTED Python script for exploratory data analysis.
 
 --------------------------------------------------
 SYSTEM VARIABLES (INJECTED BY BACKEND)
@@ -366,67 +349,79 @@ You are generating code for a controlled, production-style environment.
 Dataset context (for reference only - use dataset_path to load):
 ${datasetContextJson}`
 
-    const messages = [
-      { role: "system" as const, content: systemPrompt },
-      { role: "user" as const, content: userPrompt },
-    ]
+      const messages: AIMessage[] = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ]
 
-    // Call AI using shared client (SAME as Chat)
-    let result = await callGroq(apiKey, model, messages)
+      // Call AI using shared client (SAME as Chat)
+      let result = await getAIResponse({
+        provider: aiProvider,
+        model: resolvedModel,
+        apiKey: apiKey,
+        messages,
+      })
 
-    // Handle model decommission
-    if (result.error && isDecommissionError(result.error)) {
-      result = await callGroq(apiKey, GROQ_DEFAULT_MODEL, messages)
-      if (result.error) {
-        return NextResponse.json({ 
-          success: false, 
-          error: result.error 
-        }, { status: 500 })
+      // Handle model decommission
+      if (result.error && isDecommissionError(result.error)) {
+        result = await getAIResponse({
+          provider: aiProvider,
+          model: aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini",
+          apiKey: apiKey,
+          messages,
+        })
+        if (result.error) {
+          throw new Error(result.error)
+        }
       }
-    }
 
-    if (result.error) {
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      // Treat response as plain text (DO NOT parse JSON)
+      let pythonCode = result.content || ""
+
+      // Remove markdown code fences if AI added them (safety cleanup)
+      const codeBlockMatch = pythonCode.match(/```(?:python)?\n?([\s\S]*?)\n?```/)
+      if (codeBlockMatch) {
+        pythonCode = codeBlockMatch[1].trim()
+      } else {
+        pythonCode = pythonCode.trim()
+      }
+
+      console.log(`[auto-summarize-code] Analysis finished for workspace ${workspaceId}`)
+      // Keep state as "processing" - insights will be saved by backend after code execution
+      // The state will be updated to "ready" when insights are actually saved (checked by chat route)
+      // Don't set to "ready" here - code generation is just the first step
+
+      // Return code as-is (no validation, no parsing, no file writes)
+      return NextResponse.json({
+        success: true,
+        code: pythonCode,
+      })
+    } catch (e: any) {
+      console.error("[auto-summarize-code] Unexpected error:", e)
+      
+      // Set state to "failed" on error
+      try {
+        await setDatasetAnalysisState(workspaceId, "failed", {
+          error: e.message || "Network error"
+        })
+      } catch (stateError) {
+        console.error("[auto-summarize-code] Failed to update state:", stateError)
+      }
+      
       return NextResponse.json({ 
         success: false, 
-        error: result.error 
+        error: e.message || "Network error" 
       }, { status: 500 })
     }
-
-    // Treat response as plain text (DO NOT parse JSON)
-    let pythonCode = result.content || ""
-
-    // Remove markdown code fences if AI added them (safety cleanup)
-    const codeBlockMatch = pythonCode.match(/```(?:python)?\n?([\s\S]*?)\n?```/)
-    if (codeBlockMatch) {
-      pythonCode = codeBlockMatch[1].trim()
-    } else {
-      pythonCode = pythonCode.trim()
-    }
-
-    // Keep state as "processing" - insights will be saved by backend after code execution
-    // The state will be updated to "ready" when insights are actually saved (checked by chat route)
-    // Don't set to "ready" here - code generation is just the first step
-
-    // Return code as-is (no validation, no parsing, no file writes)
-    return NextResponse.json({
-      success: true,
-      code: pythonCode,
-    })
   } catch (e: any) {
-    console.error("[auto-summarize-code] Unexpected error:", e)
-    
-    // Set state to "failed" on error
-    try {
-      await setDatasetAnalysisState(workspaceId, "failed", {
-        error: e.message || "Network error"
-      })
-    } catch (stateError) {
-      console.error("[auto-summarize-code] Failed to update state:", stateError)
-    }
-    
+    console.error("[auto-summarize-code] Outer catch block:", e)
     return NextResponse.json({ 
       success: false, 
-      error: e.message || "Network error" 
+      error: "Critical server error" 
     }, { status: 500 })
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Bot } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Message } from "@/components/chat-area"
@@ -12,10 +12,19 @@ interface ChatMessagesProps {
 
 export function ChatMessages({ messages, onSuggestionClick }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [messages, mounted])
+
+  if (!mounted) return null
 
   return (
     <div className="p-6 pb-40">

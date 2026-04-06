@@ -4,8 +4,14 @@ import { promises as fs } from "fs"
 import path from "path"
 import { existsSync, mkdirSync } from "fs"
 import { getDatasetFilePath } from "@/lib/dataset-path-resolver"
+import {
+  getAIResponse,
+  resolveApiKey,
+  isDecommissionError,
+  type AIProvider,
+  type AIMessage,
+} from "@/lib/ai/getAiClient"
 
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 const WORKSPACES_DIR = path.join(process.cwd(), "workspaces")
 const MAX_RETRIES = 3
 
@@ -20,17 +26,13 @@ const MAX_RETRIES = 3
  * - Only writes to notebooks/auto_summarize.ipynb
  */
 
-function isDecommissionError(err: string): boolean {
-  const s = String(err).toLowerCase()
-  return /decommission|deprecated|not found|invalid model|does not exist|unknown model|model .* (is )?not (available|supported)/i.test(s)
-}
-
 /**
  * DEDICATED AI call for notebook generation (NO chat reuse)
  * Single request → single response
  * Isolated from chat/streaming logic
  */
 async function generateNotebookWithAI(
+  provider: AIProvider,
   apiKey: string,
   model: string,
   userPrompt: string,
@@ -41,32 +43,17 @@ Do NOT include explanations.
 Do NOT wrap in code fences.
 Do NOT add commentary.`
 
-  const messages = [
-    { role: "system" as const, content: systemPrompt },
-    { role: "user" as const, content: userPrompt },
+  const messages: AIMessage[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt },
   ]
 
-  try {
-    const res = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model, messages }),
-    })
-
-    const data = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      const err = data?.error?.message || data?.error || "Request failed"
-      return { error: res.status === 401 ? "Invalid API key" : err }
-    }
-
-    const content = data?.choices?.[0]?.message?.content ?? ""
-    return { content }
-  } catch (error: any) {
-    return { error: error.message || "AI request failed" }
-  }
+  return getAIResponse({
+    provider,
+    apiKey,
+    model,
+    messages,
+  })
 }
 
 function getNotebooksDir(workspaceId: string): string {
@@ -153,34 +140,16 @@ export async function POST(req: NextRequest) {
       apiKey?: string
     }
 
-    // Validation
-    if (provider !== "groq") {
-      return NextResponse.json({ success: false, error: "Only Groq is supported" }, { status: 400 })
-    }
-
-    if (!workspaceId) {
-      return NextResponse.json({ success: false, error: "workspaceId required" }, { status: 400 })
-    }
-
-    if (!datasetId) {
-      return NextResponse.json({ success: false, error: "datasetId required" }, { status: 400 })
-    }
-
-    // HARD GUARANTEE: API key from server env ONLY
-    const serverApiKey = process.env.GROQ_API_KEY
-    if (!serverApiKey || typeof serverApiKey !== "string") {
+    const aiProvider = (provider as AIProvider) || "groq"
+    const apiKey = resolveApiKey(aiProvider, bodyKey)
+    if (!apiKey) {
       return NextResponse.json({ 
         success: false, 
         error: "AI service not configured" 
       }, { status: 400 })
     }
 
-    // Use server key only (ignore bodyKey for security)
-    const apiKey = serverApiKey
-
-    if (!model || !isGroqModelSupported(model)) {
-      return NextResponse.json({ success: false, error: "Invalid model" }, { status: 400 })
-    }
+    const resolvedModel = model || (aiProvider === "groq" ? GROQ_DEFAULT_MODEL : "gpt-4o-mini")
 
     // Resolve dataset file path (read-only, isolated)
     const datasetPath = getDatasetFilePath(workspaceId, datasetId)
@@ -276,12 +245,12 @@ ${datasetContextJson}`
       }
 
       // Call AI (dedicated function, no chat reuse)
-      const result = await generateNotebookWithAI(apiKey, model, userPrompt)
+      const result = await generateNotebookWithAI(aiProvider, apiKey, resolvedModel, userPrompt)
 
       if (result.error) {
         // Handle model decommission
         if (isDecommissionError(result.error) && attempt === 1) {
-          const fallbackResult = await generateNotebookWithAI(apiKey, GROQ_DEFAULT_MODEL, userPrompt)
+          const fallbackResult = await generateNotebookWithAI(aiProvider, apiKey, GROQ_DEFAULT_MODEL, userPrompt)
           if (fallbackResult.error) {
             lastError = fallbackResult.error
             continue
