@@ -1,0 +1,2406 @@
+{
+  "total_rows": 1460,
+  "total_columns": 81,
+  "duplicate_row_count": 0,
+  "numeric_column_count": 38,
+  "categorical_column_count": 43,
+  "datetime_column_count": 0,
+  "columns": [
+    {
+      "name": "Id",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "MSSubClass",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "MSZoning",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "LotFrontage",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 259,
+      "missing_percentage": 17.74
+    },
+    {
+      "name": "LotArea",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Street",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Alley",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 1369,
+      "missing_percentage": 93.77
+    },
+    {
+      "name": "LotShape",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "LandContour",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Utilities",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "LotConfig",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "LandSlope",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Neighborhood",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Condition1",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Condition2",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "BldgType",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "HouseStyle",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "OverallQual",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "OverallCond",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "YearBuilt",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "YearRemodAdd",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "RoofStyle",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "RoofMatl",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Exterior1st",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Exterior2nd",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "MasVnrType",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 872,
+      "missing_percentage": 59.73
+    },
+    {
+      "name": "MasVnrArea",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 8,
+      "missing_percentage": 0.55
+    },
+    {
+      "name": "ExterQual",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "ExterCond",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Foundation",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "BsmtQual",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 37,
+      "missing_percentage": 2.53
+    },
+    {
+      "name": "BsmtCond",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 37,
+      "missing_percentage": 2.53
+    },
+    {
+      "name": "BsmtExposure",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 38,
+      "missing_percentage": 2.6
+    },
+    {
+      "name": "BsmtFinType1",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 37,
+      "missing_percentage": 2.53
+    },
+    {
+      "name": "BsmtFinSF1",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "BsmtFinType2",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 38,
+      "missing_percentage": 2.6
+    },
+    {
+      "name": "BsmtFinSF2",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "BsmtUnfSF",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "TotalBsmtSF",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Heating",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "HeatingQC",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "CentralAir",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Electrical",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 1,
+      "missing_percentage": 0.07
+    },
+    {
+      "name": "1stFlrSF",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "2ndFlrSF",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "LowQualFinSF",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "GrLivArea",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "BsmtFullBath",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "BsmtHalfBath",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "FullBath",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "HalfBath",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "BedroomAbvGr",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "KitchenAbvGr",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "KitchenQual",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "TotRmsAbvGrd",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Functional",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "Fireplaces",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "FireplaceQu",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 690,
+      "missing_percentage": 47.26
+    },
+    {
+      "name": "GarageType",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 81,
+      "missing_percentage": 5.55
+    },
+    {
+      "name": "GarageYrBlt",
+      "inferred_type": "numeric",
+      "nullable": true,
+      "missing_count": 81,
+      "missing_percentage": 5.55
+    },
+    {
+      "name": "GarageFinish",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 81,
+      "missing_percentage": 5.55
+    },
+    {
+      "name": "GarageCars",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "GarageArea",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "GarageQual",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 81,
+      "missing_percentage": 5.55
+    },
+    {
+      "name": "GarageCond",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 81,
+      "missing_percentage": 5.55
+    },
+    {
+      "name": "PavedDrive",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "WoodDeckSF",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "OpenPorchSF",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "EnclosedPorch",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "3SsnPorch",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "ScreenPorch",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "PoolArea",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "PoolQC",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 1453,
+      "missing_percentage": 99.52
+    },
+    {
+      "name": "Fence",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 1179,
+      "missing_percentage": 80.75
+    },
+    {
+      "name": "MiscFeature",
+      "inferred_type": "categorical",
+      "nullable": true,
+      "missing_count": 1406,
+      "missing_percentage": 96.3
+    },
+    {
+      "name": "MiscVal",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "MoSold",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "YrSold",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "SaleType",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "SaleCondition",
+      "inferred_type": "categorical",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    },
+    {
+      "name": "SalePrice",
+      "inferred_type": "numeric",
+      "nullable": false,
+      "missing_count": 0,
+      "missing_percentage": 0.0
+    }
+  ],
+  "column_insights": {
+    "Id": {
+      "unique": 1460,
+      "top_values": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 1,
+        "8": 1,
+        "9": 1,
+        "10": 1,
+        "11": 1,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 1,
+        "16": 1,
+        "17": 1,
+        "18": 1,
+        "19": 1,
+        "20": 1,
+        "21": 1,
+        "22": 1,
+        "23": 1,
+        "24": 1,
+        "25": 1,
+        "26": 1,
+        "27": 1,
+        "28": 1,
+        "29": 1,
+        "30": 1,
+        "31": 1,
+        "32": 1,
+        "33": 1,
+        "34": 1,
+        "35": 1,
+        "36": 1,
+        "37": 1,
+        "38": 1,
+        "39": 1,
+        "40": 1,
+        "41": 1,
+        "42": 1,
+        "43": 1,
+        "44": 1,
+        "45": 1,
+        "46": 1,
+        "47": 1,
+        "48": 1,
+        "49": 1,
+        "50": 1
+      }
+    },
+    "MSSubClass": {
+      "unique": 15,
+      "top_values": {
+        "20": 536,
+        "60": 299,
+        "50": 144,
+        "120": 87,
+        "30": 69,
+        "160": 63,
+        "70": 60,
+        "80": 58,
+        "90": 52,
+        "190": 30,
+        "85": 20,
+        "75": 16,
+        "45": 12,
+        "180": 10,
+        "40": 4
+      }
+    },
+    "MSZoning": {
+      "unique": 5,
+      "top_values": {
+        "RL": 1151,
+        "RM": 218,
+        "FV": 65,
+        "RH": 16,
+        "C (all)": 10
+      }
+    },
+    "LotFrontage": {
+      "unique": 110,
+      "top_values": {
+        "60.0": 143,
+        "70.0": 70,
+        "80.0": 69,
+        "50.0": 57,
+        "75.0": 53,
+        "65.0": 44,
+        "85.0": 40,
+        "78.0": 25,
+        "21.0": 23,
+        "90.0": 23,
+        "68.0": 19,
+        "24.0": 19,
+        "64.0": 19,
+        "73.0": 18,
+        "72.0": 17,
+        "63.0": 17,
+        "55.0": 17,
+        "79.0": 17,
+        "100.0": 16,
+        "51.0": 15,
+        "66.0": 15,
+        "74.0": 15,
+        "52.0": 14,
+        "59.0": 13,
+        "57.0": 12,
+        "40.0": 12,
+        "82.0": 12,
+        "71.0": 12,
+        "67.0": 12,
+        "43.0": 12,
+        "76.0": 11,
+        "69.0": 11,
+        "34.0": 10,
+        "88.0": 10,
+        "92.0": 10,
+        "86.0": 10,
+        "53.0": 10,
+        "84.0": 9,
+        "44.0": 9,
+        "77.0": 9,
+        "62.0": 9,
+        "35.0": 9,
+        "98.0": 8,
+        "61.0": 8,
+        "93.0": 8,
+        "96.0": 8,
+        "95.0": 7,
+        "120.0": 7,
+        "107.0": 7,
+        "58.0": 7
+      }
+    },
+    "LotArea": {
+      "unique": 1073,
+      "top_values": {
+        "7200": 25,
+        "9600": 24,
+        "6000": 17,
+        "10800": 14,
+        "9000": 14,
+        "8400": 14,
+        "1680": 10,
+        "7500": 9,
+        "6120": 8,
+        "6240": 8,
+        "9100": 8,
+        "8125": 8,
+        "3182": 7,
+        "8450": 6,
+        "7800": 6,
+        "4500": 5,
+        "10400": 5,
+        "5400": 5,
+        "5000": 5,
+        "10140": 5,
+        "4435": 5,
+        "10000": 5,
+        "9750": 5,
+        "11250": 4,
+        "8500": 4,
+        "8544": 4,
+        "9375": 4,
+        "10625": 4,
+        "7018": 4,
+        "8520": 4,
+        "7000": 4,
+        "8640": 4,
+        "11700": 4,
+        "9900": 4,
+        "8750": 4,
+        "13125": 4,
+        "6600": 4,
+        "8800": 4,
+        "14115": 3,
+        "9200": 3,
+        "10200": 3,
+        "10440": 3,
+        "7750": 3,
+        "10500": 3,
+        "2522": 3,
+        "13891": 3,
+        "2117": 3,
+        "2280": 3,
+        "12090": 3,
+        "8012": 3
+      }
+    },
+    "Street": {
+      "unique": 2,
+      "top_values": {
+        "Pave": 1454,
+        "Grvl": 6
+      }
+    },
+    "Alley": {
+      "unique": 2,
+      "top_values": {
+        "Grvl": 50,
+        "Pave": 41
+      }
+    },
+    "LotShape": {
+      "unique": 4,
+      "top_values": {
+        "Reg": 925,
+        "IR1": 484,
+        "IR2": 41,
+        "IR3": 10
+      }
+    },
+    "LandContour": {
+      "unique": 4,
+      "top_values": {
+        "Lvl": 1311,
+        "Bnk": 63,
+        "HLS": 50,
+        "Low": 36
+      }
+    },
+    "Utilities": {
+      "unique": 2,
+      "top_values": {
+        "AllPub": 1459,
+        "NoSeWa": 1
+      }
+    },
+    "LotConfig": {
+      "unique": 5,
+      "top_values": {
+        "Inside": 1052,
+        "Corner": 263,
+        "CulDSac": 94,
+        "FR2": 47,
+        "FR3": 4
+      }
+    },
+    "LandSlope": {
+      "unique": 3,
+      "top_values": {
+        "Gtl": 1382,
+        "Mod": 65,
+        "Sev": 13
+      }
+    },
+    "Neighborhood": {
+      "unique": 25,
+      "top_values": {
+        "NAmes": 225,
+        "CollgCr": 150,
+        "OldTown": 113,
+        "Edwards": 100,
+        "Somerst": 86,
+        "Gilbert": 79,
+        "NridgHt": 77,
+        "Sawyer": 74,
+        "NWAmes": 73,
+        "SawyerW": 59,
+        "BrkSide": 58,
+        "Crawfor": 51,
+        "Mitchel": 49,
+        "NoRidge": 41,
+        "Timber": 38,
+        "IDOTRR": 37,
+        "ClearCr": 28,
+        "StoneBr": 25,
+        "SWISU": 25,
+        "MeadowV": 17,
+        "Blmngtn": 17,
+        "BrDale": 16,
+        "Veenker": 11,
+        "NPkVill": 9,
+        "Blueste": 2
+      }
+    },
+    "Condition1": {
+      "unique": 9,
+      "top_values": {
+        "Norm": 1260,
+        "Feedr": 81,
+        "Artery": 48,
+        "RRAn": 26,
+        "PosN": 19,
+        "RRAe": 11,
+        "PosA": 8,
+        "RRNn": 5,
+        "RRNe": 2
+      }
+    },
+    "Condition2": {
+      "unique": 8,
+      "top_values": {
+        "Norm": 1445,
+        "Feedr": 6,
+        "Artery": 2,
+        "RRNn": 2,
+        "PosN": 2,
+        "PosA": 1,
+        "RRAn": 1,
+        "RRAe": 1
+      }
+    },
+    "BldgType": {
+      "unique": 5,
+      "top_values": {
+        "1Fam": 1220,
+        "TwnhsE": 114,
+        "Duplex": 52,
+        "Twnhs": 43,
+        "2fmCon": 31
+      }
+    },
+    "HouseStyle": {
+      "unique": 8,
+      "top_values": {
+        "1Story": 726,
+        "2Story": 445,
+        "1.5Fin": 154,
+        "SLvl": 65,
+        "SFoyer": 37,
+        "1.5Unf": 14,
+        "2.5Unf": 11,
+        "2.5Fin": 8
+      }
+    },
+    "OverallQual": {
+      "unique": 10,
+      "top_values": {
+        "5": 397,
+        "6": 374,
+        "7": 319,
+        "8": 168,
+        "4": 116,
+        "9": 43,
+        "3": 20,
+        "10": 18,
+        "2": 3,
+        "1": 2
+      }
+    },
+    "OverallCond": {
+      "unique": 9,
+      "top_values": {
+        "5": 821,
+        "6": 252,
+        "7": 205,
+        "8": 72,
+        "4": 57,
+        "3": 25,
+        "9": 22,
+        "2": 5,
+        "1": 1
+      }
+    },
+    "YearBuilt": {
+      "unique": 112,
+      "top_values": {
+        "2006": 67,
+        "2005": 64,
+        "2004": 54,
+        "2007": 49,
+        "2003": 45,
+        "1976": 33,
+        "1977": 32,
+        "1920": 30,
+        "1959": 26,
+        "1999": 25,
+        "1998": 25,
+        "2000": 24,
+        "1965": 24,
+        "1970": 24,
+        "1958": 24,
+        "1954": 24,
+        "2002": 23,
+        "1972": 23,
+        "2008": 23,
+        "1968": 22,
+        "1971": 22,
+        "2001": 20,
+        "1957": 20,
+        "1950": 20,
+        "1962": 19,
+        "1994": 19,
+        "1966": 18,
+        "1995": 18,
+        "2009": 18,
+        "1940": 18,
+        "1993": 17,
+        "1960": 17,
+        "1910": 17,
+        "1967": 16,
+        "1955": 16,
+        "1963": 16,
+        "1925": 16,
+        "1978": 16,
+        "1964": 15,
+        "1941": 15,
+        "1996": 15,
+        "1997": 14,
+        "1956": 14,
+        "1948": 14,
+        "1961": 14,
+        "1969": 14,
+        "1992": 13,
+        "1953": 12,
+        "1990": 12,
+        "1949": 12
+      }
+    },
+    "YearRemodAdd": {
+      "unique": 61,
+      "top_values": {
+        "1950": 178,
+        "2006": 97,
+        "2007": 76,
+        "2005": 73,
+        "2004": 62,
+        "2000": 55,
+        "2003": 51,
+        "2002": 48,
+        "2008": 40,
+        "1996": 36,
+        "1998": 36,
+        "1995": 31,
+        "1976": 30,
+        "1999": 30,
+        "1970": 26,
+        "1997": 25,
+        "1977": 25,
+        "2009": 23,
+        "1994": 22,
+        "2001": 21,
+        "1972": 20,
+        "1965": 19,
+        "1993": 19,
+        "1959": 18,
+        "1971": 18,
+        "1968": 17,
+        "1992": 17,
+        "1978": 16,
+        "1990": 15,
+        "1966": 15,
+        "1958": 15,
+        "1962": 14,
+        "1969": 14,
+        "1991": 14,
+        "1954": 14,
+        "1963": 13,
+        "1960": 12,
+        "1967": 12,
+        "1980": 12,
+        "1973": 11,
+        "1964": 11,
+        "1989": 11,
+        "1987": 10,
+        "1953": 10,
+        "1956": 10,
+        "1979": 10,
+        "1975": 10,
+        "1955": 9,
+        "1985": 9,
+        "1988": 9
+      }
+    },
+    "RoofStyle": {
+      "unique": 6,
+      "top_values": {
+        "Gable": 1141,
+        "Hip": 286,
+        "Flat": 13,
+        "Gambrel": 11,
+        "Mansard": 7,
+        "Shed": 2
+      }
+    },
+    "RoofMatl": {
+      "unique": 8,
+      "top_values": {
+        "CompShg": 1434,
+        "Tar&Grv": 11,
+        "WdShngl": 6,
+        "WdShake": 5,
+        "Metal": 1,
+        "Membran": 1,
+        "Roll": 1,
+        "ClyTile": 1
+      }
+    },
+    "Exterior1st": {
+      "unique": 15,
+      "top_values": {
+        "VinylSd": 515,
+        "HdBoard": 222,
+        "MetalSd": 220,
+        "Wd Sdng": 206,
+        "Plywood": 108,
+        "CemntBd": 61,
+        "BrkFace": 50,
+        "WdShing": 26,
+        "Stucco": 25,
+        "AsbShng": 20,
+        "BrkComm": 2,
+        "Stone": 2,
+        "AsphShn": 1,
+        "ImStucc": 1,
+        "CBlock": 1
+      }
+    },
+    "Exterior2nd": {
+      "unique": 16,
+      "top_values": {
+        "VinylSd": 504,
+        "MetalSd": 214,
+        "HdBoard": 207,
+        "Wd Sdng": 197,
+        "Plywood": 142,
+        "CmentBd": 60,
+        "Wd Shng": 38,
+        "Stucco": 26,
+        "BrkFace": 25,
+        "AsbShng": 20,
+        "ImStucc": 10,
+        "Brk Cmn": 7,
+        "Stone": 5,
+        "AsphShn": 3,
+        "Other": 1,
+        "CBlock": 1
+      }
+    },
+    "MasVnrType": {
+      "unique": 3,
+      "top_values": {
+        "BrkFace": 445,
+        "Stone": 128,
+        "BrkCmn": 15
+      }
+    },
+    "MasVnrArea": {
+      "unique": 327,
+      "top_values": {
+        "0.0": 861,
+        "180.0": 8,
+        "108.0": 8,
+        "72.0": 8,
+        "120.0": 7,
+        "16.0": 7,
+        "200.0": 6,
+        "340.0": 6,
+        "106.0": 6,
+        "80.0": 6,
+        "132.0": 5,
+        "320.0": 5,
+        "84.0": 5,
+        "360.0": 5,
+        "170.0": 5,
+        "196.0": 4,
+        "246.0": 4,
+        "456.0": 4,
+        "178.0": 4,
+        "40.0": 4,
+        "76.0": 4,
+        "183.0": 4,
+        "336.0": 4,
+        "220.0": 4,
+        "288.0": 4,
+        "252.0": 4,
+        "300.0": 4,
+        "268.0": 4,
+        "270.0": 4,
+        "210.0": 4,
+        "100.0": 4,
+        "168.0": 4,
+        "216.0": 4,
+        "160.0": 4,
+        "350.0": 3,
+        "186.0": 3,
+        "240.0": 3,
+        "272.0": 3,
+        "104.0": 3,
+        "116.0": 3,
+        "85.0": 3,
+        "136.0": 3,
+        "70.0": 3,
+        "50.0": 3,
+        "226.0": 3,
+        "128.0": 3,
+        "312.0": 3,
+        "174.0": 3,
+        "166.0": 3,
+        "256.0": 3
+      }
+    },
+    "ExterQual": {
+      "unique": 4,
+      "top_values": {
+        "TA": 906,
+        "Gd": 488,
+        "Ex": 52,
+        "Fa": 14
+      }
+    },
+    "ExterCond": {
+      "unique": 5,
+      "top_values": {
+        "TA": 1282,
+        "Gd": 146,
+        "Fa": 28,
+        "Ex": 3,
+        "Po": 1
+      }
+    },
+    "Foundation": {
+      "unique": 6,
+      "top_values": {
+        "PConc": 647,
+        "CBlock": 634,
+        "BrkTil": 146,
+        "Slab": 24,
+        "Stone": 6,
+        "Wood": 3
+      }
+    },
+    "BsmtQual": {
+      "unique": 4,
+      "top_values": {
+        "TA": 649,
+        "Gd": 618,
+        "Ex": 121,
+        "Fa": 35
+      }
+    },
+    "BsmtCond": {
+      "unique": 4,
+      "top_values": {
+        "TA": 1311,
+        "Gd": 65,
+        "Fa": 45,
+        "Po": 2
+      }
+    },
+    "BsmtExposure": {
+      "unique": 4,
+      "top_values": {
+        "No": 953,
+        "Av": 221,
+        "Gd": 134,
+        "Mn": 114
+      }
+    },
+    "BsmtFinType1": {
+      "unique": 6,
+      "top_values": {
+        "Unf": 430,
+        "GLQ": 418,
+        "ALQ": 220,
+        "BLQ": 148,
+        "Rec": 133,
+        "LwQ": 74
+      }
+    },
+    "BsmtFinSF1": {
+      "unique": 637,
+      "top_values": {
+        "0": 467,
+        "24": 12,
+        "16": 9,
+        "662": 5,
+        "616": 5,
+        "20": 5,
+        "686": 5,
+        "936": 5,
+        "655": 4,
+        "504": 4,
+        "384": 4,
+        "588": 4,
+        "600": 4,
+        "1200": 4,
+        "300": 4,
+        "360": 4,
+        "495": 4,
+        "560": 4,
+        "641": 4,
+        "312": 4,
+        "697": 4,
+        "428": 4,
+        "553": 4,
+        "400": 4,
+        "442": 4,
+        "547": 4,
+        "732": 3,
+        "733": 3,
+        "1218": 3,
+        "643": 3,
+        "280": 3,
+        "456": 3,
+        "182": 3,
+        "490": 3,
+        "565": 3,
+        "336": 3,
+        "1201": 3,
+        "648": 3,
+        "569": 3,
+        "250": 3,
+        "570": 3,
+        "120": 3,
+        "695": 3,
+        "1300": 3,
+        "507": 3,
+        "680": 3,
+        "660": 3,
+        "288": 3,
+        "297": 3,
+        "626": 3
+      }
+    },
+    "BsmtFinType2": {
+      "unique": 6,
+      "top_values": {
+        "Unf": 1256,
+        "Rec": 54,
+        "LwQ": 46,
+        "BLQ": 33,
+        "ALQ": 19,
+        "GLQ": 14
+      }
+    },
+    "BsmtFinSF2": {
+      "unique": 144,
+      "top_values": {
+        "0": 1293,
+        "180": 5,
+        "374": 3,
+        "93": 2,
+        "712": 2,
+        "41": 2,
+        "279": 2,
+        "147": 2,
+        "294": 2,
+        "391": 2,
+        "539": 2,
+        "96": 2,
+        "551": 2,
+        "480": 2,
+        "182": 2,
+        "468": 2,
+        "287": 2,
+        "117": 2,
+        "64": 2,
+        "290": 2,
+        "469": 2,
+        "32": 1,
+        "668": 1,
+        "486": 1,
+        "491": 1,
+        "506": 1,
+        "362": 1,
+        "169": 1,
+        "869": 1,
+        "150": 1,
+        "670": 1,
+        "28": 1,
+        "1080": 1,
+        "181": 1,
+        "768": 1,
+        "215": 1,
+        "208": 1,
+        "441": 1,
+        "184": 1,
+        "306": 1,
+        "580": 1,
+        "690": 1,
+        "692": 1,
+        "228": 1,
+        "125": 1,
+        "1063": 1,
+        "620": 1,
+        "175": 1,
+        "820": 1,
+        "1474": 1
+      }
+    },
+    "BsmtUnfSF": {
+      "unique": 780,
+      "top_values": {
+        "0": 118,
+        "728": 9,
+        "384": 8,
+        "572": 7,
+        "600": 7,
+        "300": 7,
+        "440": 6,
+        "280": 6,
+        "625": 6,
+        "270": 6,
+        "672": 6,
+        "490": 5,
+        "216": 5,
+        "326": 5,
+        "816": 5,
+        "410": 5,
+        "162": 5,
+        "698": 5,
+        "319": 5,
+        "80": 5,
+        "264": 5,
+        "390": 5,
+        "108": 5,
+        "284": 4,
+        "192": 4,
+        "747": 4,
+        "840": 4,
+        "36": 4,
+        "684": 4,
+        "163": 4,
+        "168": 4,
+        "350": 4,
+        "556": 4,
+        "336": 4,
+        "396": 4,
+        "884": 4,
+        "340": 4,
+        "360": 4,
+        "312": 4,
+        "660": 4,
+        "276": 4,
+        "186": 4,
+        "92": 4,
+        "638": 4,
+        "125": 4,
+        "392": 4,
+        "88": 4,
+        "768": 4,
+        "324": 4,
+        "536": 4
+      }
+    },
+    "TotalBsmtSF": {
+      "unique": 721,
+      "top_values": {
+        "0": 37,
+        "864": 35,
+        "672": 17,
+        "912": 15,
+        "1040": 14,
+        "816": 13,
+        "728": 12,
+        "768": 12,
+        "780": 11,
+        "848": 11,
+        "894": 11,
+        "832": 10,
+        "756": 9,
+        "952": 9,
+        "630": 9,
+        "1056": 8,
+        "936": 8,
+        "840": 7,
+        "384": 7,
+        "1008": 7,
+        "720": 7,
+        "483": 7,
+        "600": 7,
+        "796": 6,
+        "876": 6,
+        "1362": 6,
+        "884": 6,
+        "1392": 6,
+        "858": 6,
+        "970": 5,
+        "896": 5,
+        "684": 5,
+        "990": 5,
+        "960": 5,
+        "793": 5,
+        "1092": 5,
+        "992": 5,
+        "928": 5,
+        "1728": 5,
+        "686": 5,
+        "1144": 5,
+        "1440": 5,
+        "1494": 4,
+        "1029": 4,
+        "1057": 4,
+        "747": 4,
+        "1080": 4,
+        "1078": 4,
+        "660": 4,
+        "924": 4
+      }
+    },
+    "Heating": {
+      "unique": 6,
+      "top_values": {
+        "GasA": 1428,
+        "GasW": 18,
+        "Grav": 7,
+        "Wall": 4,
+        "OthW": 2,
+        "Floor": 1
+      }
+    },
+    "HeatingQC": {
+      "unique": 5,
+      "top_values": {
+        "Ex": 741,
+        "TA": 428,
+        "Gd": 241,
+        "Fa": 49,
+        "Po": 1
+      }
+    },
+    "CentralAir": {
+      "unique": 2,
+      "top_values": {
+        "Y": 1365,
+        "N": 95
+      }
+    },
+    "Electrical": {
+      "unique": 5,
+      "top_values": {
+        "SBrkr": 1334,
+        "FuseA": 94,
+        "FuseF": 27,
+        "FuseP": 3,
+        "Mix": 1
+      }
+    },
+    "1stFlrSF": {
+      "unique": 753,
+      "top_values": {
+        "864": 25,
+        "1040": 16,
+        "912": 14,
+        "848": 12,
+        "894": 12,
+        "672": 11,
+        "816": 9,
+        "630": 9,
+        "960": 7,
+        "936": 7,
+        "483": 7,
+        "832": 7,
+        "840": 6,
+        "990": 6,
+        "728": 6,
+        "1728": 6,
+        "882": 6,
+        "720": 6,
+        "764": 6,
+        "1056": 6,
+        "796": 5,
+        "1494": 5,
+        "520": 5,
+        "780": 5,
+        "1072": 5,
+        "804": 5,
+        "774": 5,
+        "988": 5,
+        "1080": 5,
+        "958": 5,
+        "1200": 5,
+        "1392": 5,
+        "1236": 5,
+        "798": 5,
+        "1314": 5,
+        "1422": 5,
+        "858": 5,
+        "698": 5,
+        "1088": 5,
+        "616": 5,
+        "1120": 5,
+        "1026": 5,
+        "1144": 5,
+        "768": 5,
+        "980": 5,
+        "948": 5,
+        "1022": 4,
+        "1004": 4,
+        "900": 4,
+        "1057": 4
+      }
+    },
+    "2ndFlrSF": {
+      "unique": 417,
+      "top_values": {
+        "0": 829,
+        "728": 10,
+        "504": 9,
+        "672": 8,
+        "546": 8,
+        "720": 7,
+        "600": 7,
+        "896": 6,
+        "756": 5,
+        "689": 5,
+        "840": 5,
+        "780": 5,
+        "862": 5,
+        "739": 4,
+        "551": 4,
+        "741": 4,
+        "702": 4,
+        "804": 4,
+        "878": 4,
+        "866": 3,
+        "668": 3,
+        "670": 3,
+        "729": 3,
+        "880": 3,
+        "704": 3,
+        "888": 3,
+        "596": 3,
+        "807": 3,
+        "795": 3,
+        "871": 3,
+        "915": 3,
+        "886": 3,
+        "793": 3,
+        "858": 3,
+        "1254": 3,
+        "846": 3,
+        "660": 3,
+        "832": 3,
+        "684": 3,
+        "677": 3,
+        "742": 3,
+        "983": 2,
+        "1142": 2,
+        "1320": 2,
+        "716": 2,
+        "676": 2,
+        "860": 2,
+        "530": 2,
+        "808": 2,
+        "1330": 2
+      }
+    },
+    "LowQualFinSF": {
+      "unique": 24,
+      "top_values": {
+        "0": 1434,
+        "80": 3,
+        "360": 2,
+        "513": 1,
+        "234": 1,
+        "528": 1,
+        "572": 1,
+        "144": 1,
+        "392": 1,
+        "371": 1,
+        "390": 1,
+        "420": 1,
+        "473": 1,
+        "156": 1,
+        "515": 1,
+        "53": 1,
+        "232": 1,
+        "481": 1,
+        "120": 1,
+        "514": 1,
+        "397": 1,
+        "479": 1,
+        "205": 1,
+        "384": 1
+      }
+    },
+    "GrLivArea": {
+      "unique": 861,
+      "top_values": {
+        "864": 22,
+        "1040": 14,
+        "894": 11,
+        "1456": 10,
+        "848": 10,
+        "912": 9,
+        "1200": 9,
+        "816": 8,
+        "1092": 8,
+        "1728": 7,
+        "1344": 7,
+        "987": 7,
+        "1494": 6,
+        "1768": 6,
+        "1224": 6,
+        "1056": 6,
+        "630": 6,
+        "1484": 6,
+        "1710": 5,
+        "1656": 5,
+        "988": 5,
+        "990": 5,
+        "960": 5,
+        "1252": 5,
+        "1392": 5,
+        "1302": 5,
+        "1314": 5,
+        "1144": 5,
+        "1218": 5,
+        "1362": 4,
+        "1694": 4,
+        "1479": 4,
+        "1337": 4,
+        "1734": 4,
+        "1709": 4,
+        "882": 4,
+        "1382": 4,
+        "1442": 4,
+        "1414": 4,
+        "1440": 4,
+        "1668": 4,
+        "1792": 4,
+        "1632": 4,
+        "1250": 4,
+        "858": 4,
+        "1716": 4,
+        "1664": 4,
+        "1800": 4,
+        "1680": 4,
+        "1208": 4
+      }
+    },
+    "BsmtFullBath": {
+      "unique": 4,
+      "top_values": {
+        "0": 856,
+        "1": 588,
+        "2": 15,
+        "3": 1
+      }
+    },
+    "BsmtHalfBath": {
+      "unique": 3,
+      "top_values": {
+        "0": 1378,
+        "1": 80,
+        "2": 2
+      }
+    },
+    "FullBath": {
+      "unique": 4,
+      "top_values": {
+        "2": 768,
+        "1": 650,
+        "3": 33,
+        "0": 9
+      }
+    },
+    "HalfBath": {
+      "unique": 3,
+      "top_values": {
+        "0": 913,
+        "1": 535,
+        "2": 12
+      }
+    },
+    "BedroomAbvGr": {
+      "unique": 8,
+      "top_values": {
+        "3": 804,
+        "2": 358,
+        "4": 213,
+        "1": 50,
+        "5": 21,
+        "6": 7,
+        "0": 6,
+        "8": 1
+      }
+    },
+    "KitchenAbvGr": {
+      "unique": 4,
+      "top_values": {
+        "1": 1392,
+        "2": 65,
+        "3": 2,
+        "0": 1
+      }
+    },
+    "KitchenQual": {
+      "unique": 4,
+      "top_values": {
+        "TA": 735,
+        "Gd": 586,
+        "Ex": 100,
+        "Fa": 39
+      }
+    },
+    "TotRmsAbvGrd": {
+      "unique": 12,
+      "top_values": {
+        "6": 402,
+        "7": 329,
+        "5": 275,
+        "8": 187,
+        "4": 97,
+        "9": 75,
+        "10": 47,
+        "11": 18,
+        "3": 17,
+        "12": 11,
+        "2": 1,
+        "14": 1
+      }
+    },
+    "Functional": {
+      "unique": 7,
+      "top_values": {
+        "Typ": 1360,
+        "Min2": 34,
+        "Min1": 31,
+        "Mod": 15,
+        "Maj1": 14,
+        "Maj2": 5,
+        "Sev": 1
+      }
+    },
+    "Fireplaces": {
+      "unique": 4,
+      "top_values": {
+        "0": 690,
+        "1": 650,
+        "2": 115,
+        "3": 5
+      }
+    },
+    "FireplaceQu": {
+      "unique": 5,
+      "top_values": {
+        "Gd": 380,
+        "TA": 313,
+        "Fa": 33,
+        "Ex": 24,
+        "Po": 20
+      }
+    },
+    "GarageType": {
+      "unique": 6,
+      "top_values": {
+        "Attchd": 870,
+        "Detchd": 387,
+        "BuiltIn": 88,
+        "Basment": 19,
+        "CarPort": 9,
+        "2Types": 6
+      }
+    },
+    "GarageYrBlt": {
+      "unique": 97,
+      "top_values": {
+        "2005.0": 65,
+        "2006.0": 59,
+        "2004.0": 53,
+        "2003.0": 50,
+        "2007.0": 49,
+        "1977.0": 35,
+        "1998.0": 31,
+        "1999.0": 30,
+        "1976.0": 29,
+        "2008.0": 29,
+        "2000.0": 27,
+        "2002.0": 26,
+        "1968.0": 26,
+        "1950.0": 24,
+        "1993.0": 22,
+        "1965.0": 21,
+        "1962.0": 21,
+        "1958.0": 21,
+        "1966.0": 21,
+        "2009.0": 21,
+        "2001.0": 20,
+        "1970.0": 20,
+        "1957.0": 20,
+        "1996.0": 20,
+        "1960.0": 19,
+        "1954.0": 19,
+        "1997.0": 19,
+        "1978.0": 19,
+        "1995.0": 18,
+        "1964.0": 18,
+        "1974.0": 18,
+        "1994.0": 18,
+        "1959.0": 17,
+        "1963.0": 16,
+        "1990.0": 16,
+        "1956.0": 16,
+        "1967.0": 15,
+        "1979.0": 15,
+        "1969.0": 15,
+        "1980.0": 15,
+        "1973.0": 14,
+        "1920.0": 14,
+        "1988.0": 14,
+        "1972.0": 14,
+        "1940.0": 14,
+        "1961.0": 13,
+        "1971.0": 13,
+        "1955.0": 13,
+        "1992.0": 13,
+        "1953.0": 12
+      }
+    },
+    "GarageFinish": {
+      "unique": 3,
+      "top_values": {
+        "Unf": 605,
+        "RFn": 422,
+        "Fin": 352
+      }
+    },
+    "GarageCars": {
+      "unique": 5,
+      "top_values": {
+        "2": 824,
+        "1": 369,
+        "3": 181,
+        "0": 81,
+        "4": 5
+      }
+    },
+    "GarageArea": {
+      "unique": 441,
+      "top_values": {
+        "0": 81,
+        "440": 49,
+        "576": 47,
+        "240": 38,
+        "484": 34,
+        "528": 33,
+        "288": 27,
+        "400": 25,
+        "480": 24,
+        "264": 24,
+        "308": 20,
+        "420": 19,
+        "280": 16,
+        "672": 15,
+        "352": 12,
+        "504": 12,
+        "216": 12,
+        "336": 12,
+        "360": 11,
+        "564": 11,
+        "572": 10,
+        "300": 10,
+        "462": 10,
+        "540": 10,
+        "384": 9,
+        "180": 9,
+        "660": 9,
+        "312": 9,
+        "539": 9,
+        "286": 9,
+        "432": 8,
+        "520": 8,
+        "588": 8,
+        "550": 8,
+        "460": 7,
+        "506": 7,
+        "648": 7,
+        "624": 7,
+        "474": 7,
+        "840": 6,
+        "490": 6,
+        "461": 6,
+        "472": 6,
+        "546": 6,
+        "390": 6,
+        "380": 6,
+        "500": 6,
+        "492": 6,
+        "396": 6,
+        "525": 6
+      }
+    },
+    "GarageQual": {
+      "unique": 5,
+      "top_values": {
+        "TA": 1311,
+        "Fa": 48,
+        "Gd": 14,
+        "Ex": 3,
+        "Po": 3
+      }
+    },
+    "GarageCond": {
+      "unique": 5,
+      "top_values": {
+        "TA": 1326,
+        "Fa": 35,
+        "Gd": 9,
+        "Po": 7,
+        "Ex": 2
+      }
+    },
+    "PavedDrive": {
+      "unique": 3,
+      "top_values": {
+        "Y": 1340,
+        "N": 90,
+        "P": 30
+      }
+    },
+    "WoodDeckSF": {
+      "unique": 274,
+      "top_values": {
+        "0": 761,
+        "192": 38,
+        "100": 36,
+        "144": 33,
+        "120": 31,
+        "168": 28,
+        "140": 15,
+        "224": 14,
+        "240": 10,
+        "208": 10,
+        "216": 9,
+        "160": 8,
+        "180": 8,
+        "132": 6,
+        "143": 6,
+        "250": 6,
+        "264": 6,
+        "96": 6,
+        "156": 6,
+        "48": 5,
+        "171": 5,
+        "288": 5,
+        "196": 5,
+        "105": 5,
+        "210": 5,
+        "147": 4,
+        "74": 4,
+        "158": 4,
+        "182": 4,
+        "104": 4,
+        "64": 4,
+        "125": 4,
+        "220": 4,
+        "36": 4,
+        "40": 3,
+        "203": 3,
+        "113": 3,
+        "112": 3,
+        "80": 3,
+        "188": 3,
+        "239": 3,
+        "178": 3,
+        "280": 3,
+        "149": 3,
+        "108": 3,
+        "172": 3,
+        "201": 3,
+        "142": 3,
+        "88": 3,
+        "270": 3
+      }
+    },
+    "OpenPorchSF": {
+      "unique": 202,
+      "top_values": {
+        "0": 656,
+        "36": 29,
+        "48": 22,
+        "20": 21,
+        "45": 19,
+        "40": 19,
+        "30": 16,
+        "24": 16,
+        "60": 15,
+        "28": 14,
+        "39": 14,
+        "50": 13,
+        "54": 13,
+        "44": 13,
+        "72": 12,
+        "35": 11,
+        "32": 11,
+        "63": 11,
+        "98": 11,
+        "42": 10,
+        "75": 10,
+        "120": 10,
+        "96": 10,
+        "64": 9,
+        "66": 9,
+        "84": 8,
+        "56": 8,
+        "38": 8,
+        "70": 8,
+        "68": 8,
+        "16": 8,
+        "78": 8,
+        "33": 7,
+        "102": 7,
+        "130": 7,
+        "80": 7,
+        "25": 7,
+        "114": 7,
+        "27": 7,
+        "144": 7,
+        "46": 6,
+        "26": 6,
+        "55": 6,
+        "22": 6,
+        "140": 6,
+        "51": 6,
+        "100": 6,
+        "116": 6,
+        "21": 5,
+        "112": 5
+      }
+    },
+    "EnclosedPorch": {
+      "unique": 120,
+      "top_values": {
+        "0": 1252,
+        "112": 15,
+        "96": 6,
+        "144": 5,
+        "192": 5,
+        "120": 5,
+        "216": 5,
+        "156": 4,
+        "252": 4,
+        "116": 4,
+        "228": 3,
+        "176": 3,
+        "102": 3,
+        "128": 3,
+        "184": 3,
+        "40": 3,
+        "126": 3,
+        "150": 3,
+        "164": 3,
+        "205": 2,
+        "114": 2,
+        "202": 2,
+        "77": 2,
+        "180": 2,
+        "39": 2,
+        "224": 2,
+        "234": 2,
+        "244": 2,
+        "137": 2,
+        "108": 2,
+        "160": 2,
+        "34": 2,
+        "236": 2,
+        "32": 2,
+        "80": 2,
+        "115": 2,
+        "158": 2,
+        "36": 2,
+        "84": 2,
+        "240": 2,
+        "100": 2,
+        "154": 2,
+        "185": 2,
+        "264": 2,
+        "190": 2,
+        "168": 2,
+        "272": 1,
+        "87": 1,
+        "172": 1,
+        "37": 1
+      }
+    },
+    "3SsnPorch": {
+      "unique": 20,
+      "top_values": {
+        "0": 1436,
+        "168": 3,
+        "180": 2,
+        "144": 2,
+        "216": 2,
+        "320": 1,
+        "407": 1,
+        "130": 1,
+        "140": 1,
+        "508": 1,
+        "238": 1,
+        "245": 1,
+        "196": 1,
+        "182": 1,
+        "162": 1,
+        "23": 1,
+        "96": 1,
+        "153": 1,
+        "290": 1,
+        "304": 1
+      }
+    },
+    "ScreenPorch": {
+      "unique": 76,
+      "top_values": {
+        "0": 1344,
+        "192": 6,
+        "224": 5,
+        "120": 5,
+        "180": 4,
+        "189": 4,
+        "168": 3,
+        "144": 3,
+        "160": 3,
+        "90": 3,
+        "126": 3,
+        "147": 3,
+        "176": 2,
+        "198": 2,
+        "184": 2,
+        "142": 2,
+        "170": 2,
+        "259": 2,
+        "200": 2,
+        "100": 2,
+        "216": 2,
+        "288": 2,
+        "291": 1,
+        "252": 1,
+        "99": 1,
+        "130": 1,
+        "410": 1,
+        "266": 1,
+        "154": 1,
+        "153": 1,
+        "128": 1,
+        "271": 1,
+        "234": 1,
+        "374": 1,
+        "185": 1,
+        "182": 1,
+        "396": 1,
+        "140": 1,
+        "276": 1,
+        "161": 1,
+        "145": 1,
+        "122": 1,
+        "95": 1,
+        "60": 1,
+        "260": 1,
+        "385": 1,
+        "287": 1,
+        "156": 1,
+        "210": 1,
+        "197": 1
+      }
+    },
+    "PoolArea": {
+      "unique": 8,
+      "top_values": {
+        "0": 1453,
+        "512": 1,
+        "648": 1,
+        "576": 1,
+        "555": 1,
+        "480": 1,
+        "519": 1,
+        "738": 1
+      }
+    },
+    "PoolQC": {
+      "unique": 3,
+      "top_values": {
+        "Gd": 3,
+        "Ex": 2,
+        "Fa": 2
+      }
+    },
+    "Fence": {
+      "unique": 4,
+      "top_values": {
+        "MnPrv": 157,
+        "GdPrv": 59,
+        "GdWo": 54,
+        "MnWw": 11
+      }
+    },
+    "MiscFeature": {
+      "unique": 4,
+      "top_values": {
+        "Shed": 49,
+        "Gar2": 2,
+        "Othr": 2,
+        "TenC": 1
+      }
+    },
+    "MiscVal": {
+      "unique": 21,
+      "top_values": {
+        "0": 1408,
+        "400": 11,
+        "500": 8,
+        "700": 5,
+        "450": 4,
+        "2000": 4,
+        "600": 4,
+        "480": 2,
+        "1200": 2,
+        "350": 1,
+        "15500": 1,
+        "800": 1,
+        "3500": 1,
+        "1300": 1,
+        "54": 1,
+        "620": 1,
+        "560": 1,
+        "1400": 1,
+        "8300": 1,
+        "1150": 1,
+        "2500": 1
+      }
+    },
+    "MoSold": {
+      "unique": 12,
+      "top_values": {
+        "6": 253,
+        "7": 234,
+        "5": 204,
+        "4": 141,
+        "8": 122,
+        "3": 106,
+        "10": 89,
+        "11": 79,
+        "9": 63,
+        "12": 59,
+        "1": 58,
+        "2": 52
+      }
+    },
+    "YrSold": {
+      "unique": 5,
+      "top_values": {
+        "2009": 338,
+        "2007": 329,
+        "2006": 314,
+        "2008": 304,
+        "2010": 175
+      }
+    },
+    "SaleType": {
+      "unique": 9,
+      "top_values": {
+        "WD": 1267,
+        "New": 122,
+        "COD": 43,
+        "ConLD": 9,
+        "ConLI": 5,
+        "ConLw": 5,
+        "CWD": 4,
+        "Oth": 3,
+        "Con": 2
+      }
+    },
+    "SaleCondition": {
+      "unique": 6,
+      "top_values": {
+        "Normal": 1198,
+        "Partial": 125,
+        "Abnorml": 101,
+        "Family": 20,
+        "Alloca": 12,
+        "AdjLand": 4
+      }
+    },
+    "SalePrice": {
+      "unique": 663,
+      "top_values": {
+        "140000": 20,
+        "135000": 17,
+        "145000": 14,
+        "155000": 14,
+        "110000": 13,
+        "190000": 13,
+        "160000": 12,
+        "115000": 12,
+        "139000": 11,
+        "130000": 11,
+        "143000": 10,
+        "144000": 10,
+        "180000": 10,
+        "185000": 10,
+        "125000": 10,
+        "127000": 9,
+        "100000": 9,
+        "175000": 9,
+        "147000": 9,
+        "250000": 8,
+        "200000": 8,
+        "230000": 8,
+        "170000": 8,
+        "141000": 8,
+        "176000": 8,
+        "215000": 8,
+        "165000": 8,
+        "129000": 8,
+        "174000": 7,
+        "178000": 7,
+        "181000": 7,
+        "128000": 7,
+        "235000": 7,
+        "120000": 7,
+        "173000": 7,
+        "112000": 7,
+        "148000": 7,
+        "119000": 7,
+        "118000": 6,
+        "157000": 6,
+        "132000": 6,
+        "113000": 6,
+        "158000": 6,
+        "225000": 6,
+        "260000": 6,
+        "205000": 6,
+        "152000": 6,
+        "127500": 6,
+        "239000": 6,
+        "187500": 6
+      }
+    }
+  }
+}

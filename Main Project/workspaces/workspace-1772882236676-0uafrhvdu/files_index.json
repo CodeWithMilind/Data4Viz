@@ -1,0 +1,37 @@
+[
+  {
+    "file": "dataset_intelligence.json",
+    "type": "dataset",
+    "summary": "Dataset metadata and schema"
+  },
+  {
+    "file": "column_intelligence.json",
+    "type": "data",
+    "summary": "Contains: columns, generated_at"
+  },
+  {
+    "file": "files_index.json",
+    "type": "data",
+    "summary": "Index of workspace files"
+  },
+  {
+    "file": "dataset_analysis_state.json",
+    "type": "dataset",
+    "summary": "Dataset metadata and schema"
+  },
+  {
+    "file": "ai_chats/ai_chat_chat_1772883329340_wsohwonow.json",
+    "type": "conversation",
+    "summary": "Contains: messages"
+  },
+  {
+    "file": "ai_chats/ai_chat_recent_chat_1772883329340_wsohwonow.json",
+    "type": "conversation",
+    "summary": "Recent chat messages (working memory)"
+  },
+  {
+    "file": "ai_chats/index.json",
+    "type": "conversation",
+    "summary": "Contains: chats"
+  }
+]
